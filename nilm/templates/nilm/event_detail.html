@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Event Details</h1>
+<ul>
+    <li><strong>Location:</strong> <a href="{% url 'nilm:location_detail' event.location.pk %}">{{ event.location.description }}</a></li>
+    <li><strong>Type:</strong> {{ event.get_type_display }}</li>
+    <li><strong>Class:</strong> {{ event.class_name }}</li>
+    <li><strong>Start Time:</strong> {{ event.start_time }}</li>
+    <li><strong>End Time:</strong> {{ event.end_time }}</li>
+    <li><strong>Description:</strong> {{ event.description }}</li>
+</ul>
+<a href="{% url 'nilm:event_list' %}">Back to Events</a>
+{% endblock %} 

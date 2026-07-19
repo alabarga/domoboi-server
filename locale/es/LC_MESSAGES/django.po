@@ -1,0 +1,359 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-07-01 17:39+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: es\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: domoboi/settings.py:39 domoboi/settings.py:40
+msgid "DOMOBOI"
+msgstr "DOMOBOI"
+
+#: domoboi/settings.py:41
+msgid "Administration platform"
+msgstr "Plataforma de administración"
+
+#: domoboi/settings.py:51
+msgid "Despliegue"
+msgstr "Despliegue"
+
+#: domoboi/settings.py:56 nilm/templates/partials/main-nav.html:80
+msgid "Personas"
+msgstr "Personas"
+
+#: domoboi/settings.py:62
+msgid "Domicilios"
+msgstr "Domicilios"
+
+#: domoboi/settings.py:67
+msgid "Dispositivos"
+msgstr "Dispositivos"
+
+#: domoboi/settings.py:75
+msgid "Seguimiento"
+msgstr "Seguimiento"
+
+#: domoboi/settings.py:81
+msgid "Datos"
+msgstr "Datos"
+
+#: domoboi/settings.py:86 nilm/templates/partials/main-nav.html:61
+#: nilm/templates/partials/topbar.html:189
+msgid "Eventos"
+msgstr "Eventos"
+
+#: domoboi/settings.py:94
+msgid "Usuarios"
+msgstr "Usuarios"
+
+#: domoboi/settings.py:98
+msgid "Users"
+msgstr "Usuarios"
+
+#: domoboi/settings.py:103
+msgid "Groups"
+msgstr "Grupos"
+
+#: domoboi/settings.py:216
+msgid "Spanish"
+msgstr "Español"
+
+#: domoboi/settings.py:217
+msgid "Catalan"
+msgstr "Catalán"
+
+#: nilm/models.py:97
+msgid "Fridge"
+msgstr "Nevera"
+
+#: nilm/models.py:98
+msgid "Oven"
+msgstr "Horno"
+
+#: nilm/models.py:99
+msgid "Kettle"
+msgstr "Hervidor"
+
+#: nilm/models.py:100
+msgid "Microwave"
+msgstr "Microondas"
+
+#: nilm/models.py:101
+msgid "Washing Machine"
+msgstr "Lavadora"
+
+#: nilm/models.py:102
+msgid "Iron"
+msgstr "Plancha"
+
+#: nilm/models.py:103
+msgid "Lights"
+msgstr "Luces"
+
+#: nilm/models.py:104
+msgid "TV"
+msgstr "TV"
+
+#: nilm/models.py:107
+msgid "Normal"
+msgstr "Normal"
+
+#: nilm/models.py:108
+msgid "Unexpected"
+msgstr "Inesperado"
+
+#: nilm/models.py:109
+msgid "Anormal"
+msgstr "Anómalo"
+
+#: nilm/models.py:110
+msgid "Alert"
+msgstr "Alerta"
+
+#: nilm/templates/admin/index.html:6
+msgid "Django site admin"
+msgstr "Administración del sitio de Django"
+
+#: nilm/templates/admin/index.html:34
+msgid "Total Devices"
+msgstr "Total de dispositivos"
+
+#: nilm/templates/admin/index.html:51
+msgid "Active Last Hour"
+msgstr "Activos última hora"
+
+#: nilm/templates/admin/index.html:69
+msgid "Total Locations"
+msgstr "Total de ubicaciones"
+
+#: nilm/templates/admin/index.html:86
+msgid "Events Today"
+msgstr "Eventos de hoy"
+
+#: nilm/templates/admin/index.html:95
+msgid "Device Status Overview"
+msgstr "Resumen del estado del dispositivo"
+
+#: nilm/templates/admin/index.html:99
+msgid "Active Devices"
+msgstr "Dispositivos activos"
+
+#: nilm/templates/admin/index.html:103
+msgid "Inactive Devices"
+msgstr "Dispositivos inactivos"
+
+#: nilm/templates/admin/index.html:107
+msgid "Locations with Devices"
+msgstr "Ubicaciones con dispositivos"
+
+#: nilm/templates/admin/index.html:114
+msgid "Recent Device Activity"
+msgstr "Actividad reciente del dispositivo"
+
+#: nilm/templates/admin/index.html:126
+msgid "ago"
+msgstr "hace"
+
+#: nilm/templates/admin/index.html:130
+msgid "No recent device activity"
+msgstr "Sin actividad reciente"
+
+#: nilm/templates/nilm/dashboard.html:4 nilm/templates/nilm/dashboard.html:45
+#: nilm/templates/partials/main-nav.html:33
+#: nilm/templates/partials/topbar.html:182
+msgid "Panel de control"
+msgstr "Panel de control"
+
+#: nilm/templates/nilm/dashboard.html:45
+msgid "Sistema de monitoreo del hogar"
+msgstr "Sistema de monitoreo del hogar"
+
+#: nilm/templates/nilm/dashboard.html:57
+msgid "Total de Personas"
+msgstr "Total de Personas"
+
+#: nilm/templates/nilm/dashboard.html:74
+msgid "Total de Eventos"
+msgstr "Total de Eventos"
+
+#: nilm/templates/nilm/dashboard.html:91
+msgid "Ubicaciones Activas"
+msgstr "Ubicaciones Activas"
+
+#: nilm/templates/nilm/dashboard.html:108
+msgid "Actividad Reciente"
+msgstr "Actividad Reciente"
+
+#: nilm/templates/nilm/dashboard.html:127
+msgid "Últimos Eventos"
+msgstr "Últimos Eventos"
+
+#: nilm/templates/nilm/dashboard.html:138
+msgid "Cargando..."
+msgstr "Cargando..."
+
+#: nilm/templates/nilm/dashboard.html:147
+msgid "Mapa de Ubicaciones"
+msgstr "Mapa de Ubicaciones"
+
+#: nilm/templates/nilm/dashboard.html:148
+msgid "Ver Mapa"
+msgstr "Ver Mapa"
+
+#: nilm/templates/nilm/location_detail.html:39
+msgid "Detalles de la ubicación y monitoreo en tiempo real"
+msgstr "Detalles de la ubicación y monitoreo en tiempo real"
+
+#: nilm/templates/nilm/location_detail.html:47
+msgid "Volver a Domicilios"
+msgstr "Volver a Domicilios"
+
+#: nilm/templates/nilm/location_detail.html:51
+msgid "Editar Ubicación"
+msgstr "Editar Ubicación"
+
+#: nilm/templates/nilm/location_detail.html:64
+msgid "Puntuación de Salud"
+msgstr "Puntuación de Salud"
+
+#: nilm/templates/nilm/location_detail.html:79
+msgid "Alertas (Últimas 24h)"
+msgstr "Alertas (Últimas 24h)"
+
+#: nilm/templates/nilm/location_detail.html:94
+msgid "Alertas (Última semana)"
+msgstr "Alertas (Última semana)"
+
+#: nilm/templates/nilm/location_detail.html:110
+msgid "Mapa del Domicilio"
+msgstr "Mapa del Domicilio"
+
+#: nilm/templates/nilm/location_detail.html:123
+msgid "Residentes en la casa"
+msgstr "Residentes en la casa"
+
+#: nilm/templates/nilm/location_detail.html:136
+msgid "años"
+msgstr "años"
+
+#: nilm/templates/nilm/location_detail.html:147
+msgid "No hay residentes registrados en esta ubicación."
+msgstr "No hay residentes registrados en esta ubicación."
+
+#: nilm/templates/nilm/location_detail.html:161
+msgid "Lecturas y Mediciones Recientes"
+msgstr "Lecturas y Mediciones Recientes"
+
+#: nilm/templates/nilm/location_detail.html:169
+msgid "Fecha y Hora"
+msgstr "Fecha y Hora"
+
+#: nilm/templates/nilm/location_detail.html:170
+msgid "Valor (kW)"
+msgstr "Valor (kW)"
+
+#: nilm/templates/nilm/location_detail.html:184
+msgid "No hay mediciones registradas."
+msgstr "No hay mediciones registradas."
+
+#: nilm/templates/nilm/location_list.html:4
+#: nilm/templates/nilm/location_list.html:48
+#: nilm/templates/partials/main-nav.html:42
+#: nilm/templates/partials/topbar.html:186
+msgid "Ubicaciones"
+msgstr "Ubicaciones"
+
+#: nilm/templates/nilm/location_list.html:48
+msgid "Ubicaciones asignadas para monitoreo"
+msgstr "Ubicaciones asignadas para monitoreo"
+
+#: nilm/templates/nilm/location_list.html:54
+msgid "Mis Domicilios"
+msgstr "Mis Domicilios"
+
+#: nilm/templates/nilm/location_list.html:56
+msgid "Ver en el Mapa"
+msgstr "Ver en el Mapa"
+
+#: nilm/templates/nilm/location_list.html:71
+msgid "Puntuación"
+msgstr "Puntuación"
+
+#: nilm/templates/nilm/location_list.html:85
+msgid "residentes"
+msgstr "residentes"
+
+#: nilm/templates/nilm/location_list.html:88
+msgid "disp."
+msgstr "disp."
+
+#: nilm/templates/nilm/location_list.html:92
+msgid "Explorar"
+msgstr "Explorar"
+
+#: nilm/templates/nilm/location_list.html:103
+msgid "No hay ubicaciones asignadas"
+msgstr "No hay ubicaciones asignadas"
+
+#: nilm/templates/nilm/location_list.html:104
+msgid ""
+"Actualmente no tienes acceso a ningún domicilio. Contacta al administrador."
+msgstr ""
+"Actualmente no tienes acceso a ningún domicilio. Contacta al administrador."
+
+#: nilm/templates/nilm/partials/event_cards.html:47
+#, python-format
+msgid "%(mins)s min"
+msgstr "%(mins)s min"
+
+#: nilm/templates/partials/main-nav.html:26
+msgid "Monitoreo del hogar"
+msgstr "Monitoreo del hogar"
+
+#: nilm/templates/partials/main-nav.html:47
+msgid "Vista de Lista"
+msgstr "Vista de Lista"
+
+#: nilm/templates/partials/main-nav.html:50
+msgid "Vista de Mapa"
+msgstr "Vista de Mapa"
+
+#: nilm/templates/partials/main-nav.html:70
+#: nilm/templates/partials/topbar.html:178
+msgid "Mi perfil"
+msgstr "Mi perfil"
+
+#: nilm/templates/partials/main-nav.html:85
+msgid "Administración"
+msgstr "Administración"
+
+#: nilm/templates/partials/main-nav.html:93
+msgid "Gestionar usuarios"
+msgstr "Gestionar usuarios"
+
+#: nilm/templates/partials/main-nav.html:103
+#: nilm/templates/partials/topbar.html:192
+msgid "Panel de Administración"
+msgstr "Panel de Administración"
+
+#: nilm/templates/partials/topbar.html:175
+#, python-format
+msgid "¡Bienvenido, %(username)s!"
+msgstr "¡Bienvenido, %(username)s!"
+
+#: nilm/templates/partials/topbar.html:198
+msgid "Cerrar sesión"
+msgstr "Cerrar sesión"

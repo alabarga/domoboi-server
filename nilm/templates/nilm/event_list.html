@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Events</h1>
+<ul>
+    {% for event in events %}
+        <li><a href="{% url 'nilm:event_detail' event.pk %}">{{ event }}</a> ({{ event.start_time }} - {{ event.end_time }})</li>
+    {% empty %}
+        <li>No events found.</li>
+    {% endfor %}
+</ul>
+<a href="{% url 'nilm:dashboard' %}">Back to Dashboard</a>
+{% endblock %} 

@@ -1,0 +1,158 @@
+{% extends "vertical.html" %}
+{% load static i18n %}
+
+{% block title %}User Profile{% endblock title %}
+
+{% block page_title %}
+{% include 'partials/page-title.html' with title='User Profile' subtitle='View and update your settings' %}
+{% endblock page_title %}
+
+{% block page_content %}
+<div class="row">
+    <!-- Profile Card & Quick Info -->
+    <div class="col-xl-4 col-lg-5">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="avatar-xl mx-auto mb-3 bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style="width: 100px; height: 100px;">
+                    <i class="ri-user-3-line text-primary" style="font-size: 48px;"></i>
+                </div>
+                <h4 class="mb-1 text-dark fw-bold">{{ user.get_full_name|default:user.username }}</h4>
+                <p class="text-muted mb-3">@{{ user.username }}</p>
+                
+                {% if user.is_superuser %}
+                <span class="badge bg-danger-subtle text-danger px-3 py-2 fs-12 mb-2">Administrator</span>
+                {% else %}
+                <span class="badge bg-success-subtle text-success px-3 py-2 fs-12 mb-2">Standard User</span>
+                {% endif %}
+
+                <hr class="my-4">
+
+                <div class="text-start">
+                    <h5 class="fs-15 text-dark fw-semibold mb-3">Contact Information</h5>
+                    <p class="text-muted mb-2"><i class="ri-mail-line me-2 align-middle"></i>{{ user.email|default:"No email registered" }}</p>
+                    <p class="text-muted mb-2"><i class="ri-calendar-line me-2 align-middle"></i>Joined: {{ user.date_joined|date:"M d, Y" }}</p>
+                    <p class="text-muted mb-0"><i class="ri-time-line me-2 align-middle"></i>Last Login: {{ user.last_login|date:"M d, Y H:i" }}</p>
+                </div>
+            </div>
+        </div>
+
+        {% if user.is_superuser %}
+        <!-- Admin quick navigation card -->
+        <div class="card mt-3">
+            <div class="card-body">
+                <h5 class="fs-15 text-dark fw-semibold mb-3">Administrative Actions</h5>
+                <a href="{% url 'nilm:admin_profile_list' %}" class="btn btn-outline-primary w-100 d-flex align-items-center justify-content-center gap-2">
+                    <i class="ri-shield-user-line"></i> Manage User Profiles
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Edit Profile and Assigned Locations -->
+    <div class="col-xl-8 col-lg-7">
+        <!-- Edit Profile form -->
+        <div class="card">
+            <div class="card-header border-0 d-flex justify-content-between align-items-center">
+                <h4 class="card-title mb-0">Personal Details</h4>
+            </div>
+            <div class="card-body pt-0">
+                <form method="post" action="{% url 'nilm:profile' %}">
+                    {% csrf_token %}
+                    
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="id_first_name" class="form-label">First Name</label>
+                            {{ form.first_name }}
+                            {% if form.first_name.errors %}
+                                <div class="text-danger mt-1 fs-13">{{ form.first_name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="id_last_name" class="form-label">Last Name</label>
+                            {{ form.last_name }}
+                            {% if form.last_name.errors %}
+                                <div class="text-danger mt-1 fs-13">{{ form.last_name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_email" class="form-label">Email Address</label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                            <div class="text-danger mt-1 fs-13">{{ form.email.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="ri-save-line me-1"></i> Save Changes
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Assigned Locations -->
+        <div class="card mt-4">
+            <div class="card-header border-0 d-flex justify-content-between align-items-center">
+                <h4 class="card-title mb-0">Assigned Locations</h4>
+                <span class="badge bg-primary rounded-pill">{{ locations|length }} Location(s)</span>
+            </div>
+            <div class="card-body pt-0">
+                {% if locations %}
+                <div class="table-responsive">
+                    <table class="table table-centered table-nowrap mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col">Location</th>
+                                <th scope="col">Address</th>
+                                <th scope="col">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for loc in locations %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-sm bg-primary bg-opacity-10 rounded me-3 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                            <i class="ri-map-pin-line text-primary"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-0 text-dark fw-semibold">{{ loc.description }}</h6>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><span class="text-muted">{{ loc.address }}</span></td>
+                                <td>
+                                    <a href="{% url 'nilm:location_detail' loc.pk %}" class="btn btn-sm btn-outline-secondary">
+                                        <i class="ri-eye-line"></i> View
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="ri-map-pin-line text-muted mb-3" style="font-size: 40px; display: block;"></i>
+                    <p class="text-muted mb-0">No locations have been assigned to your profile yet.</p>
+                    {% if not user.is_superuser %}
+                        <p class="text-muted fs-13">Please contact the administrator to assign locations.</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock page_content %}

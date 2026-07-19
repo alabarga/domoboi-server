@@ -1,0 +1,134 @@
+{% extends "vertical.html" %}
+{% load static i18n %}
+
+{% block title %}{% translate "Panel de control" %}{% endblock title %}
+
+{% block page_title %}
+{% include 'partials/page-title.html' with title=_("Panel de control") subtitle=_("Sistema de monitoreo del hogar") %}
+{% endblock page_title %}
+
+{% block page_content %}
+
+<!-- Statistics Cards -->
+<div class="row">
+    <div class="col-md-6 col-xl-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <p class="mb-2 fs-15 fw-medium">{% translate "Total de Personas" %}</p>
+                        <h3 class="text-dark fw-bold d-flex align-items-center gap-2 mb-0">{{ total_persons }}</h3>
+                    </div>
+                    <div>
+                        <div class="avatar-md bg-primary bg-opacity-10 rounded">
+                            <i class="ri-group-line fs-32 text-primary avatar-title"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <p class="mb-2 fs-15 fw-medium">{% translate "Total de Eventos" %}</p>
+                        <h3 class="text-dark fw-bold d-flex align-items-center gap-2 mb-0">{{ total_events }}</h3>
+                    </div>
+                    <div>
+                        <div class="avatar-md bg-success bg-opacity-10 rounded">
+                            <i class="ri-notification-line fs-32 text-success avatar-title"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <p class="mb-2 fs-15 fw-medium">{% translate "Ubicaciones Activas" %}</p>
+                        <h3 class="text-dark fw-bold d-flex align-items-center gap-2 mb-0">{{ locations|length }}</h3>
+                    </div>
+                    <div>
+                        <div class="avatar-md bg-warning bg-opacity-10 rounded">
+                            <i class="ri-map-pin-line fs-32 text-warning avatar-title"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <p class="mb-2 fs-15 fw-medium">{% translate "Actividad Reciente" %}</p>
+                        <h3 class="text-dark fw-bold d-flex align-items-center gap-2 mb-0">{{ total_events }}</h3>
+                    </div>
+                    <div>
+                        <div class="avatar-md bg-info bg-opacity-10 rounded">
+                            <i class="ri-time-line fs-32 text-info avatar-title"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Locations Map -->
+    <div class="col-12">
+        <div class="card shadow-sm border border-opacity-50">
+            <div class="card-header d-flex justify-content-between align-items-center border-0">
+                <h4 class="card-title text-dark fw-bold">{% translate "Mapa de Ubicaciones" %}</h4>
+                <a href="{% url 'nilm:location_map' %}" class="btn btn-sm btn-outline-primary">{% translate "Ver Mapa Completo" %}</a>
+            </div>
+            <div class="card-body p-2">
+                {% include 'partials/map.html' %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock page_content %}
+
+{% block extra_javascript %}
+  <script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}"></script>
+  <script src="{% static 'vendor/gmaps/gmaps.min.js' %}"></script>
+  {% if locations %}
+    <script id="marker-data" type="application/json">
+      [
+      {% for location in locations %}
+        {"lat": {{ location.location|cut:' '|cut:','|slice:':8' }}, "lng": {{ location.location|cut:' '|cut:','|slice:'9:' }}, "title": "{{ location.description|escapejs }}"}{% if not forloop.last %},{% endif %}
+      {% endfor %}
+      ]
+    </script>
+  {% endif %}
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize Maps
+      if (document.getElementById('gmaps-markers')) {
+        var markerData = [];
+        try {
+          markerData = JSON.parse(document.getElementById('marker-data').textContent);
+        } catch (e) {}
+        var center = markerData.length ? markerData[0] : {lat: 41.3874, lng: 2.1686};
+        var map = new GMaps({
+          div: '#gmaps-markers',
+          lat: center.lat,
+          lng: center.lng,
+          zoom: 12
+        });
+        markerData.forEach(function(marker) {
+          map.addMarker(marker);
+        });
+      }
+    });
+  </script>
+{% endblock %}

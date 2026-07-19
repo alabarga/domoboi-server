@@ -1,0 +1,182 @@
+{% extends "vertical.html" %}
+
+{% load static i18n %}
+{% load event_utils %}
+
+{% block title %}{{ person.name }}{% endblock title %}
+
+{% block page_title %}
+{% include 'partials/page-title.html' with title=person.name subtitle='Person Details' %}
+{% endblock page_title %}
+
+{% block page_content %}
+
+<!-- Person Details Card -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center border-0">
+                <h4 class="card-title">Person Information</h4>
+                <a href="{% url 'nilm:dashboard' %}" class="btn btn-sm btn-outline-primary">
+                    <i class="ri-arrow-left-line"></i> Back to Dashboard
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="row">
+                            <div class="col-sm-6 mb-3">
+                                <label class="form-label text-muted">Name</label>
+                                <h5 class="mb-0">{{ person.name }}</h5>
+                            </div>
+                            <div class="col-sm-6 mb-3">
+                                <label class="form-label text-muted">Age</label>
+                                <h5 class="mb-0">
+                                    <span class="badge bg-info-subtle text-info">{{ person.age }} years</span>
+                                </h5>
+                            </div>
+                            <div class="col-sm-6 mb-3">
+                                <label class="form-label text-muted">Gender</label>
+                                <h5 class="mb-0">
+                                    <span class="badge bg-secondary-subtle text-secondary">
+                                        {{ person.get_gender_display }}
+                                    </span>
+                                </h5>
+                            </div>
+                            <div class="col-sm-6 mb-3">
+                                <label class="form-label text-muted">Location</label>
+                                <h5 class="mb-0">
+                                    <a href="{% url 'nilm:location_detail' person.location.pk %}" class="text-decoration-none">
+                                        <i class="ri-map-pin-line me-1"></i>{{ person.location.description }}
+                                    </a>
+                                </h5>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label class="form-label text-muted">Description</label>
+                                <p class="mb-0">
+                                    {% if person.description %}
+                                        {{ person.description }}
+                                    {% else %}
+                                        <span class="text-muted">No description available</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <div class="avatar-xl bg-primary bg-opacity-10 rounded mx-auto mb-3">
+                            <i class="ri-user-line fs-48 text-primary avatar-title"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Events Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center border-0">
+                <h4 class="card-title">Events for {{ person.name }}</h4>
+                <a href="{% url 'nilm:location_detail' person.location.pk %}" class="btn btn-sm btn-outline-primary">
+                    <i class="ri-map-pin-line"></i> View Location
+                </a>
+            </div>
+            <div class="card-body">
+                {% if events %}
+                    {% regroup events by start_time|date:"Y-m-d" as events_by_date %}
+                    {% for date_group in events_by_date %}
+                    <div class="mb-4">
+                        <h6 class="text-muted mb-3">{{ date_group.grouper|date:"l, F d, Y" }}</h6>
+                        {% for event in date_group.list %}
+                        <div class="mb-2">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex align-items-center mb-1">
+                                                <h6 class="card-title mb-0 me-2">{{ event.get_type_display }}</h6>
+                                                <span class="badge bg-{{ event.class_name|get_event_badge_class }}">
+                                                    {{ event.get_class_name_display }}
+                                                </span>
+                                            </div>
+                                            <div class="text-muted small">
+                                                {{ event.start_time|date:"H:i" }} - {{ event.end_time|date:"H:i" }}
+                                            </div>
+                                            {% if event.description %}
+                                            <div class="text-muted small mt-1">{{ event.description }}</div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="ms-3">
+                                            <i class="{{ event.type|get_event_icon }} display-6"
+                                               style="color: {{ event.class_name|get_event_color }};"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="ri-notification-line fs-48 text-muted mb-3"></i>
+                        <p class="mb-0">No events found for this person.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Comments Section -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header border-0">
+                <h4 class="card-title">Comments</h4>
+            </div>
+            <div class="card-body">
+                {% if comments %}
+                    {% for comment in comments %}
+                    <div class="d-flex mb-3">
+                        <div class="avatar-sm bg-light rounded me-3">
+                            <i class="ri-user-line fs-18 text-muted avatar-title"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center mb-1">
+                                <h6 class="mb-0 me-2">{{ comment.author.username }}</h6>
+                                <small class="text-muted">{{ comment.timestamp|date:"M d, Y H:i" }}</small>
+                            </div>
+                            <p class="mb-0">{{ comment.message }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center text-muted py-3">
+                        <i class="ri-chat-1-line fs-48 text-muted mb-3"></i>
+                        <p class="mb-0">No comments yet.</p>
+                    </div>
+                {% endif %}
+                
+                <!-- Add Comment Form -->
+                <div class="mt-4">
+                    <h6>Add a Comment</h6>
+                    <form method="post" action="{% url 'nilm:add_comment' person.pk %}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <textarea name="message" class="form-control" rows="3" placeholder="Write your comment here..." required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="ri-send-plane-line"></i> Add Comment
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock page_content %} 

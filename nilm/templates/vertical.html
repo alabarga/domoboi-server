@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% load static i18n %}
+
+{% block html_attribute %}{% endblock html_attribute %}
+
+{% block title %}{% endblock title %}
+
+{% block extra_css %}{% endblock extra_css %}
+
+{% block body_attribute %}{% endblock body_attribute %}
+
+{% block content %}
+
+{% block preloader %}{% endblock preloader %}
+
+<div class="wrapper" style="padding-left: 0 !important;">
+
+    <div class="page-content" style="margin-left: 0 !important; padding-top: 20px !important;">
+
+        <div class="container-fluid">
+            <!-- Simplified Language Switcher Bar -->
+            <div class="row mb-3">
+                <div class="col-12 d-flex justify-content-end align-items-center gap-2">
+                    {% if user.is_authenticated %}
+                        <span class="text-muted fs-13 me-2">{% translate "Usuario" %}: <strong>{{ user.username }}</strong></span>
+                        <a href="{% url 'nilm:dashboard' %}" class="btn btn-xs btn-outline-secondary fs-12 py-1"><i class="ri-dashboard-2-line"></i> {% translate "Inicio" %}</a>
+                        <a href="{% url 'nilm:location_list' %}" class="btn btn-xs btn-outline-secondary fs-12 py-1"><i class="ri-map-pin-line"></i> {% translate "Ubicaciones" %}</a>
+                        <a href="{% url 'logout' %}" class="btn btn-xs btn-outline-danger fs-12 py-1"><i class="ri-logout-box-r-line"></i> {% translate "Salir" %}</a>
+                    {% endif %}
+                    <form action="{% url 'set_language' %}" method="post" class="d-flex align-items-center ms-2">
+                        {% csrf_token %}
+                        <input name="next" type="hidden" value="{{ request.get_full_path }}">
+                        <select name="language" onchange="this.form.submit()" class="form-select form-select-sm border border-secondary rounded text-dark fw-medium" style="cursor: pointer; width: auto; height: 30px; font-size: 12px; padding: 2px 20px 2px 8px;">
+                            {% get_current_language as LANGUAGE_CODE %}
+                            {% get_available_languages as LANGUAGES %}
+                            {% get_language_info_list for LANGUAGES as languages_list %}
+                            {% for language in languages_list %}
+                                <option value="{{ language.code }}" {% if language.code == LANGUAGE_CODE %}selected{% endif %}>
+                                    {% if language.code == 'es' %}ES{% elif language.code == 'ca' %}CA{% else %}{{ language.code|upper }}{% endif %}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </form>
+                </div>
+            </div>
+
+            {% block page_content %}{% endblock page_content %}
+        </div>
+
+        {% include 'partials/footer.html' %}
+    </div>
+</div>
+
+{% block modal %}{% endblock modal %}
+{% include 'partials/right-sidebar.html' %}
+
+{% endblock content %}
+
+{% block extra_javascript %}{% endblock extra_javascript %} 

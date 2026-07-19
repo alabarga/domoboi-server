@@ -1,0 +1,7 @@
+Django
+django-unfold
+python-dotenv
+django-location-field
+six
+whitenoise
+django-extensions

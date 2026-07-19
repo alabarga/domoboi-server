@@ -1,0 +1,331 @@
+{% extends "vertical.html" %}
+{% load static i18n %}
+
+{% block title %}{{ location.description }}{% endblock title %}
+
+{% block extra_css %}
+<style>
+    /* Metric Cards background colors */
+    .metric-score-green {
+        background-color: #e6f6ee !important;
+        border: 1px solid #b3e6cc !important;
+        color: #0f623a !important;
+    }
+    .metric-score-orange {
+        background-color: #fef3e6 !important;
+        border: 1px solid #fcd8ad !important;
+        color: #a45b00 !important;
+    }
+    .metric-score-red {
+        background-color: #fce8e6 !important;
+        border: 1px solid #fbc2c4 !important;
+        color: #a8201a !important;
+    }
+    
+    .metric-danger {
+        background-color: #ffebee !important;
+        border: 1px solid #ffcdd2 !important;
+        color: #c62828 !important;
+    }
+    .metric-normal {
+        background-color: #f8f9fa !important;
+        border: 1px solid #e9ecef !important;
+        color: #495057 !important;
+    }
+
+    /* Pastel palettes for events */
+    .card-event-normal {
+        background-color: #e8f5e9 !important; /* Pastel Green */
+        border-color: #c8e6c9 !important;
+    }
+    .badge-event-normal {
+        background-color: #c8e6c9 !important;
+        color: #2e7d32 !important;
+    }
+    .card-event-unexpected {
+        background-color: #e3f2fd !important; /* Pastel Blue */
+        border-color: #bbdefb !important;
+    }
+    .badge-event-unexpected {
+        background-color: #bbdefb !important;
+        color: #1565c0 !important;
+    }
+    .card-event-anormal {
+        background-color: #fff3e0 !important; /* Pastel Orange */
+        border-color: #ffe0b2 !important;
+    }
+    .badge-event-anormal {
+        background-color: #ffe0b2 !important;
+        color: #e65100 !important;
+    }
+    .card-event-alert {
+        background-color: #ffebee !important; /* Pastel Red */
+        border-color: #ffcdd2 !important;
+    }
+    .badge-event-alert {
+        background-color: #ffcdd2 !important;
+        color: #c62828 !important;
+    }
+</style>
+{% endblock %}
+
+{% block page_title %}
+{% include 'partials/page-title.html' with title=location.description subtitle=_("Detalles de la ubicación y monitoreo en tiempo real") %}
+{% endblock page_title %}
+
+{% block page_content %}
+<!-- Back and Action buttons -->
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <a href="{% url 'nilm:location_list' %}" class="btn btn-outline-secondary d-flex align-items-center gap-2">
+            <i class="ri-arrow-left-line"></i> {% translate "Volver a Domicilios" %}
+        </a>
+        {% if perms.nilm.change_location or user.is_superuser %}
+        <a href="{% url 'nilm:location_update' location.pk %}" class="btn btn-primary d-flex align-items-center gap-2">
+            <i class="ri-edit-line"></i> {% translate "Editar Ubicación" %}
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Metrics Row -->
+<div class="row">
+    <!-- Health Score Metric Card -->
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 shadow-sm border border-opacity-50 {% if location.score_class == 'score-green' %}metric-score-green{% elif location.score_class == 'score-orange' %}metric-score-orange{% else %}metric-score-red{% endif %}">
+            <div class="card-body d-flex align-items-center justify-content-between">
+                <div>
+                    <p class="mb-1 fs-14 fw-medium text-uppercase opacity-75">{% translate "Puntuación de Salud" %}</p>
+                    <h2 class="fw-bold mb-0 text-current">{{ location.score }} / 100</h2>
+                </div>
+                <div class="avatar-md bg-white bg-opacity-75 rounded-circle d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
+                    <i class="ri-heart-pulse-line fs-28"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alerts last 24 hours -->
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 shadow-sm border border-opacity-50 {% if location.alerts_last_24h > 0 %}metric-danger{% else %}metric-normal{% endif %}">
+            <div class="card-body d-flex align-items-center justify-content-between">
+                <div>
+                    <p class="mb-1 fs-14 fw-medium text-uppercase {% if location.alerts_last_24h > 0 %}text-current{% else %}text-muted{% endif %}">{% translate "Alertas (Últimas 24h)" %}</p>
+                    <h2 class="fw-bold mb-0 text-current">{{ location.alerts_last_24h }}</h2>
+                </div>
+                <div class="avatar-md bg-white rounded-circle d-flex align-items-center justify-content-center shadow-xs" style="width: 56px; height: 56px;">
+                    <i class="ri-alarm-warning-line fs-28 {% if location.alerts_last_24h > 0 %}text-danger{% else %}text-muted{% endif %}"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alerts last week -->
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 shadow-sm border border-opacity-50 {% if location.alerts_last_week > 0 %}metric-danger{% else %}metric-normal{% endif %}">
+            <div class="card-body d-flex align-items-center justify-content-between">
+                <div>
+                    <p class="mb-1 fs-14 fw-medium text-uppercase {% if location.alerts_last_week > 0 %}text-current{% else %}text-muted{% endif %}">{% translate "Alertas (Última semana)" %}</p>
+                    <h2 class="fw-bold mb-0 text-current">{{ location.alerts_last_week }}</h2>
+                </div>
+                <div class="avatar-md bg-white rounded-circle d-flex align-items-center justify-content-center shadow-xs" style="width: 56px; height: 56px;">
+                    <i class="ri-calendar-event-line fs-28 {% if location.alerts_last_week > 0 %}text-danger{% else %}text-muted{% endif %}"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Map panel -->
+    <div class="col-lg-8 mb-4">
+        <div class="card h-100">
+            <div class="card-header border-0 d-flex align-items-center justify-content-between pb-0">
+                <h4 class="card-title mb-0">{% translate "Mapa del Domicilio" %}</h4>
+                <span class="fs-13 text-muted"><i class="ri-map-pin-line"></i> {{ location.address }}</span>
+            </div>
+            <div class="card-body">
+                <div id="gmaps-markers" class="gmaps rounded shadow-xs" style="height: 350px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Residing Persons list -->
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header border-0 pb-0">
+                <h4 class="card-title">{% translate "Residentes en la casa" %}</h4>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    {% for person in persons %}
+                    <div class="list-group-item px-0 py-3 d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="avatar-sm bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                <i class="ri-user-line text-primary fs-18"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0 fw-bold text-dark">{{ person.name }}</h6>
+                                <span class="fs-12 text-muted">
+                                    {{ person.get_gender_display }} - {{ person.age }} {% translate "años" %}
+                                </span>
+                            </div>
+                        </div>
+                        <a href="{% url 'nilm:person_detail' person.pk %}" class="btn btn-sm btn-outline-secondary">
+                            <i class="ri-arrow-right-line"></i>
+                        </a>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-4">
+                        <i class="ri-group-line text-muted mb-2 fs-24 d-block"></i>
+                        <p class="text-muted mb-0">{% translate "No hay residentes registrados en esta ubicación." %}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scrollable Events Feed Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <h4 class="card-title text-dark fw-bold mb-3">{% translate "Historial de Eventos del Domicilio" %}</h4>
+        <div class="row g-3" id="events-scroll-container">
+            {% include 'nilm/partials/event_cards.html' %}
+        </div>
+        <!-- Loading Spinner -->
+        <div id="events-loading-spinner" class="text-center my-4 d-none">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">{% translate "Cargando..." %}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Measurements (Optional, but included for completeness) -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header border-0">
+                <h4 class="card-title">{% translate "Lecturas y Mediciones Recientes" %}</h4>
+            </div>
+            <div class="card-body pt-0">
+                {% if recent_measurements %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-centered">
+                        <thead>
+                            <tr>
+                                <th>{% translate "Fecha y Hora" %}</th>
+                                <th>{% translate "Valor (kW)" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for m in recent_measurements %}
+                            <tr>
+                                <td>{{ m.timestamp|date:"M d, Y H:i:s" }}</td>
+                                <td><span class="badge bg-info-subtle text-info fs-12">{{ m.value }} kW</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted">{% translate "No hay mediciones registradas." %}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock page_content %}
+
+{% block extra_javascript %}
+  <script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}"></script>
+  <script src="{% static 'vendor/gmaps/gmaps.min.js' %}"></script>
+  <script id="marker-data" type="application/json">
+    [
+      {"lat": {{ location.location|cut:' '|cut:','|slice:':8' }}, "lng": {{ location.location|cut:' '|cut:','|slice:'9:' }}, "title": "{{ location.description|escapejs }}"}
+    ]
+  </script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Maps initialization
+      if (document.getElementById('gmaps-markers')) {
+        var markerData = [];
+        try {
+          markerData = JSON.parse(document.getElementById('marker-data').textContent);
+        } catch (e) {}
+        var center = markerData.length ? markerData[0] : {lat: 41.3874, lng: 2.1686};
+        var map = new GMaps({
+          div: '#gmaps-markers',
+          lat: center.lat,
+          lng: center.lng,
+          zoom: 15
+        });
+        markerData.forEach(function(marker) {
+          map.addMarker(marker);
+        });
+      }
+
+      // Infinite scroll logic for location details page events
+      (function() {
+        var page = 1;
+        var hasNext = {{ has_next_events|yesno:"true,false" }};
+        var loading = false;
+        var container = document.getElementById('events-scroll-container');
+        var spinner = document.getElementById('events-loading-spinner');
+
+        if (!container) return;
+
+        function loadMoreEvents() {
+          if (loading || !hasNext) return;
+          loading = true;
+          spinner.classList.remove('d-none');
+          page += 1;
+
+          fetch('{% url "nilm:event_load_more" %}?location_id={{ location.id }}&page=' + page)
+            .then(function(response) {
+              if (!response.ok) throw new Error('Network error');
+              var hasNextHeader = response.headers.get('X-Has-Next');
+              hasNext = (hasNextHeader === 'true');
+              return response.text();
+            })
+            .then(function(html) {
+              if (html.trim().length > 0) {
+                container.insertAdjacentHTML('beforeend', html);
+              }
+              loading = false;
+              spinner.classList.add('d-none');
+              if (!hasNext) {
+                if (observer) observer.disconnect();
+              }
+            })
+            .catch(function(err) {
+              console.error('Error loading events:', err);
+              loading = false;
+              spinner.classList.add('d-none');
+            });
+        }
+
+        var observerOptions = {
+          root: null,
+          rootMargin: '100px',
+          threshold: 0.1
+        };
+
+        var observer = new IntersectionObserver(function(entries) {
+          entries.forEach(function(entry) {
+            if (entry.isIntersecting) {
+              loadMoreEvents();
+            }
+          });
+        }, observerOptions);
+
+        observer.observe(spinner);
+        if (hasNext) {
+          spinner.classList.remove('d-none');
+        }
+      })();
+    });
+  </script>
+{% endblock %}

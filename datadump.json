@@ -1,0 +1,2370 @@
+[
+{
+    "model": "auth.user",
+    "fields": {
+        "password": "pbkdf2_sha256$1000000$MD845X63zqCypZ5UBibJF5$aUnNv3Jot/ZoGxc4O6q200t7RVoN5zDz/uVij7OflxU=",
+        "last_login": "2025-09-10T06:47:18.486Z",
+        "is_superuser": true,
+        "username": "alabarga",
+        "first_name": "Alberto",
+        "last_name": "Labarga",
+        "email": "alberto.labarga@gmail.com",
+        "is_staff": true,
+        "is_active": true,
+        "date_joined": "2025-07-07T21:32:07Z",
+        "groups": [],
+        "user_permissions": []
+    }
+},
+{
+    "model": "auth.user",
+    "fields": {
+        "password": "pbkdf2_sha256$1000000$o7WfVOcqNFAgIzvxOPGqD5$Ze3zRLM0x66RXLQzaEvVQEva76GJ2NsePEfniDh1iIU=",
+        "last_login": "2026-07-17T12:29:06.678Z",
+        "is_superuser": true,
+        "username": "suara",
+        "first_name": "Francisco",
+        "last_name": "Guzman",
+        "email": "franciscoguzmanz@suara.coop",
+        "is_staff": true,
+        "is_active": true,
+        "date_joined": "2025-09-10T06:35:48Z",
+        "groups": [],
+        "user_permissions": []
+    }
+},
+{
+    "model": "sessions.session",
+    "pk": "2z64jizn5v9no4tc3u9bkd9o6gwcv740",
+    "fields": {
+        "session_data": ".eJxVjEEOwiAQRe_C2pAOlAIu3XsGMsxMpWpoUtqV8e7apAvd_vfef6mE21rS1mRJE6uzMur0u2Wkh9Qd8B3rbdY013WZst4VfdCmrzPL83K4fwcFW_nWIYAzEHFgDyyZXOy8RBmAMgYyJkbuvXHoejtSR8FaC8GKdwh5BE_q_QHSkDd5:1wRQT0:N22kJmYENW6uPRVq1kUi80V1HCM_t6_id9yBLlVL0hM",
+        "expire_date": "2026-06-08T08:15:18.133Z"
+    }
+},
+{
+    "model": "sessions.session",
+    "pk": "36dluya4ycu6b8tq6osrghia7f1ht6lh",
+    "fields": {
+        "session_data": ".eJxVjEEOwiAQRe_C2hCglIJL956BzAyDVA0kpV0Z765NutDtf-_9l4iwrSVunZc4J3EWWpx-NwR6cN1BukO9NUmtrsuMclfkQbu8tsTPy-H-HRTo5VuTAo3ZjVoBY9LkDJNF8M6oIeQUgrIZiUerrcEBM2fLfhqQJ5uTxyDeHwVsOOs:1ujh5E:o7AyUAH_e6Ywa5ngS71vvi4yfyefr1Rggf9UzC-1L8I",
+        "expire_date": "2025-08-20T16:33:44.456Z"
+    }
+},
+{
+    "model": "sessions.session",
+    "pk": "5bj5a39yfefnkadj5uo1poomqweu76ck",
+    "fields": {
+        "session_data": ".eJxVjEEOwiAQRe_C2pAOlAIu3XsGMsxMpWpoUtqV8e7apAvd_vfef6mE21rS1mRJE6uzMur0u2Wkh9Qd8B3rbdY013WZst4VfdCmrzPL83K4fwcFW_nWIYAzEHFgDyyZXOy8RBmAMgYyJkbuvXHoejtSR8FaC8GKdwh5BE_q_QHSkDd5:1wMLes:vBt9NXs9lppGbYNchJi-qBWV3wkf1jtR64c3uobpZHI",
+        "expire_date": "2026-05-25T08:06:34.704Z"
+    }
+},
+{
+    "model": "sessions.session",
+    "pk": "5jzsk8l2dpe4mj1zjvpyuid09sfynr3k",
+    "fields": {
+        "session_data": ".eJxVjEEOwiAQRe_C2pAOlAIu3XsGMsxMpWpoUtqV8e7apAvd_vfef6mE21rS1mRJE6uzMur0u2Wkh9Qd8B3rbdY013WZst4VfdCmrzPL83K4fwcFW_nWIYAzEHFgDyyZXOy8RBmAMgYyJkbuvXHoejtSR8FaC8GKdwh5BE_q_QHSkDd5:1wcfN7:DcGwgHF9-ohoBkjwcGIc_XOVJd_3dvaEs6ugYAuY3zw",
+        "expire_date": "2026-07-09T08:23:41.629Z"
+    }
+},
+{
+    "model": "sessions.session",
+    "pk": "6f5rpsptv42g0rulgm2kchh8uaaltqc8",
+    "fields": {
+        "session_data": ".eJxVjEEOwiAQRe_C2hCglIJL956BzAyDVA0kpV0Z765NutDtf-_9l4iwrSVunZc4J3EWWpx-NwR6cN1BukO9NUmtrsuMclfkQbu8tsTPy-H-HRTo5VuTAo3ZjVoBY9LkDJNF8M6oIeQUgrIZiUerrcEBM2fLfhqQJ5uTxyDeHwVsOOs:1udpkz:Hm_QaFpPLoQNrRdHIYQA5RLSnzO1dCxgG_Asx0i4re8",
+        "expire_date": "2025-08-04T12:36:37.842Z"
+    }
+},
+{
+    "model": "sessions.session",
+    "pk": "6lyr2yfmm55m36bvat78cxgnhv0na3cb",
+    "fields": {
+        "session_data": ".eJxVjEEOwiAQRe_C2pAOlAIu3XsGMsxMpWpoUtqV8e7apAvd_vfef6mE21rS1mRJE6uzMur0u2Wkh9Qd8B3rbdY013WZst4VfdCmrzPL83K4fwcFW_nWIYAzEHFgDyyZXOy8RBmAMgYyJkbuvXHoejtSR8FaC8GKdwh5BE_q_QHSkDd5:1uwzX9:eWZZwEl9cfxRE3SG3N-RG1AypevPmlCw2YSNyPaAkBs",
+        "expire_date": "2025-09-26T08:53:31.396Z"
+    }
+},
+{
+    "model": "sessions.session",
+    "pk": "8gtgax3vu7bl21jtg8tmjxflwnxsstkl",
+    "fields": {
+        "session_data": ".eJxVjEEOwiAQRe_C2hCglIJL956BzAyDVA0kpV0Z765NutDtf-_9l4iwrSVunZc4J3EWWpx-NwR6cN1BukO9NUmtrsuMclfkQbu8tsTPy-H-HRTo5VuTAo3ZjVoBY9LkDJNF8M6oIeQUgrIZiUerrcEBM2fLfhqQJ5uTxyDeHwVsOOs:1uwEFq:ZX_Vpmqm6b-dKH-1GXb3u-d7NJC96cJL082-yQNKd7c",
+        "expire_date": "2025-09-24T06:24:30.963Z"
+    }
+},
+{
+    "model": "sessions.session",
+    "pk": "8x8ey2kfbvskfq24rv9gv05gi9j2iudn",
+    "fields": {
+        "session_data": ".eJxVjEEOwiAQRe_C2hCglIJL956BzAyDVA0kpV0Z765NutDtf-_9l4iwrSVunZc4J3EWWpx-NwR6cN1BukO9NUmtrsuMclfkQbu8tsTPy-H-HRTo5VuTAo3ZjVoBY9LkDJNF8M6oIeQUgrIZiUerrcEBM2fLfhqQJ5uTxyDeHwVsOOs:1uwEbu:RHckdvuoS95gz3Nx8WE6VURI9OUaTiOHbZ05gi2HSkI",
+        "expire_date": "2025-09-24T06:47:18.487Z"
+    }
+},
+{
+    "model": "sessions.session",
+    "pk": "bp4uf5nr7u4vr6eqcp7rw6lgdy5blqrm",
+    "fields": {
+        "session_data": ".eJxVjEEOwiAQRe_C2pAOlAIu3XsGMsxMpWpoUtqV8e7apAvd_vfef6mE21rS1mRJE6uzMur0u2Wkh9Qd8B3rbdY013WZst4VfdCmrzPL83K4fwcFW_nWIYAzEHFgDyyZXOy8RBmAMgYyJkbuvXHoejtSR8FaC8GKdwh5BE_q_QHSkDd5:1vuXUw:ZGncKbwPdreQ2irt3OEuZ4HlJE4VSAB8_VBhvo6agIs",
+        "expire_date": "2026-03-09T15:05:22.541Z"
+    }
+},
+{
+    "model": "sessions.session",
+    "pk": "cb9sjlsdl9k8fitysx356ewad986bqvx",
+    "fields": {
+        "session_data": ".eJxVjEEOwiAQRe_C2pAOlAIu3XsGMsxMpWpoUtqV8e7apAvd_vfef6mE21rS1mRJE6uzMur0u2Wkh9Qd8B3rbdY013WZst4VfdCmrzPL83K4fwcFW_nWIYAzEHFgDyyZXOy8RBmAMgYyJkbuvXHoejtSR8FaC8GKdwh5BE_q_QHSkDd5:1uysX3:GObiMw32amsyHn4xPwlm9PpI2OTDTJzNuKzyAD3WLmc",
+        "expire_date": "2025-10-01T13:49:13.264Z"
+    }
+},
+{
+    "model": "sessions.session",
+    "pk": "drojdngptss170rn3c7qixuip9w8ajl2",
+    "fields": {
+        "session_data": ".eJxVjEEOwiAQRe_C2pAOlAIu3XsGMsxMpWpoUtqV8e7apAvd_vfef6mE21rS1mRJE6uzMur0u2Wkh9Qd8B3rbdY013WZst4VfdCmrzPL83K4fwcFW_nWIYAzEHFgDyyZXOy8RBmAMgYyJkbuvXHoejtSR8FaC8GKdwh5BE_q_QHSkDd5:1vl3Wz:7cXbwyI10Tuz-lWIyItYteP_d6Ykrunizaav7hDgTSg",
+        "expire_date": "2026-02-11T11:16:17.866Z"
+    }
+},
+{
+    "model": "sessions.session",
+    "pk": "dwawco3ucr1fodwz4vpdjcejeffk9piq",
+    "fields": {
+        "session_data": ".eJxVjEEOwiAQRe_C2pAOlAIu3XsGMsxMpWpoUtqV8e7apAvd_vfef6mE21rS1mRJE6uzMur0u2Wkh9Qd8B3rbdY013WZst4VfdCmrzPL83K4fwcFW_nWIYAzEHFgDyyZXOy8RBmAMgYyJkbuvXHoejtSR8FaC8GKdwh5BE_q_QHSkDd5:1wFqEM:Hq8ZPqQa1WhKL4SClwOMFVOloVD7mKzwKEi83-f9aw0",
+        "expire_date": "2026-05-07T09:20:18.414Z"
+    }
+},
+{
+    "model": "sessions.session",
+    "pk": "gjkaptw8bxi9tseed8f1zslr2mg31cno",
+    "fields": {
+        "session_data": ".eJxVjEEOwiAQRe_C2pAOlAIu3XsGMsxMpWpoUtqV8e7apAvd_vfef6mE21rS1mRJE6uzMur0u2Wkh9Qd8B3rbdY013WZst4VfdCmrzPL83K4fwcFW_nWIYAzEHFgDyyZXOy8RBmAMgYyJkbuvXHoejtSR8FaC8GKdwh5BE_q_QHSkDd5:1uwyLZ:s_1QRhugE_BTYPr8yRjM8KDF6ykoPchWR7jQ33C12Gw",
+        "expire_date": "2025-09-26T07:37:29.512Z"
+    }
+},
+{
+    "model": "sessions.session",
+    "pk": "hvr2ma2bug4q8ba4pfh3botrnjyluhwd",
+    "fields": {
+        "session_data": ".eJxVjEEOwiAQRe_C2hCglIJL956BzAyDVA0kpV0Z765NutDtf-_9l4iwrSVunZc4J3EWWpx-NwR6cN1BukO9NUmtrsuMclfkQbu8tsTPy-H-HRTo5VuTAo3ZjVoBY9LkDJNF8M6oIeQUgrIZiUerrcEBM2fLfhqQJ5uTxyDeHwVsOOs:1uYtS0:sNFzpgpZdIVgFYT4Q9WY0yZ_vfpO5HSA0eVJEhULSgI",
+        "expire_date": "2025-07-21T21:32:36.585Z"
+    }
+},
+{
+    "model": "sessions.session",
+    "pk": "j1ujcrhzk9bnu4mos9ogz0n2tegxzg1t",
+    "fields": {
+        "session_data": ".eJxVjEEOwiAQRe_C2pAOlAIu3XsGMsxMpWpoUtqV8e7apAvd_vfef6mE21rS1mRJE6uzMur0u2Wkh9Qd8B3rbdY013WZst4VfdCmrzPL83K4fwcFW_nWIYAzEHFgDyyZXOy8RBmAMgYyJkbuvXHoejtSR8FaC8GKdwh5BE_q_QHSkDd5:1v1JiF:5ZrF3YMORTojEmVLx6WAe95SOKVCkPzS-cwBGBLfnd8",
+        "expire_date": "2025-10-08T07:14:51.961Z"
+    }
+},
+{
+    "model": "sessions.session",
+    "pk": "jcexev000qd8y61sfpgo810pkof5s00i",
+    "fields": {
+        "session_data": ".eJxVjEEOwiAQRe_C2pAOlAIu3XsGMsxMpWpoUtqV8e7apAvd_vfef6mE21rS1mRJE6uzMur0u2Wkh9Qd8B3rbdY013WZst4VfdCmrzPL83K4fwcFW_nWIYAzEHFgDyyZXOy8RBmAMgYyJkbuvXHoejtSR8FaC8GKdwh5BE_q_QHSkDd5:1wXGqd:tQ3uQmI3Y6nOLuWprC07w-8uaWx1Q-c_DzkcrN_K1_E",
+        "expire_date": "2026-06-24T11:11:51.225Z"
+    }
+},
+{
+    "model": "sessions.session",
+    "pk": "o4gfnz13z4zylx8kzeyaph3gs0ajvuca",
+    "fields": {
+        "session_data": ".eJxVjEEOwiAQRe_C2pAOlAIu3XsGMsxMpWpoUtqV8e7apAvd_vfef6mE21rS1mRJE6uzMur0u2Wkh9Qd8B3rbdY013WZst4VfdCmrzPL83K4fwcFW_nWIYAzEHFgDyyZXOy8RBmAMgYyJkbuvXHoejtSR8FaC8GKdwh5BE_q_QHSkDd5:1wkhgg:-EplvYFpt7ko9ssnm5KSfi3bDqGl9YENLbxIku3RHVo",
+        "expire_date": "2026-07-31T12:29:06.700Z"
+    }
+},
+{
+    "model": "sessions.session",
+    "pk": "qpweo6s01c5ymswxhs22xqngaz0l26b0",
+    "fields": {
+        "session_data": ".eJxVjEEOwiAQRe_C2hCglIJL956BzAyDVA0kpV0Z765NutDtf-_9l4iwrSVunZc4J3EWWpx-NwR6cN1BukO9NUmtrsuMclfkQbu8tsTPy-H-HRTo5VuTAo3ZjVoBY9LkDJNF8M6oIeQUgrIZiUerrcEBM2fLfhqQJ5uTxyDeHwVsOOs:1ujh0P:JJWyws2OhG_yPc3C2gAYw9Roq1RkZMJKntxCLL-w1AA",
+        "expire_date": "2025-08-20T16:28:45.120Z"
+    }
+},
+{
+    "model": "sessions.session",
+    "pk": "vv5plm4x1wk2otltnw0wmnukmqllzrcv",
+    "fields": {
+        "session_data": ".eJxVjEEOwiAQRe_C2pAOlAIu3XsGMsxMpWpoUtqV8e7apAvd_vfef6mE21rS1mRJE6uzMur0u2Wkh9Qd8B3rbdY013WZst4VfdCmrzPL83K4fwcFW_nWIYAzEHFgDyyZXOy8RBmAMgYyJkbuvXHoejtSR8FaC8GKdwh5BE_q_QHSkDd5:1vuXf3:G-DNyCoxKkaxUM8ak8or0s8wsFltyKrXFs-9HOmny8c",
+        "expire_date": "2026-03-09T15:15:49.974Z"
+    }
+},
+{
+    "model": "sessions.session",
+    "pk": "wkn0p78ktmyvb9xxx3vkztjm3dwvuxna",
+    "fields": {
+        "session_data": ".eJxVjEEOwiAQRe_C2pAOlAIu3XsGMsxMpWpoUtqV8e7apAvd_vfef6mE21rS1mRJE6uzMur0u2Wkh9Qd8B3rbdY013WZst4VfdCmrzPL83K4fwcFW_nWIYAzEHFgDyyZXOy8RBmAMgYyJkbuvXHoejtSR8FaC8GKdwh5BE_q_QHSkDd5:1wFqEs:3PXiwztwEFKpUUGiqmemkxcjK5gApoBfMDqRASimFEM",
+        "expire_date": "2026-05-07T09:20:50.285Z"
+    }
+},
+{
+    "model": "sessions.session",
+    "pk": "znfwm9vowffisw1a7hsr7mz14e0zqdbm",
+    "fields": {
+        "session_data": ".eJxVjEEOwiAQRe_C2pAOlAIu3XsGMsxMpWpoUtqV8e7apAvd_vfef6mE21rS1mRJE6uzMur0u2Wkh9Qd8B3rbdY013WZst4VfdCmrzPL83K4fwcFW_nWIYAzEHFgDyyZXOy8RBmAMgYyJkbuvXHoejtSR8FaC8GKdwh5BE_q_QHSkDd5:1wjf81:gLEKSe_P2cagp6C_laF36wQzxVt08oARneruUD8Oa2s",
+        "expire_date": "2026-07-28T15:33:01.015Z"
+    }
+},
+{
+    "model": "sessions.session",
+    "pk": "zvnsac5t5a5m5emounmbfxv297sv5x3k",
+    "fields": {
+        "session_data": ".eJxVjEEOwiAQRe_C2pAOlAIu3XsGMsxMpWpoUtqV8e7apAvd_vfef6mE21rS1mRJE6uzMur0u2Wkh9Qd8B3rbdY013WZst4VfdCmrzPL83K4fwcFW_nWIYAzEHFgDyyZXOy8RBmAMgYyJkbuvXHoejtSR8FaC8GKdwh5BE_q_QHSkDd5:1wMOET:8fD9Y1Fqpk8O832riDk-UgUCRPcSk3r0KurslKrnVTg",
+        "expire_date": "2026-05-25T10:51:29.788Z"
+    }
+},
+{
+    "model": "nilm.location",
+    "pk": 13,
+    "fields": {
+        "description": "Carrer Tortosa, 40, Pinell de Brai",
+        "address": "Carrer Tortosa, 40, Pinell de Brai",
+        "location": "41.0167572543902,0.5159783358976712"
+    }
+},
+{
+    "model": "nilm.location",
+    "pk": 14,
+    "fields": {
+        "description": "Carrer Major, 47, La Pobla de Massaluca",
+        "address": "Carrer Major, 47, La Pobla de Massaluca",
+        "location": "41.180947280037394,0.3538942328304984"
+    }
+},
+{
+    "model": "nilm.location",
+    "pk": 15,
+    "fields": {
+        "description": "Carrer Lluís Companys, 7, Arnes",
+        "address": "Carrer Lluís Companys, 7, Arnes",
+        "location": "40.909512622072356,0.2591514569940046"
+    }
+},
+{
+    "model": "nilm.location",
+    "pk": 16,
+    "fields": {
+        "description": "Carrer Prat de la Riba, 10, Arnes",
+        "address": "Carrer Prat de la Riba, 10, Arnes",
+        "location": "40.909880194915466,0.2602958644274623"
+    }
+},
+{
+    "model": "nilm.location",
+    "pk": 17,
+    "fields": {
+        "description": "Carrer Lluís Companys, 64, Arnes",
+        "address": "Carrer Lluís Companys, 64, Arnes",
+        "location": "40.909880194915466,0.2599525442929007"
+    }
+},
+{
+    "model": "nilm.location",
+    "pk": 18,
+    "fields": {
+        "description": "Carrer Puig Cavaller, 5, Gandesa",
+        "address": "Carrer Puig Cavaller, 5, Gandesa",
+        "location": "41.05256022515512,0.43802261177916085"
+    }
+},
+{
+    "model": "nilm.location",
+    "pk": 19,
+    "fields": {
+        "description": "Carrer La Palla, 18, Caseres",
+        "address": "Carrer La Palla, 18, Caseres",
+        "location": "41.03933330677961,0.2510261526913382"
+    }
+},
+{
+    "model": "nilm.location",
+    "pk": 20,
+    "fields": {
+        "description": "Carrer Major, 14, Caseres",
+        "address": "Carrer Major, 14, Caseres",
+        "location": "41.039203829510186,0.25098323734709993"
+    }
+},
+{
+    "model": "nilm.location",
+    "pk": 21,
+    "fields": {
+        "description": "UNINSTALLED",
+        "address": "Carrer del Penedes 6 Salou",
+        "location": "45.166547157856016,-1.8457031250000002"
+    }
+},
+{
+    "model": "nilm.location",
+    "pk": 22,
+    "fields": {
+        "description": "Carrer Benifallet, 17 Pinell de Brai",
+        "address": "Carrer Benifallet, 17 Pinell de Brai",
+        "location": "41.01623916618358,0.5143976202816704"
+    }
+},
+{
+    "model": "nilm.location",
+    "pk": 23,
+    "fields": {
+        "description": "Carrer de la Font, 14 Pinell de Brai",
+        "address": "Carrer de la Font, 14 Pinell de Brai",
+        "location": "41.016530591301205,0.5148839946195949"
+    }
+},
+{
+    "model": "nilm.location",
+    "pk": 24,
+    "fields": {
+        "description": "Carrer Poble Nou, 22 Gandesa",
+        "address": "Carrer Poble Nou, 22 Gandesa",
+        "location": "41.052802945556266,0.4371857638761868"
+    }
+},
+{
+    "model": "nilm.location",
+    "pk": 25,
+    "fields": {
+        "description": "Carrer Perdigons, 6 Gandesa",
+        "address": "Carrer Perdigons, 6 Gandesa",
+        "location": "41.052883852157635,0.43785095040220773"
+    }
+},
+{
+    "model": "nilm.location",
+    "pk": 26,
+    "fields": {
+        "description": "Carrer Major, 10 - 2-B Gandesa",
+        "address": "Carrer Major, 10 - 2-B Gandesa",
+        "location": "41.05246313674391,0.43805122288176795"
+    }
+},
+{
+    "model": "nilm.location",
+    "pk": 27,
+    "fields": {
+        "description": "Carrer Buenos Aires, 28 Gandesa",
+        "address": "Carrer Buenos Aires, 28 Gandesa",
+        "location": "41.05270046404754,0.4383945456356742"
+    }
+},
+{
+    "model": "nilm.location",
+    "pk": 28,
+    "fields": {
+        "description": "Carrer Santa Anna, 1-1 Gandesa",
+        "address": "Carrer Santa Anna, 1-1 Gandesa",
+        "location": "41.05284070264104,0.4372501355828718"
+    }
+},
+{
+    "model": "nilm.location",
+    "pk": 29,
+    "fields": {
+        "description": "Carrer Carnisseries, 3  Gandesa",
+        "address": "Carrer Carnisseries, 3  Gandesa",
+        "location": "41.053115784028094,0.437378882925259"
+    }
+},
+{
+    "model": "nilm.location",
+    "pk": 30,
+    "fields": {
+        "description": "Carrer Benifallet, 3 Pinell de Brai",
+        "address": "Carrer Benifallet, 3 Pinell de Brai",
+        "location": "41.01623916618358,0.515270231408067"
+    }
+},
+{
+    "model": "nilm.person",
+    "pk": 11,
+    "fields": {
+        "name": "J.V.C.",
+        "description": "WIFI",
+        "age": 81,
+        "gender": "F",
+        "location": 13
+    }
+},
+{
+    "model": "nilm.person",
+    "pk": 12,
+    "fields": {
+        "name": "T.C.M.",
+        "description": "WIFI",
+        "age": 65,
+        "gender": "F",
+        "location": 14
+    }
+},
+{
+    "model": "nilm.person",
+    "pk": 13,
+    "fields": {
+        "name": "T.P.C.",
+        "description": "WIFI",
+        "age": 81,
+        "gender": "F",
+        "location": 15
+    }
+},
+{
+    "model": "nilm.person",
+    "pk": 14,
+    "fields": {
+        "name": "J.V.F.",
+        "description": "WIFI",
+        "age": 78,
+        "gender": "F",
+        "location": 16
+    }
+},
+{
+    "model": "nilm.person",
+    "pk": 15,
+    "fields": {
+        "name": "JR.V.F.",
+        "description": "WIFI",
+        "age": 79,
+        "gender": "M",
+        "location": 17
+    }
+},
+{
+    "model": "nilm.person",
+    "pk": 16,
+    "fields": {
+        "name": "V.M.A.",
+        "description": "WIFI",
+        "age": 75,
+        "gender": "F",
+        "location": 18
+    }
+},
+{
+    "model": "nilm.person",
+    "pk": 17,
+    "fields": {
+        "name": "C.M.M.",
+        "description": "WIFI",
+        "age": 86,
+        "gender": "F",
+        "location": 19
+    }
+},
+{
+    "model": "nilm.person",
+    "pk": 18,
+    "fields": {
+        "name": "J.S.H.",
+        "description": "WIFI",
+        "age": 84,
+        "gender": "F",
+        "location": 20
+    }
+},
+{
+    "model": "nilm.person",
+    "pk": 19,
+    "fields": {
+        "name": "F.V.C",
+        "description": "",
+        "age": 79,
+        "gender": "F",
+        "location": 22
+    }
+},
+{
+    "model": "nilm.person",
+    "pk": 20,
+    "fields": {
+        "name": "J.C.A.",
+        "description": "",
+        "age": 78,
+        "gender": "M",
+        "location": 23
+    }
+},
+{
+    "model": "nilm.person",
+    "pk": 21,
+    "fields": {
+        "name": "F.A.C.",
+        "description": "",
+        "age": 75,
+        "gender": "F",
+        "location": 24
+    }
+},
+{
+    "model": "nilm.person",
+    "pk": 22,
+    "fields": {
+        "name": "J.F.N.",
+        "description": "",
+        "age": 78,
+        "gender": "F",
+        "location": 25
+    }
+},
+{
+    "model": "nilm.person",
+    "pk": 23,
+    "fields": {
+        "name": "R.A.Q.",
+        "description": "",
+        "age": 90,
+        "gender": "M",
+        "location": 26
+    }
+},
+{
+    "model": "nilm.person",
+    "pk": 24,
+    "fields": {
+        "name": "MC.G.G.",
+        "description": "",
+        "age": 72,
+        "gender": "F",
+        "location": 27
+    }
+},
+{
+    "model": "nilm.person",
+    "pk": 25,
+    "fields": {
+        "name": "JL.V.S.",
+        "description": "",
+        "age": 85,
+        "gender": "M",
+        "location": 28
+    }
+},
+{
+    "model": "nilm.person",
+    "pk": 26,
+    "fields": {
+        "name": "M.LL.C.",
+        "description": "",
+        "age": 87,
+        "gender": "F",
+        "location": 29
+    }
+},
+{
+    "model": "nilm.person",
+    "pk": 27,
+    "fields": {
+        "name": "S.S.S.",
+        "description": "",
+        "age": 92,
+        "gender": "F",
+        "location": 30
+    }
+},
+{
+    "model": "nilm.device",
+    "pk": 8,
+    "fields": {
+        "device_id": "bf361a243be04b9924uont",
+        "model": "IP 79.159.67",
+        "location": 13
+    }
+},
+{
+    "model": "nilm.device",
+    "pk": 9,
+    "fields": {
+        "device_id": "bf17de2f4825308a12fzaa",
+        "model": "IP 46.6.42",
+        "location": 14
+    }
+},
+{
+    "model": "nilm.device",
+    "pk": 10,
+    "fields": {
+        "device_id": "bf2d4eb75c9e769371jftv",
+        "model": "IP 185.165.254",
+        "location": 17
+    }
+},
+{
+    "model": "nilm.device",
+    "pk": 11,
+    "fields": {
+        "device_id": "bf88e3fd6d0b9a815fn87m",
+        "model": "IP 95.126.23",
+        "location": 16
+    }
+},
+{
+    "model": "nilm.device",
+    "pk": 12,
+    "fields": {
+        "device_id": "bf4540f68816a82862ouw5",
+        "model": "IP 93.176.156",
+        "location": 18
+    }
+},
+{
+    "model": "nilm.device",
+    "pk": 13,
+    "fields": {
+        "device_id": "bf3f377816db5a0f10zcl3",
+        "model": "IP 2.141.140.*",
+        "location": 19
+    }
+},
+{
+    "model": "nilm.device",
+    "pk": 14,
+    "fields": {
+        "device_id": "bf777cc1168807329akafb",
+        "model": "IP 37.158.135.*",
+        "location": 20
+    }
+},
+{
+    "model": "nilm.device",
+    "pk": 15,
+    "fields": {
+        "device_id": "bfd4030b8a506f96ea1lnf",
+        "model": "IP 185.165.254.*",
+        "location": 15
+    }
+},
+{
+    "model": "nilm.device",
+    "pk": 16,
+    "fields": {
+        "device_id": "domoboi-01",
+        "model": "DOMOBOI 1.0",
+        "location": 21
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 1,
+    "fields": {
+        "action_time": "2025-07-16T12:19:26.250Z",
+        "user": [
+            "alabarga"
+        ],
+        "content_type": [
+            "nilm",
+            "location"
+        ],
+        "object_id": "2",
+        "object_repr": "Carrer Aragó, 139, Barcelona",
+        "action_flag": 2,
+        "change_message": "[]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 2,
+    "fields": {
+        "action_time": "2025-07-21T12:32:25.635Z",
+        "user": [
+            "alabarga"
+        ],
+        "content_type": [
+            "nilm",
+            "location"
+        ],
+        "object_id": "2",
+        "object_repr": "Carrer Aragó, 139, Barcelona",
+        "action_flag": 2,
+        "change_message": "[]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 3,
+    "fields": {
+        "action_time": "2025-09-10T06:35:48.885Z",
+        "user": [
+            "alabarga"
+        ],
+        "content_type": [
+            "auth",
+            "user"
+        ],
+        "object_id": "2",
+        "object_repr": "suara",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 4,
+    "fields": {
+        "action_time": "2025-09-10T06:36:42.662Z",
+        "user": [
+            "alabarga"
+        ],
+        "content_type": [
+            "auth",
+            "user"
+        ],
+        "object_id": "2",
+        "object_repr": "suara",
+        "action_flag": 2,
+        "change_message": "[{\"changed\": {\"fields\": [\"First name\", \"Last name\", \"Email address\", \"Staff status\", \"Superuser status\"]}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 5,
+    "fields": {
+        "action_time": "2025-09-10T06:37:09.199Z",
+        "user": [
+            "alabarga"
+        ],
+        "content_type": [
+            "auth",
+            "user"
+        ],
+        "object_id": "1",
+        "object_repr": "alabarga",
+        "action_flag": 2,
+        "change_message": "[{\"changed\": {\"fields\": [\"First name\", \"Last name\"]}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 6,
+    "fields": {
+        "action_time": "2025-09-12T08:19:04.791Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "device"
+        ],
+        "object_id": "1",
+        "object_repr": "smart meter with CT-1 (bff50a47498be26d33fxz0) - Carrer Diagonal, 153, Barcelona",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 7,
+    "fields": {
+        "action_time": "2025-09-12T08:19:39.753Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "device"
+        ],
+        "object_id": "2",
+        "object_repr": "smart meter with CT-1 (bf9d3344cde3481af2aajl) - Carrer Aragó, 139, Barcelona",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 8,
+    "fields": {
+        "action_time": "2025-09-12T08:19:54.351Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "device"
+        ],
+        "object_id": "3",
+        "object_repr": "smart meter with CT-1 (bf818a069e20783a287kgl) - Carrer Gran Via, 40, Barcelona",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 9,
+    "fields": {
+        "action_time": "2025-09-12T08:20:06.891Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "device"
+        ],
+        "object_id": "4",
+        "object_repr": "smart meter with CT-1 (bfd80f4899158f90903sli) - Carrer Mallorca, 274, Barcelona",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 10,
+    "fields": {
+        "action_time": "2025-09-12T08:20:26.512Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "device"
+        ],
+        "object_id": "5",
+        "object_repr": "smart meter with CT-1 (bf7cf956b39b2ac6203xz7) - Carrer Marina, 38, Barcelona",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 11,
+    "fields": {
+        "action_time": "2025-09-12T08:20:43.758Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "device"
+        ],
+        "object_id": "6",
+        "object_repr": "smart meter with CT-1 (bf9903ace56236ba42go1n) - Carrer Marina, 294, Barcelona",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 12,
+    "fields": {
+        "action_time": "2025-09-12T08:21:00.991Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "device"
+        ],
+        "object_id": "7",
+        "object_repr": "smart meter with CT-1 (bf19ab92a85a829792vpxr) - Carrer Marina, 294, Barcelona",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 13,
+    "fields": {
+        "action_time": "2025-09-12T08:22:36.185Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "person"
+        ],
+        "object_id": "1",
+        "object_repr": "J.C (Carrer Diagonal, 153, Barcelona)",
+        "action_flag": 2,
+        "change_message": "[{\"changed\": {\"fields\": [\"Name\"]}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 14,
+    "fields": {
+        "action_time": "2025-09-12T08:24:38.403Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "person"
+        ],
+        "object_id": "6",
+        "object_repr": "Alberto Labarga (Carrer Marina, 294, Barcelona)",
+        "action_flag": 2,
+        "change_message": "[{\"changed\": {\"fields\": [\"Name\"]}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 15,
+    "fields": {
+        "action_time": "2025-09-12T08:24:53.703Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "person"
+        ],
+        "object_id": "2",
+        "object_repr": "A.M (Carrer Aragó, 139, Barcelona)",
+        "action_flag": 2,
+        "change_message": "[{\"changed\": {\"fields\": [\"Name\"]}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 16,
+    "fields": {
+        "action_time": "2025-09-12T08:25:24.239Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "person"
+        ],
+        "object_id": "5",
+        "object_repr": "D.G (Carrer Marina, 38, Barcelona)",
+        "action_flag": 2,
+        "change_message": "[{\"changed\": {\"fields\": [\"Name\"]}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 17,
+    "fields": {
+        "action_time": "2025-09-12T08:25:53.642Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "person"
+        ],
+        "object_id": "4",
+        "object_repr": "J.M (Carrer Mallorca, 274, Barcelona)",
+        "action_flag": 2,
+        "change_message": "[{\"changed\": {\"fields\": [\"Name\"]}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 18,
+    "fields": {
+        "action_time": "2025-09-12T08:26:37.273Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "person"
+        ],
+        "object_id": "3",
+        "object_repr": "A. (Carrer Gran Via, 40, Barcelona)",
+        "action_flag": 2,
+        "change_message": "[{\"changed\": {\"fields\": [\"Name\"]}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 19,
+    "fields": {
+        "action_time": "2025-09-12T08:27:10.704Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "person"
+        ],
+        "object_id": "10",
+        "object_repr": "David Soler (Carrer Gran Via, 279, Barcelona)",
+        "action_flag": 3,
+        "change_message": ""
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 20,
+    "fields": {
+        "action_time": "2025-09-12T08:27:10.704Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "person"
+        ],
+        "object_id": "7",
+        "object_repr": "Marta Vidal (Carrer Marina, 132, Barcelona)",
+        "action_flag": 3,
+        "change_message": ""
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 21,
+    "fields": {
+        "action_time": "2025-09-12T08:27:10.704Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "person"
+        ],
+        "object_id": "9",
+        "object_repr": "Nuria Pujol (Carrer Balmes, 1, Barcelona)",
+        "action_flag": 3,
+        "change_message": ""
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 22,
+    "fields": {
+        "action_time": "2025-09-12T08:27:10.704Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "person"
+        ],
+        "object_id": "8",
+        "object_repr": "Sergi Roca (Carrer Diagonal, 229, Barcelona)",
+        "action_flag": 3,
+        "change_message": ""
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 23,
+    "fields": {
+        "action_time": "2026-01-28T11:17:06.330Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "person"
+        ],
+        "object_id": "6",
+        "object_repr": "A. L. (Carrer Marina, 294, Barcelona)",
+        "action_flag": 2,
+        "change_message": "[{\"changed\": {\"fields\": [\"Name\"]}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 24,
+    "fields": {
+        "action_time": "2026-02-23T15:06:37.866Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "auth",
+            "user"
+        ],
+        "object_id": "2",
+        "object_repr": "suara",
+        "action_flag": 2,
+        "change_message": "[{\"changed\": {\"fields\": [\"First name\", \"Last name\", \"Email address\"]}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 25,
+    "fields": {
+        "action_time": "2026-05-11T08:46:28.309Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "location"
+        ],
+        "object_id": "11",
+        "object_repr": "Pinell de Brai",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 26,
+    "fields": {
+        "action_time": "2026-05-11T08:50:07.017Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "location"
+        ],
+        "object_id": "12",
+        "object_repr": "Pinell de Brai",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 27,
+    "fields": {
+        "action_time": "2026-05-11T08:51:52.996Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "person"
+        ],
+        "object_id": "3",
+        "object_repr": "A. (Carrer Gran Via, 40, Barcelona)",
+        "action_flag": 3,
+        "change_message": ""
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 28,
+    "fields": {
+        "action_time": "2026-05-11T08:54:22.747Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "location"
+        ],
+        "object_id": "12",
+        "object_repr": "Pinell de Brai",
+        "action_flag": 3,
+        "change_message": ""
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 29,
+    "fields": {
+        "action_time": "2026-05-11T08:54:43.360Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "location"
+        ],
+        "object_id": "11",
+        "object_repr": "Pinell de Brai",
+        "action_flag": 3,
+        "change_message": ""
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 30,
+    "fields": {
+        "action_time": "2026-05-11T08:56:09.080Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "location"
+        ],
+        "object_id": "13",
+        "object_repr": "Carrer Tortosa, 40, Pinell de Brai",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 31,
+    "fields": {
+        "action_time": "2026-05-11T10:03:41.116Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "person"
+        ],
+        "object_id": "11",
+        "object_repr": "J.V.C. (Carrer Tortosa, 40, Pinell de Brai)",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 32,
+    "fields": {
+        "action_time": "2026-05-11T10:04:31.083Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "person"
+        ],
+        "object_id": "6",
+        "object_repr": "A. L. (Carrer Marina, 294, Barcelona)",
+        "action_flag": 3,
+        "change_message": ""
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 33,
+    "fields": {
+        "action_time": "2026-05-11T10:04:31.083Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "person"
+        ],
+        "object_id": "2",
+        "object_repr": "A.M (Carrer Aragó, 139, Barcelona)",
+        "action_flag": 3,
+        "change_message": ""
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 34,
+    "fields": {
+        "action_time": "2026-05-11T10:04:31.083Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "person"
+        ],
+        "object_id": "5",
+        "object_repr": "D.G (Carrer Marina, 38, Barcelona)",
+        "action_flag": 3,
+        "change_message": ""
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 35,
+    "fields": {
+        "action_time": "2026-05-11T10:04:31.083Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "person"
+        ],
+        "object_id": "1",
+        "object_repr": "J.C (Carrer Diagonal, 153, Barcelona)",
+        "action_flag": 3,
+        "change_message": ""
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 36,
+    "fields": {
+        "action_time": "2026-05-11T10:04:31.083Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "person"
+        ],
+        "object_id": "4",
+        "object_repr": "J.M (Carrer Mallorca, 274, Barcelona)",
+        "action_flag": 3,
+        "change_message": ""
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 37,
+    "fields": {
+        "action_time": "2026-05-11T10:07:08.140Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "location"
+        ],
+        "object_id": "14",
+        "object_repr": "Carrer Major, 47, La Pobla de Massaluca",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 38,
+    "fields": {
+        "action_time": "2026-05-11T10:09:39.240Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "person"
+        ],
+        "object_id": "12",
+        "object_repr": "T.C.M. (Carrer Major, 47, La Pobla de Massaluca)",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 39,
+    "fields": {
+        "action_time": "2026-05-11T10:12:41.289Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "location"
+        ],
+        "object_id": "15",
+        "object_repr": "Carrer Lluís Companys, 7, Arnes",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 40,
+    "fields": {
+        "action_time": "2026-05-11T10:13:31.226Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "person"
+        ],
+        "object_id": "13",
+        "object_repr": "T.P.C (Carrer Lluís Companys, 7, Arnes)",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 41,
+    "fields": {
+        "action_time": "2026-05-11T10:14:58.888Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "location"
+        ],
+        "object_id": "16",
+        "object_repr": "Carrer Prat de la Riba, 10, Arnes",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 42,
+    "fields": {
+        "action_time": "2026-05-11T10:15:49.403Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "person"
+        ],
+        "object_id": "14",
+        "object_repr": "J.V.F (Carrer Prat de la Riba, 10, Arnes)",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 43,
+    "fields": {
+        "action_time": "2026-05-11T10:16:03.662Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "person"
+        ],
+        "object_id": "12",
+        "object_repr": "T.C.M. (Carrer Major, 47, La Pobla de Massaluca)",
+        "action_flag": 2,
+        "change_message": "[{\"changed\": {\"fields\": [\"Description\"]}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 44,
+    "fields": {
+        "action_time": "2026-05-11T10:16:13.711Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "person"
+        ],
+        "object_id": "11",
+        "object_repr": "J.V.C. (Carrer Tortosa, 40, Pinell de Brai)",
+        "action_flag": 2,
+        "change_message": "[{\"changed\": {\"fields\": [\"Description\"]}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 45,
+    "fields": {
+        "action_time": "2026-05-11T10:16:26.917Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "person"
+        ],
+        "object_id": "14",
+        "object_repr": "J.V.F. (Carrer Prat de la Riba, 10, Arnes)",
+        "action_flag": 2,
+        "change_message": "[{\"changed\": {\"fields\": [\"Name\"]}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 46,
+    "fields": {
+        "action_time": "2026-05-11T10:16:38.941Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "person"
+        ],
+        "object_id": "13",
+        "object_repr": "T.P.C. (Carrer Lluís Companys, 7, Arnes)",
+        "action_flag": 2,
+        "change_message": "[{\"changed\": {\"fields\": [\"Name\"]}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 47,
+    "fields": {
+        "action_time": "2026-05-11T10:17:58.166Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "location"
+        ],
+        "object_id": "17",
+        "object_repr": "Carrer Lluís Companys, 64, Arnes",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 48,
+    "fields": {
+        "action_time": "2026-05-11T10:19:17.889Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "person"
+        ],
+        "object_id": "15",
+        "object_repr": "JR.V.F. (Carrer Lluís Companys, 64, Arnes)",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 49,
+    "fields": {
+        "action_time": "2026-05-11T10:22:00.493Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "location"
+        ],
+        "object_id": "18",
+        "object_repr": "Carrer Puig Cavaller, 5, Gandesa",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 50,
+    "fields": {
+        "action_time": "2026-05-11T10:22:37.300Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "person"
+        ],
+        "object_id": "16",
+        "object_repr": "V.M.A. (Carrer Puig Cavaller, 5, Gandesa)",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 51,
+    "fields": {
+        "action_time": "2026-05-11T10:24:34.805Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "location"
+        ],
+        "object_id": "19",
+        "object_repr": "Carrer La Palla, 18, Caseres",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 52,
+    "fields": {
+        "action_time": "2026-05-11T10:25:14.235Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "person"
+        ],
+        "object_id": "17",
+        "object_repr": "C.M.M. (Carrer La Palla, 18, Caseres)",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 53,
+    "fields": {
+        "action_time": "2026-05-11T10:26:00.973Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "location"
+        ],
+        "object_id": "20",
+        "object_repr": "Carrer Major, 14, Caseres",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 54,
+    "fields": {
+        "action_time": "2026-05-11T10:26:43.448Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "person"
+        ],
+        "object_id": "18",
+        "object_repr": "J.S.H. (Carrer Major, 14, Caseres)",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 55,
+    "fields": {
+        "action_time": "2026-05-11T10:36:56.463Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "location"
+        ],
+        "object_id": "2",
+        "object_repr": "Carrer Aragó, 139, Barcelona",
+        "action_flag": 3,
+        "change_message": ""
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 56,
+    "fields": {
+        "action_time": "2026-05-11T10:36:56.463Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "location"
+        ],
+        "object_id": "9",
+        "object_repr": "Carrer Balmes, 1, Barcelona",
+        "action_flag": 3,
+        "change_message": ""
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 57,
+    "fields": {
+        "action_time": "2026-05-11T10:36:56.463Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "location"
+        ],
+        "object_id": "1",
+        "object_repr": "Carrer Diagonal, 153, Barcelona",
+        "action_flag": 3,
+        "change_message": ""
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 58,
+    "fields": {
+        "action_time": "2026-05-11T10:36:56.463Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "location"
+        ],
+        "object_id": "8",
+        "object_repr": "Carrer Diagonal, 229, Barcelona",
+        "action_flag": 3,
+        "change_message": ""
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 59,
+    "fields": {
+        "action_time": "2026-05-11T10:36:56.463Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "location"
+        ],
+        "object_id": "10",
+        "object_repr": "Carrer Gran Via, 279, Barcelona",
+        "action_flag": 3,
+        "change_message": ""
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 60,
+    "fields": {
+        "action_time": "2026-05-11T10:36:56.463Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "location"
+        ],
+        "object_id": "3",
+        "object_repr": "Carrer Gran Via, 40, Barcelona",
+        "action_flag": 3,
+        "change_message": ""
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 61,
+    "fields": {
+        "action_time": "2026-05-11T10:36:56.463Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "location"
+        ],
+        "object_id": "4",
+        "object_repr": "Carrer Mallorca, 274, Barcelona",
+        "action_flag": 3,
+        "change_message": ""
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 62,
+    "fields": {
+        "action_time": "2026-05-11T10:36:56.463Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "location"
+        ],
+        "object_id": "7",
+        "object_repr": "Carrer Marina, 132, Barcelona",
+        "action_flag": 3,
+        "change_message": ""
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 63,
+    "fields": {
+        "action_time": "2026-05-11T10:36:56.463Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "location"
+        ],
+        "object_id": "6",
+        "object_repr": "Carrer Marina, 294, Barcelona",
+        "action_flag": 3,
+        "change_message": ""
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 64,
+    "fields": {
+        "action_time": "2026-05-11T10:36:56.463Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "location"
+        ],
+        "object_id": "5",
+        "object_repr": "Carrer Marina, 38, Barcelona",
+        "action_flag": 3,
+        "change_message": ""
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 65,
+    "fields": {
+        "action_time": "2026-05-11T10:38:49.618Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "location"
+        ],
+        "object_id": "19",
+        "object_repr": "Caseres, Carrer La Palla, 18",
+        "action_flag": 2,
+        "change_message": "[{\"changed\": {\"fields\": [\"Description\"]}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 66,
+    "fields": {
+        "action_time": "2026-05-11T10:39:14.292Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "location"
+        ],
+        "object_id": "19",
+        "object_repr": "Carrer La Palla, 18, Caseres",
+        "action_flag": 2,
+        "change_message": "[{\"changed\": {\"fields\": [\"Description\"]}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 67,
+    "fields": {
+        "action_time": "2026-05-25T08:18:47.078Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "device"
+        ],
+        "object_id": "8",
+        "object_repr": "IP 79.159.67 (bf361a243be04b9924uont) - Carrer Tortosa, 40, Pinell de Brai",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 68,
+    "fields": {
+        "action_time": "2026-05-25T08:20:32.001Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "device"
+        ],
+        "object_id": "9",
+        "object_repr": "IP 46.6.42 (bf17de2f4825308a12fzaa) - Carrer Major, 47, La Pobla de Massaluca",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 69,
+    "fields": {
+        "action_time": "2026-05-25T08:22:07.957Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "device"
+        ],
+        "object_id": "10",
+        "object_repr": "IP 185.165.254 (bf2d4eb75c9e769371jftv) - Carrer Lluís Companys, 64, Arnes",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 70,
+    "fields": {
+        "action_time": "2026-05-25T08:23:29.034Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "device"
+        ],
+        "object_id": "11",
+        "object_repr": "IP 95.126.23 (bf88e3fd6d0b9a815fn87m) - Carrer Prat de la Riba, 10, Arnes",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 71,
+    "fields": {
+        "action_time": "2026-05-25T08:24:56.564Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "device"
+        ],
+        "object_id": "12",
+        "object_repr": "IP 93.176.156 (bf4540f68816a82862ouw5) - Carrer Puig Cavaller, 5, Gandesa",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 72,
+    "fields": {
+        "action_time": "2026-06-10T11:27:00.006Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "device"
+        ],
+        "object_id": "13",
+        "object_repr": "IP 2.141.140.* (bf3f377816db5a0f10zcl3) - Carrer La Palla, 18, Caseres",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 73,
+    "fields": {
+        "action_time": "2026-06-10T11:28:39.165Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "device"
+        ],
+        "object_id": "14",
+        "object_repr": "IP 37.158.135.* (bf777cc1168807329akafb) - Carrer Major, 14, Caseres",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 74,
+    "fields": {
+        "action_time": "2026-06-10T11:30:15.309Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "device"
+        ],
+        "object_id": "15",
+        "object_repr": "IP 185.165.254.* (bfd4030b8a506f96ea1lnf) - Carrer Lluís Companys, 7, Arnes",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 75,
+    "fields": {
+        "action_time": "2026-07-14T15:35:39.595Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "location"
+        ],
+        "object_id": "21",
+        "object_repr": "UNISTALLED",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 76,
+    "fields": {
+        "action_time": "2026-07-14T15:36:01.398Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "device"
+        ],
+        "object_id": "16",
+        "object_repr": "DOMOBOI 1.0 (domoboi-01) - UNISTALLED",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 77,
+    "fields": {
+        "action_time": "2026-07-14T15:36:18.951Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "location"
+        ],
+        "object_id": "21",
+        "object_repr": "UNINSTALLED",
+        "action_flag": 2,
+        "change_message": "[{\"changed\": {\"fields\": [\"Description\"]}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 78,
+    "fields": {
+        "action_time": "2026-07-17T12:31:25.962Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "location"
+        ],
+        "object_id": "22",
+        "object_repr": "Pinell de Brai",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 79,
+    "fields": {
+        "action_time": "2026-07-17T12:33:38.308Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "person"
+        ],
+        "object_id": "19",
+        "object_repr": "F.V.C (Pinell de Brai)",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 80,
+    "fields": {
+        "action_time": "2026-07-17T12:35:23.326Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "location"
+        ],
+        "object_id": "23",
+        "object_repr": "Carrer de la Font, 14 Pinell de Brai",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 81,
+    "fields": {
+        "action_time": "2026-07-17T12:35:59.025Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "person"
+        ],
+        "object_id": "20",
+        "object_repr": "J.C.A. (Carrer de la Font, 14 Pinell de Brai)",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 82,
+    "fields": {
+        "action_time": "2026-07-17T12:36:59.323Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "location"
+        ],
+        "object_id": "24",
+        "object_repr": "Carrer Poble Nou, 22 Gandesa",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 83,
+    "fields": {
+        "action_time": "2026-07-17T12:37:33.382Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "person"
+        ],
+        "object_id": "21",
+        "object_repr": "F.A.C. (Carrer Poble Nou, 22 Gandesa)",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 84,
+    "fields": {
+        "action_time": "2026-07-17T12:38:25.655Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "location"
+        ],
+        "object_id": "25",
+        "object_repr": "Carrer Perdigons, 6 Gandesa",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 85,
+    "fields": {
+        "action_time": "2026-07-17T12:38:56.530Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "person"
+        ],
+        "object_id": "22",
+        "object_repr": "J.F.N. (Carrer Perdigons, 6 Gandesa)",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 86,
+    "fields": {
+        "action_time": "2026-07-17T12:40:18.271Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "location"
+        ],
+        "object_id": "26",
+        "object_repr": "Carrer Major, 10 - 2-B Gandesa",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 87,
+    "fields": {
+        "action_time": "2026-07-17T12:40:46.847Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "person"
+        ],
+        "object_id": "23",
+        "object_repr": "R.A.Q. (Carrer Major, 10 - 2-B Gandesa)",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 88,
+    "fields": {
+        "action_time": "2026-07-17T12:41:26.883Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "location"
+        ],
+        "object_id": "27",
+        "object_repr": "Carrer Buenos Aires, 28 Gandesa",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 89,
+    "fields": {
+        "action_time": "2026-07-17T12:42:03.620Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "person"
+        ],
+        "object_id": "24",
+        "object_repr": "MC.G.G. (Carrer Buenos Aires, 28 Gandesa)",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 90,
+    "fields": {
+        "action_time": "2026-07-17T12:43:10.669Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "location"
+        ],
+        "object_id": "28",
+        "object_repr": "Carrer Santa Anna, 1-1 Gandesa",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 91,
+    "fields": {
+        "action_time": "2026-07-17T12:43:49.568Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "person"
+        ],
+        "object_id": "25",
+        "object_repr": "JL.V.S. (Carrer Santa Anna, 1-1 Gandesa)",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 92,
+    "fields": {
+        "action_time": "2026-07-17T12:44:33.279Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "location"
+        ],
+        "object_id": "29",
+        "object_repr": "Carrer Carnisseries, 3  Gandesa",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 93,
+    "fields": {
+        "action_time": "2026-07-17T12:45:04.273Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "person"
+        ],
+        "object_id": "26",
+        "object_repr": "M.LL.C. (Carrer Carnisseries, 3  Gandesa)",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 94,
+    "fields": {
+        "action_time": "2026-07-17T12:45:46.047Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "location"
+        ],
+        "object_id": "30",
+        "object_repr": "Carrer Benifallet, 3 Pinell de Brai",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 95,
+    "fields": {
+        "action_time": "2026-07-17T12:46:18.305Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "person"
+        ],
+        "object_id": "27",
+        "object_repr": "S.S.S. (Carrer Benifallet, 3 Pinell de Brai)",
+        "action_flag": 1,
+        "change_message": "[{\"added\": {}}]"
+    }
+},
+{
+    "model": "admin.logentry",
+    "pk": 96,
+    "fields": {
+        "action_time": "2026-07-17T12:47:05.608Z",
+        "user": [
+            "suara"
+        ],
+        "content_type": [
+            "nilm",
+            "location"
+        ],
+        "object_id": "22",
+        "object_repr": "Carrer Benifallet, 17 Pinell de Brai",
+        "action_flag": 2,
+        "change_message": "[{\"changed\": {\"fields\": [\"Description\", \"Address\"]}}]"
+    }
+}
+]

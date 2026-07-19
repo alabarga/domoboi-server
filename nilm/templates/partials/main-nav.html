@@ -1,0 +1,109 @@
+{% load static i18n %}
+
+<div class="main-nav">
+     <!-- Sidebar Logo -->
+     <div class="logo-box">
+          <a href="{% url 'nilm:dashboard' %}" class="logo-dark">
+               <img src="{% static '/images/logo-sm.png' %}" class="logo-sm" alt="logo sm">
+               <img src="{% static '/images/logo-dark.png' %}" class="logo-lg" alt="logo dark">
+          </a>
+
+          <a href="{% url 'nilm:dashboard' %}" class="logo-light">
+               <img src="{% static '/images/logo-sm.png' %}" class="logo-sm" alt="logo sm">
+               <img src="{% static '/images/logo-light.png' %}" class="logo-lg" alt="logo light">
+          </a>
+     </div>
+
+     <!-- Menu Toggle Button (sm-hover) -->
+     <button type="button" class="button-sm-hover" aria-label="Show Full Sidebar">
+          <i class="ri-menu-2-line fs-24 button-sm-hover-icon"></i>
+     </button>
+
+     <div class="scrollbar" data-simplebar>
+
+          <ul class="navbar-nav" id="navbar-nav">
+
+               <li class="menu-title">{% translate "Monitoreo del hogar" %}</li>
+
+               <li class="nav-item">
+                    <a class="nav-link" href="{% url 'nilm:dashboard' %}">
+                         <span class="nav-icon">
+                              <i class="ri-dashboard-2-line"></i>
+                         </span>
+                         <span class="nav-text">{% translate "Panel de control" %}</span>
+                    </a>
+               </li>
+
+               <li class="nav-item">
+                    <a class="nav-link menu-arrow" href="#sidebarLocations" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="sidebarLocations">
+                         <span class="nav-icon">
+                              <i class="ri-map-pin-line"></i>
+                         </span>
+                         <span class="nav-text">{% translate "Ubicaciones" %}</span>
+                    </a>
+                    <div class="collapse" id="sidebarLocations">
+                         <ul class="nav sub-navbar-nav">
+                              <li class="sub-nav-item">
+                                   <a class="sub-nav-link" href="{% url 'nilm:location_list' %}">{% translate "Vista de Lista" %}</a>
+                              </li>
+                              <li class="sub-nav-item">
+                                   <a class="sub-nav-link" href="{% url 'nilm:location_map' %}">{% translate "Vista de Mapa" %}</a>
+                              </li>
+                         </ul>
+                    </div>
+               </li>
+
+               <li class="nav-item">
+                    <a class="nav-link" href="{% url 'nilm:event_list' %}">
+                         <span class="nav-icon">
+                              <i class="ri-notification-line"></i>
+                         </span>
+                         <span class="nav-text">{% translate "Eventos" %}</span>
+                    </a>
+               </li>
+
+               <li class="nav-item">
+                    <a class="nav-link" href="{% url 'nilm:profile' %}">
+                         <span class="nav-icon">
+                              <i class="ri-user-line"></i>
+                         </span>
+                         <span class="nav-text">{% translate "Mi perfil" %}</span>
+                    </a>
+               </li>
+
+               {% if user.is_superuser %}
+               <li class="nav-item">
+                    <a class="nav-link" href="{% url 'nilm:person_list' %}">
+                         <span class="nav-icon">
+                              <i class="ri-group-line"></i>
+                         </span>
+                         <span class="nav-text">{% translate "Personas" %}</span>
+                    </a>
+               </li>
+               {% endif %}
+
+               <li class="menu-title">{% translate "Administración" %}</li>
+
+               {% if user.is_superuser %}
+               <li class="nav-item">
+                    <a class="nav-link" href="{% url 'nilm:admin_profile_list' %}">
+                         <span class="nav-icon">
+                              <i class="ri-shield-user-line"></i>
+                         </span>
+                         <span class="nav-text">{% translate "Gestionar usuarios" %}</span>
+                    </a>
+               </li>
+               {% endif %}
+
+               <li class="nav-item">
+                    <a class="nav-link" href="/admin/">
+                         <span class="nav-icon">
+                              <i class="ri-settings-line"></i>
+                         </span>
+                         <span class="nav-text">{% translate "Panel de Administración" %}</span>
+                    </a>
+               </li>
+
+          </ul>
+     </div>
+</div>

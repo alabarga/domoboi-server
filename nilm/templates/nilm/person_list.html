@@ -1,0 +1,92 @@
+{% extends "vertical.html" %}
+
+{% load static i18n %}
+
+{% block title %}Persons{% endblock title %}
+
+{% block page_title %}
+{% include 'partials/page-title.html' with title='Persons' subtitle='All registered persons' %}
+{% endblock page_title %}
+
+{% block page_content %}
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center border-0">
+                <h4 class="card-title">All Persons</h4>
+                <a href="{% url 'nilm:dashboard' %}" class="btn btn-sm btn-outline-primary">
+                    <i class="ri-arrow-left-line"></i> Back to Dashboard
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-centered">
+                        <thead>
+                            <tr>
+                                <th scope="col">Name</th>
+                                <th scope="col">Age</th>
+                                <th scope="col">Gender</th>
+                                <th scope="col">Location</th>
+                                <th scope="col">Description</th>
+                                <th scope="col">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for person in persons %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-sm bg-primary bg-opacity-10 rounded me-3">
+                                            <i class="ri-user-line fs-18 text-primary avatar-title"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-0">{{ person.name }}</h6>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info-subtle text-info">{{ person.age }} years</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary-subtle text-secondary">
+                                        {{ person.get_gender_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{% url 'nilm:location_detail' person.location.pk %}" class="text-decoration-none">
+                                        <i class="ri-map-pin-line me-1"></i>{{ person.location.description }}
+                                    </a>
+                                </td>
+                                <td>
+                                    {% if person.description %}
+                                        <span class="text-muted">{{ person.description|truncatechars:50 }}</span>
+                                    {% else %}
+                                        <span class="text-muted">No description</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'nilm:person_detail' person.pk %}" class="btn btn-sm btn-outline-secondary">
+                                        <i class="ri-eye-line"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted">
+                                    <div class="py-4">
+                                        <i class="ri-user-line fs-48 text-muted mb-3"></i>
+                                        <p class="mb-0">No persons found.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock page_content %} 

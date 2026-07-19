@@ -1,0 +1,122 @@
+{% extends "vertical.html" %}
+{% load static i18n %}
+
+{% block title %}Edit User Profile{% endblock title %}
+
+{% block page_title %}
+{% include 'partials/page-title.html' with title='Edit User Profile' subtitle='Assign locations and edit user info' %}
+{% endblock page_title %}
+
+{% block page_content %}
+<div class="row">
+    <div class="col-12">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="row">
+                <!-- User Basic Details Card -->
+                <div class="col-lg-6">
+                    <div class="card h-100">
+                        <div class="card-header border-0 d-flex justify-content-between align-items-center">
+                            <h4 class="card-title">User Details for @{{ object.username }}</h4>
+                            <a href="{% url 'nilm:admin_profile_list' %}" class="btn btn-sm btn-outline-secondary">
+                                <i class="ri-arrow-left-line"></i> Back to Directory
+                            </a>
+                        </div>
+                        <div class="card-body pt-0">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Username</label>
+                                <input type="text" class="form-control" value="{{ object.username }}" disabled>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="id_first_name" class="form-label fw-semibold">First Name</label>
+                                    {{ form.first_name }}
+                                    {% if form.first_name.errors %}
+                                        <div class="text-danger mt-1 fs-13">{{ form.first_name.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="id_last_name" class="form-label fw-semibold">Last Name</label>
+                                    {{ form.last_name }}
+                                    {% if form.last_name.errors %}
+                                        <div class="text-danger mt-1 fs-13">{{ form.last_name.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="id_email" class="form-label fw-semibold">Email Address</label>
+                                {{ form.email }}
+                                {% if form.email.errors %}
+                                    <div class="text-danger mt-1 fs-13">{{ form.email.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Role Status</label>
+                                <div class="d-flex gap-2">
+                                    {% if object.is_superuser %}
+                                        <span class="badge bg-danger-subtle text-danger px-3 py-2">Superuser Admin</span>
+                                    {% endif %}
+                                    {% if object.is_staff %}
+                                        <span class="badge bg-warning-subtle text-warning px-3 py-2">Staff Member</span>
+                                    {% endif %}
+                                    {% if object.is_active %}
+                                        <span class="badge bg-success-subtle text-success px-3 py-2">Active User</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary-subtle text-secondary px-3 py-2">Inactive</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Location Assignment Card -->
+                <div class="col-lg-6">
+                    <div class="card h-100">
+                        <div class="card-header border-0">
+                            <h4 class="card-title">Assign Locations</h4>
+                        </div>
+                        <div class="card-body pt-0">
+                            {% if object.is_superuser %}
+                                <div class="alert alert-info" role="alert">
+                                    <i class="ri-information-line me-2 align-middle"></i>
+                                    <strong>Admin Access:</strong> Superusers automatically have access to all locations.
+                                </div>
+                            {% endif %}
+                            
+                            <p class="text-muted mb-3">Select the locations this user is allowed to monitor and view:</p>
+                            
+                            <div class="location-checklist border rounded p-3 bg-light" style="max-height: 250px; overflow-y: auto;">
+                                {% for choice in location_form.locations.field.choices %}
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" name="locations" value="{{ choice.0 }}" id="loc_{{ choice.0 }}"
+                                            {% if choice.0 in location_form.locations.value or choice.0 in location_form.initial.locations %}checked{% endif %}>
+                                        <label class="form-check-label text-dark fw-medium" for="loc_{{ choice.0 }}">
+                                            {{ choice.1 }}
+                                        </label>
+                                    </div>
+                                {% empty %}
+                                    <p class="text-muted mb-0">No locations available in the system. Create locations first.</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Button Footer -->
+            <div class="row mt-4">
+                <div class="col-12 text-end">
+                    <button type="submit" class="btn btn-primary px-4 py-2">
+                        <i class="ri-save-line me-1"></i> Save Changes
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock page_content %}

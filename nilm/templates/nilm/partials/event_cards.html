@@ -1,0 +1,54 @@
+{% load i18n humanize %}
+
+{% for event in recent_events %}
+<div class="col-md-6 col-lg-4 col-xl-3 event-card-item">
+    <div class="card card-event-{{ event.class_name|lower }} mb-2 shadow-sm border border-opacity-50">
+        <div class="card-body py-2 px-3">
+            <div class="d-flex align-items-start justify-content-between">
+                <div class="d-flex align-items-start gap-2">
+                    <div class="avatar-sm rounded-circle d-flex align-items-center justify-content-center bg-white shadow-xs mt-0.5" style="width: 32px; height: 32px; flex-shrink: 0;">
+                        {% if event.type == 'FRIDGE' %}
+                            <i class="ri-fridge-line fs-16 text-dark"></i>
+                        {% elif event.type == 'OVEN' %}
+                            <i class="ri-fire-line fs-16 text-dark"></i>
+                        {% elif event.type == 'KETTLE' %}
+                            <i class="ri-cup-line fs-16 text-dark"></i>
+                        {% elif event.type == 'MICROWAVE' %}
+                            <i class="ri-radar-line fs-16 text-dark"></i>
+                        {% elif event.type == 'WASHING MACHINE' %}
+                            <i class="ri-water-flash-line fs-16 text-dark"></i>
+                        {% elif event.type == 'IRON' %}
+                            <i class="ri-scissors-line fs-16 text-dark"></i>
+                        {% elif event.type == 'LIGHTS' %}
+                            <i class="ri-lightbulb-line fs-16 text-dark"></i>
+                        {% elif event.type == 'TV' %}
+                            <i class="ri-tv-line fs-16 text-dark"></i>
+                        {% else %}
+                            <i class="ri-plug-line fs-16 text-dark"></i>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <h6 class="mb-0 fw-bold text-dark fs-14" style="line-height: 1.2;">{{ event.get_type_display }}</h6>
+                        
+                        {% if event.description %}
+                        <p class="text-muted fs-11 mb-1 line-clamp-1" style="line-height: 1.3; margin-top: 2px; max-width: 170px;">
+                            {{ event.description }}
+                        </p>
+                        {% endif %}
+                        
+                        <div class="d-flex align-items-center gap-1.5 text-muted fs-10" style="margin-top: 2px;">
+                            <span><i class="ri-time-line me-0.5"></i>{{ event.start_time|naturaltime }}</span>
+                            <span class="mx-1">•</span>
+                            <span><i class="ri-timer-line me-0.5"></i>{% blocktrans with mins=event.duration_minutes %}{{ mins }} min{% endblocktrans %}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <span class="badge badge-event-{{ event.class_name|lower }} px-2 py-0.5 fs-10 uppercase fw-semibold rounded-pill" style="flex-shrink: 0; margin-top: 2px;">
+                    {{ event.get_class_name_display }}
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}

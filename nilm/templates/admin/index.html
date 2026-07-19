@@ -1,0 +1,134 @@
+{% extends "admin/base.html" %}
+{% load i18n %}
+
+{% block breadcrumbs %}{% endblock %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block branding %}
+    {% include "unfold/helpers/site_branding.html" %}
+{% endblock %}
+
+{% block content %}
+    <div class="flex flex-col lg:flex-row lg:gap-8">
+        <div class="grow">
+            {% include "unfold/helpers/app_list_default.html" %}
+        </div>
+
+        {% include "unfold/helpers/history.html" %}
+    </div>
+    
+    <!-- Custom Dashboard Widgets -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
+        <!-- Total Devices Widget -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">{% trans "Total Devices" %}</p>
+                    <p class="text-2xl font-semibold text-gray-900">{{ total_devices }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Devices Last Hour Widget -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">{% trans "Active Last Hour" %}</p>
+                    <p class="text-2xl font-semibold text-gray-900">{{ active_devices_last_hour }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Locations Widget -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">{% trans "Total Locations" %}</p>
+                    <p class="text-2xl font-semibold text-gray-900">{{ total_locations }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Events Widget -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">{% trans "Events Today" %}</p>
+                    <p class="text-2xl font-semibold text-gray-900">{{ events_today }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Device Status Chart -->
+    <div class="mt-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">{% trans "Device Status Overview" %}</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="text-center">
+                <div class="text-3xl font-bold text-green-600">{{ active_devices_count }}</div>
+                <div class="text-sm text-gray-500">{% trans "Active Devices" %}</div>
+            </div>
+            <div class="text-center">
+                <div class="text-3xl font-bold text-red-600">{{ inactive_devices_count }}</div>
+                <div class="text-sm text-gray-500">{% trans "Inactive Devices" %}</div>
+            </div>
+            <div class="text-center">
+                <div class="text-3xl font-bold text-blue-600">{{ devices_by_location_count }}</div>
+                <div class="text-sm text-gray-500">{% trans "Locations with Devices" %}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="mt-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">{% trans "Recent Device Activity" %}</h3>
+        <div class="space-y-3">
+            {% for device in recent_devices %}
+            <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
+                <div class="flex items-center">
+                    <div class="w-2 h-2 bg-green-400 rounded-full mr-3"></div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-900">{{ device.model }} ({{ device.device_id }})</p>
+                        <p class="text-xs text-gray-500">{{ device.location.description }}</p>
+                    </div>
+                </div>
+                <div class="text-xs text-gray-500">
+                    {{ device.last_active|timesince }} {% trans "ago" %}
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-gray-500 text-sm">{% trans "No recent device activity" %}</p>
+            {% endfor %}
+        </div>
+    </div>
+{% endblock %}

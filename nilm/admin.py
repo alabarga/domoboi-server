@@ -28,7 +28,7 @@ class PersonAdmin(ModelAdmin):
     raw_id_fields = ['location']
 
 @admin.register(UserProfile)
-class UserProfileAdmin(admin.ModelAdmin):
+class UserProfileAdmin(ModelAdmin):
     list_display = ['user', 'get_locations_count']
     list_filter = ['user__is_active']
     search_fields = ['user__username', 'user__email']
@@ -39,13 +39,17 @@ class UserProfileAdmin(admin.ModelAdmin):
     get_locations_count.short_description = 'Assigned Locations'
 
 @admin.register(Measurement)
-class MeasurementAdmin(admin.ModelAdmin):
-    list_display = ['location', 'timestamp', 'value']
-    list_filter = ['location', 'timestamp']
-    search_fields = ['location__description']
+class MeasurementAdmin(ModelAdmin):
+    list_display = ['device', 'get_location', 'timestamp', 'value']
+    list_filter = ['device__location', 'timestamp']
+    search_fields = ['device__device_id', 'device__location__description']
     ordering = ['-timestamp']
-    raw_id_fields = ['location']
+    raw_id_fields = ['device']
     date_hierarchy = 'timestamp'
+    
+    def get_location(self, obj):
+        return obj.location.description if obj.location else "-"
+    get_location.short_description = 'Ubicación'
 
 @admin.register(Event)
 class EventAdmin(ModelAdmin):
@@ -75,7 +79,7 @@ class DeviceAdmin(ModelAdmin):
     get_last_active.short_description = 'Last Active'
 
 @admin.register(Comment)
-class CommentAdmin(admin.ModelAdmin):
+class CommentAdmin(ModelAdmin):
     list_display = ['person', 'author', 'timestamp', 'get_message_preview']
     list_filter = ['timestamp', 'author', 'person__location']
     search_fields = ['person__name', 'author__username', 'message']
@@ -123,19 +127,21 @@ class CustomAdminSite(UnfoldAdminSite):
         
         # Calculate dashboard metrics
         total_devices = Device.objects.count()
-        # Since last_active is a property, we'll simulate the count
-        # In a real scenario, you might want to store this data differently
-        active_devices_last_hour = total_devices  # All devices are considered active
+        # Get active devices last hour (having measurements in the last hour)
+        active_devices_last_hour = Device.objects.filter(
+            measurements__timestamp__gte=one_hour_ago
+        ).distinct().count()
         total_locations = Location.objects.count()
         events_today = Event.objects.filter(start_time__gte=today_start).count()
         
-        # Device status metrics - all devices are active since is_active property returns True
-        active_devices_count = total_devices
-        inactive_devices_count = 0
+        # Device status metrics - based on dynamic is_active property
+        all_devices = list(Device.objects.all())
+        active_devices_count = sum(1 for d in all_devices if d.is_active)
+        inactive_devices_count = total_devices - active_devices_count
         devices_by_location_count = Location.objects.filter(devices__isnull=False).distinct().count()
         
-        # Recent device activity (all devices since they're all active)
-        recent_devices = Device.objects.all()[:10]
+        # Recent device activity sorted by last active time descending
+        recent_devices = sorted(all_devices, key=lambda d: d.last_active or timezone.now(), reverse=True)[:10]
         
         extra_context = extra_context or {}
         extra_context.update({

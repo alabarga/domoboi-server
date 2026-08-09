@@ -79,9 +79,39 @@ class UserProfile(models.Model):
         """Check if user has access to a specific location"""
         return self.user.is_superuser or location in self.locations.all()
 
+
+class Device(models.Model):
+    """Model for storing device information"""
+    device_id = models.CharField(max_length=100, unique=True)
+    model = models.CharField(max_length=100)
+    location = models.ForeignKey(Location, on_delete=models.CASCADE, related_name='devices')
+    
+    @property
+    def last_active(self):
+        """Returns the timestamp of the latest measurement for the device, or a random time within the last 1-5 minutes if none exists"""
+        last_meas = self.measurements.order_by('-timestamp').first()
+        if last_meas and last_meas.timestamp:
+            return last_meas.timestamp
+        # Fallback to random time within the last 1-5 minutes
+        now = timezone.now()
+        random_minutes = random.randint(1, 5)
+        return now - timezone.timedelta(minutes=random_minutes)
+    
+    @property
+    def is_active(self):
+        """Returns True if the device has sent a measurement in the last 60 minutes"""
+        cutoff = timezone.now() - timezone.timedelta(minutes=60)
+        return self.measurements.filter(timestamp__gte=cutoff).exists()
+    
+    def __str__(self):
+        return f"{self.model} ({self.device_id}) - {self.location.description}"
+    
+    class Meta:
+        ordering = ['model', 'device_id']
+
 class Measurement(models.Model):
     """Model for storing high-resolution electrical reading segments during appliance runs"""
-    location = models.ForeignKey(Location, on_delete=models.CASCADE, related_name='measurements')
+    device = models.ForeignKey(Device, on_delete=models.CASCADE, related_name='measurements', null=True, blank=True)
     start_time = models.DateTimeField(null=True, blank=True)
     end_time = models.DateTimeField(null=True, blank=True)
     
@@ -92,6 +122,10 @@ class Measurement(models.Model):
     timestamp = models.DateTimeField(null=True, blank=True)
     value = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
     
+    @property
+    def location(self):
+        return self.device.location if self.device else None
+    
     def save(self, *args, **kwargs):
         if not self.timestamp:
             self.timestamp = self.start_time
@@ -101,16 +135,17 @@ class Measurement(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
+        loc = self.location
+        loc_desc = loc.description if loc else "Unknown"
         if self.start_time and self.end_time:
             duration = int((self.end_time - self.start_time).total_seconds())
             t_str = self.timestamp.strftime('%Y-%m-%d %H:%M:%S') if self.timestamp else 'N/A'
-            return f"{self.location.description} - Segment {t_str} ({duration}s, {len(self.readings)} samples)"
+            return f"{loc_desc} - Segment {t_str} ({duration}s, {len(self.readings)} samples)"
         t_str = self.timestamp.strftime('%Y-%m-%d %H:%M:%S') if self.timestamp else 'N/A'
-        return f"{self.location.description} - Segment {t_str}"
+        return f"{loc_desc} - Segment {t_str}"
     
     class Meta:
         ordering = ['-timestamp']
-
 
 
 class Event(models.Model):
@@ -148,31 +183,7 @@ class Event(models.Model):
     
     class Meta:
         ordering = ['-start_time']
-
-class Device(models.Model):
-    """Model for storing device information"""
-    device_id = models.CharField(max_length=100, unique=True)
-    model = models.CharField(max_length=100)
-    location = models.ForeignKey(Location, on_delete=models.CASCADE, related_name='devices')
-    
-    @property
-    def last_active(self):
-        """Returns a random time within the last 1-5 minutes"""
-        now = timezone.now()
-        random_minutes = random.randint(1, 5)
-        return now - timezone.timedelta(minutes=random_minutes)
-    
-    @property
-    def is_active(self):
-        """Always returns True for active devices"""
-        return True
-    
-    def __str__(self):
-        return f"{self.model} ({self.device_id}) - {self.location.description}"
-    
-    class Meta:
-        ordering = ['model', 'device_id']
-
+        
 class Comment(models.Model):
     """Model for storing user comments about persons"""
     person = models.ForeignKey(Person, on_delete=models.CASCADE, related_name='comments')

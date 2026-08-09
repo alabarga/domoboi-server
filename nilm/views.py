@@ -469,7 +469,7 @@ class MeasurementIngestionView(View):
             
             # Save raw telemetry segment
             meas = Measurement.objects.create(
-                location=location,
+                device=device,
                 start_time=start_time,
                 end_time=end_time,
                 readings=readings,

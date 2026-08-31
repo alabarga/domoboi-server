@@ -1,110 +1,49 @@
 {% extends "vertical.html" %}
 {% load static i18n %}
 
-{% block title %}{% translate "Ubicaciones" %}{% endblock title %}
-
-{% block extra_css %}
-<style>
-    /* Score card styles */
-    .card-score-green {
-        background-color: #e6f6ee !important; /* Pastel Green */
-        border: 1px solid #b3e6cc !important;
-    }
-    .badge-score-green {
-        background-color: #0f623a !important;
-        color: #ffffff !important;
-    }
-    .text-score-green {
-        color: #0f623a !important;
-    }
-
-    .card-score-orange {
-        background-color: #fef3e6 !important; /* Pastel Orange */
-        border: 1px solid #fcd8ad !important;
-    }
-    .badge-score-orange {
-        background-color: #a45b00 !important;
-        color: #ffffff !important;
-    }
-    .text-score-orange {
-        color: #a45b00 !important;
-    }
-
-    .card-score-red {
-        background-color: #fce8e6 !important; /* Pastel Red */
-        border: 1px solid #fbc2c4 !important;
-    }
-    .badge-score-red {
-        background-color: #a8201a !important;
-        color: #ffffff !important;
-    }
-    .text-score-red {
-        color: #a8201a !important;
-    }
-</style>
-{% endblock %}
-
-{% block page_title %}
-{% include 'partials/page-title.html' with title=_("Ubicaciones") subtitle=_("Ubicaciones asignadas para monitoreo") %}
-{% endblock page_title %}
+{% block title %}{% trans "Ubicaciones" %} | DOMOBOI{% endblock %}
 
 {% block page_content %}
-<div class="row mb-4">
-    <div class="col-12 d-flex justify-content-between align-items-center">
-        <h4 class="card-title text-dark fw-bold mb-0">{% translate "Mis Domicilios" %}</h4>
-        <a href="{% url 'nilm:location_map' %}" class="btn btn-primary d-flex align-items-center gap-2">
-            <i class="ri-map-pin-line"></i> {% translate "Ver en el Mapa" %}
-        </a>
-    </div>
-</div>
 
-<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-    {% for location in locations %}
-    <div class="col">
-        <div class="card h-100 shadow-sm transition-all border border-opacity-50 {% if location.score_class == 'score-green' %}card-score-green{% elif location.score_class == 'score-orange' %}card-score-orange{% else %}card-score-red{% endif %}">
-            <div class="card-body">
-                <div class="d-flex align-items-start justify-content-between mb-3">
-                    <div class="avatar-md bg-white rounded-circle d-flex align-items-center justify-content-center shadow-xs text-dark" style="width: 50px; height: 50px;">
-                        <i class="ri-home-4-line fs-24"></i>
-                    </div>
-                    <span class="badge rounded-pill px-3 py-1 fs-12 {% if location.score_class == 'score-green' %}badge-score-green{% elif location.score_class == 'score-orange' %}badge-score-orange{% else %}badge-score-red{% endif %}">
-                        {% translate "Puntuación" %}: {{ location.score }}
-                    </span>
-                </div>
-                
-                <h5 class="fw-bold mb-1 text-dark">{{ location.description }}</h5>
-                <p class="text-muted fs-13 mb-3">
-                    <i class="ri-map-pin-line me-1"></i>{{ location.address }}
-                </p>
+  {% if locations %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {% for location in locations %}
+      <div class="bg-white rounded-xl border border-gray-200 hover:border-violet-300 hover:shadow-md transition-all group">
+        <div class="p-5">
+          <!-- Info -->
+          <h3 class="font-semibold text-gray-900 mb-0.5 group-hover:text-violet-700 transition-colors">{{ location.description }}</h3>
+          <p class="text-xs text-gray-400 mb-4 flex items-center gap-1">
+            <i class="ri-map-pin-line"></i> {{ location.address }}
+          </p>
 
-                <hr class="my-3 opacity-25">
+          <!-- Stats row -->
+          <div class="flex items-center gap-4 text-xs text-gray-500 mb-4">
+            <span class="flex items-center gap-1">
+              <i class="ri-group-line"></i> {{ location.persons.count }} {% trans "personas" %}
+            </span>
+            <span class="flex items-center gap-1">
+              <i class="ri-shield-line"></i> {{ location.devices.count }} {% trans "dispositivos" %}
+            </span>
+          </div>
 
-                <div class="d-flex align-items-center justify-content-between mt-auto">
-                    <div class="d-flex gap-2">
-                        <span class="fs-12 text-muted">
-                            <i class="ri-group-line me-1"></i>{{ location.persons.count }} {% translate "residentes" %}
-                        </span>
-                        <span class="fs-12 text-muted">
-                            <i class="ri-shield-line me-1"></i>{{ location.devices.count }} {% translate "disp." %}
-                        </span>
-                    </div>
-                    <a href="{% url 'nilm:location_detail' location.pk %}" class="btn btn-sm btn-white text-dark border-secondary px-3">
-                        {% translate "Explorar" %} <i class="ri-arrow-right-line ms-1"></i>
-                    </a>
-                </div>
-            </div>
+          <!-- CTA -->
+          <a href="{% url 'nilm:location_detail' location.pk %}"
+             class="flex items-center justify-center gap-1.5 w-full py-2 bg-violet-600 text-white text-sm font-medium rounded-lg hover:bg-violet-700 transition-colors">
+            {% trans "Explorar" %} <i class="ri-arrow-right-s-line"></i>
+          </a>
         </div>
+      </div>
+      {% endfor %}
     </div>
-    {% empty %}
-    <div class="col-12 w-100 text-center py-5">
-        <div class="card">
-            <div class="card-body py-5">
-                <i class="ri-home-smile-line text-muted mb-3" style="font-size: 50px; display: block;"></i>
-                <h5 class="fw-bold text-dark">{% translate "No hay ubicaciones asignadas" %}</h5>
-                <p class="text-muted mb-0">{% translate "Actualmente no tienes acceso a ningún domicilio. Contacta al administrador." %}</p>
-            </div>
-        </div>
+
+  {% else %}
+    <div class="bg-white rounded-xl border border-gray-200 p-12 text-center">
+      <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <i class="ri-home-smile-line text-3xl text-gray-400"></i>
+      </div>
+      <h3 class="font-semibold text-gray-700 mb-1">{% trans "Sin ubicaciones asignadas" %}</h3>
+      <p class="text-sm text-gray-400">{% trans "Contacta con el administrador para acceder a un domicilio." %}</p>
     </div>
-    {% endfor %}
-</div>
-{% endblock page_content %}
+  {% endif %}
+
+{% endblock %}

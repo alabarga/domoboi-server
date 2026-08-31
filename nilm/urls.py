@@ -1,9 +1,18 @@
 from django.urls import path
+from django.views.generic import TemplateView
 from . import views
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
 app_name = 'nilm'
 
 urlpatterns = [
+    # PWA
+    path('sw.js', TemplateView.as_view(
+        template_name='nilm/sw.js',
+        content_type='application/javascript; charset=utf-8',
+    ), name='sw'),
+    path('offline/', TemplateView.as_view(template_name='nilm/offline.html'), name='offline'),
+
     # Dashboard
     path('', views.DashboardView.as_view(), name='dashboard'),
     
@@ -12,6 +21,7 @@ urlpatterns = [
     path('locations/map/', views.LocationMapView.as_view(), name='location_map'),
     path('locations/<int:pk>/', views.LocationDetailView.as_view(), name='location_detail'),
     path('locations/<int:pk>/edit/', views.LocationUpdateView.as_view(), name='location_update'),
+    path('locations/<int:location_id>/assign/', views.LocationAssignView.as_view(), name='location_assign'),
     
     # Person views
     path('persons/', views.PersonListView.as_view(), name='person_list'),
@@ -37,5 +47,10 @@ urlpatterns = [
     path('api/events/', views.EventIngestionView.as_view(), name='api_event_ingestion'),
     path('api/measurements/', views.MeasurementIngestionView.as_view(), name='api_measurement_ingestion'),
     path('api/device/', views.DeviceConfigCheckView.as_view(), name='api_device_check'),
+
+    # API documentation (drf-spectacular)
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/docs/',   SpectacularSwaggerView.as_view(url_name='nilm:schema'), name='api_docs'),
+    path('api/redoc/',  SpectacularRedocView.as_view(url_name='nilm:schema'),   name='api_redoc'),
 ]
  

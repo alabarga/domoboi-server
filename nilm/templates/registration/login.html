@@ -1,13 +1,127 @@
-{% extends 'base.html' %}
-{% block title %}Login{% endblock %}
-{% block content %}
-<h2>Login</h2>
-<form method="post" action="">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit" class="btn btn-primary">Login</button>
-</form>
-{% if form.errors %}
-    <div class="alert alert-danger mt-3">Invalid username or password.</div>
-{% endif %}
-{% endblock %} 
+{% load static i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="theme-color" content="#00E5C9"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <title>DOMOBOI</title>
+  <link rel="icon" href="{% static 'images/icon.svg' %}" type="image/svg+xml"/>
+  <link rel="apple-touch-icon" href="{% static 'images/apple-touch-icon.png' %}"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="{% static 'css/tailwind.css' %}"/>
+  <style>
+    :root {
+      --bg: #0B1120; --surface: #131E35; --surface-raised: #1B2B47;
+      --border: rgba(255,255,255,0.09); --accent: #00E5C9;
+      --text-primary: #ECF1FA; --text-muted: #647FA8;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text-primary);
+      font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    input {
+      background: var(--surface-raised) !important;
+      color: var(--text-primary) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: 10px;
+      padding: 0.625rem 0.875rem;
+      width: 100%;
+      font-size: 0.9rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color .15s;
+      color-scheme: dark;
+    }
+    input:focus { border-color: var(--accent) !important; }
+    input::placeholder { color: var(--text-muted); }
+    label { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); letter-spacing: .04em; text-transform: uppercase; }
+  </style>
+</head>
+<body>
+  <div style="width:100%; max-width:380px;">
+
+    <!-- Logo mark -->
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4"
+           style="background:rgba(0,229,201,0.12);">
+        <i class="ri-building-2-line text-3xl" style="color:var(--accent);"></i>
+      </div>
+      <h1 class="text-2xl font-bold tracking-tight" style="color:var(--text-primary);">DOMOBOI</h1>
+      <p class="text-sm mt-1" style="color:var(--text-muted);">{% trans "Monitoreo del hogar" %}</p>
+    </div>
+
+    <!-- Card -->
+    <div class="rounded-2xl p-6" style="background:var(--surface); border:1px solid var(--border);">
+
+      {% if form.errors %}
+      <div class="flex items-center gap-2 rounded-lg px-3 py-2 mb-4 text-sm"
+           style="background:rgba(255,59,92,0.12); color:#FF3B5C; border:1px solid rgba(255,59,92,0.2);">
+        <i class="ri-error-warning-line flex-shrink-0"></i>
+        <span>{% trans "Usuario o contraseña incorrectos." %}</span>
+      </div>
+      {% endif %}
+
+      <form method="post" action="" class="space-y-4">
+        {% csrf_token %}
+
+        <div>
+          <label for="id_username">{% trans "Usuario" %}</label>
+          <div class="mt-1">
+            <input type="text" name="username" id="id_username"
+                   autocomplete="username" autofocus
+                   placeholder="{% trans 'Nombre de usuario' %}">
+          </div>
+        </div>
+
+        <div>
+          <label for="id_password">{% trans "Contraseña" %}</label>
+          <div class="mt-1">
+            <input type="password" name="password" id="id_password"
+                   autocomplete="current-password"
+                   placeholder="••••••••">
+          </div>
+        </div>
+
+        <button type="submit"
+                class="w-full py-2.5 rounded-xl text-sm font-bold tracking-wide transition-opacity hover:opacity-90 mt-2"
+                style="background:var(--accent); color:#0B1120;">
+          {% trans "Entrar" %}
+        </button>
+      </form>
+    </div>
+
+    <!-- Language switcher -->
+    <div class="text-center mt-5">
+      <form action="{% url 'set_language' %}" method="post" class="inline-flex items-center gap-2">
+        {% csrf_token %}
+        <input name="next" type="hidden" value="{{ request.get_full_path }}">
+        <select name="language" onchange="this.form.submit()"
+                class="text-xs rounded px-2 py-1 focus:outline-none cursor-pointer"
+                style="background:var(--surface); color:var(--text-muted); border:1px solid var(--border);">
+          {% get_available_languages as LANGUAGES %}
+          {% get_language_info_list for LANGUAGES as languages_list %}
+          {% for language in languages_list %}
+            <option value="{{ language.code }}" {% if language.code == LANGUAGE_CODE %}selected{% endif %}>
+              {% if language.code == 'es' %}Español{% elif language.code == 'ca' %}Català{% else %}{{ language.code|upper }}{% endif %}
+            </option>
+          {% endfor %}
+        </select>
+      </form>
+    </div>
+
+  </div>
+</body>
+</html>

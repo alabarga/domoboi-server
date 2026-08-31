@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background -->
+  <rect width="512" height="512" rx="96" fill="#0B1120"/>
+  <!-- House outline -->
+  <path d="M256 110 L96 230 L96 420 L416 420 L416 230 Z"
+        fill="none" stroke="#00E5C9" stroke-width="22" stroke-linejoin="round"/>
+  <!-- Door -->
+  <rect x="210" y="300" width="92" height="120" rx="8"
+        fill="none" stroke="#00E5C9" stroke-width="18"/>
+  <!-- Windows — amber thermal glow -->
+  <rect x="126" y="255" width="80" height="70" rx="6" fill="#FF9500"/>
+  <rect x="306" y="255" width="80" height="70" rx="6" fill="#FF9500"/>
+  <!-- Roof peak signal dot -->
+  <circle cx="256" cy="110" r="20" fill="#00E5C9"/>
+</svg>

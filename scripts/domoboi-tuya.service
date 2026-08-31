@@ -1,0 +1,19 @@
+[Unit]
+Description=Domoboi Tuya cloud measurement bridge
+Documentation=https://github.com/alabarga/domoboi_django
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/domoboi_django/scripts
+EnvironmentFile=/home/pi/domoboi_django/scripts/.env
+ExecStart=/home/pi/venv/bin/python tuya_daemon.py
+Restart=always
+RestartSec=30
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

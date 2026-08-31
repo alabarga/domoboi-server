@@ -73,6 +73,23 @@
     }
 }
 
+/* Leaflet map: prevent Tailwind preflight (max-width:100%, height:auto on img) from
+   breaking tile rendering. These overrides must be more specific than Tailwind's reset. */
+.leaflet-container img.leaflet-tile,
+.leaflet-container img {
+    max-width: none !important;
+    max-height: none !important;
+    height: auto;
+    width: auto;
+    border: none;
+    padding: 0;
+    box-shadow: none;
+}
+
+.leaflet-container {
+    position: relative;
+}
+
 /* Animation for loading states */
 @keyframes pulse {
     0%, 100% {

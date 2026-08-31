@@ -1,5 +1,5 @@
 from django.contrib import admin
-from unfold.admin import ModelAdmin
+from unfold.admin import ModelAdmin, StackedInline
 from django.utils import timezone
 from datetime import timedelta
 from .models import Location, Person, UserProfile, Measurement, Event, Comment, Device
@@ -62,7 +62,7 @@ class EventAdmin(ModelAdmin):
 
 @admin.register(Device)
 class DeviceAdmin(ModelAdmin):
-    list_display = ['device_id', 'model', 'location', 'get_is_active', 'get_last_active']
+    list_display = ['device_id', 'model', 'device_type', 'location', 'get_is_active', 'get_last_active']
     list_filter = ['model', 'location']
     search_fields = ['device_id', 'model', 'location__description']
     ordering = ['model', 'device_id']
@@ -102,12 +102,21 @@ admin.site.unregister(User)
 admin.site.unregister(Group)
 
 
+class UserProfileInline(StackedInline):
+    model = UserProfile
+    can_delete = False
+    extra = 0
+    verbose_name_plural = 'Ubicaciones asignadas'
+    fields = ['locations']
+    filter_horizontal = ['locations']
+
+
 @admin.register(User)
 class UserAdmin(BaseUserAdmin, ModelAdmin):
-    # Forms loaded from `unfold.forms`
     form = UserChangeForm
     add_form = UserCreationForm
     change_password_form = AdminPasswordChangeForm
+    inlines = [UserProfileInline]
 
 
 @admin.register(Group)
@@ -117,44 +126,64 @@ class GroupAdmin(BaseGroupAdmin, ModelAdmin):
 
 # Custom Admin Site with Dashboard Context
 from unfold.sites import UnfoldAdminSite
+from django.db.models import Exists, OuterRef
+import json
 
 class CustomAdminSite(UnfoldAdminSite):
     def index(self, request, extra_context=None):
-        # Get current time and one hour ago
         now = timezone.now()
         one_hour_ago = now - timedelta(hours=1)
-        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        
-        # Calculate dashboard metrics
-        total_devices = Device.objects.count()
-        # Get active devices last hour (having measurements in the last hour)
+        seven_days_ago = now - timedelta(days=7)
+
         active_devices_last_hour = Device.objects.filter(
             measurements__timestamp__gte=one_hour_ago
         ).distinct().count()
-        total_locations = Location.objects.count()
-        events_today = Event.objects.filter(start_time__gte=today_start).count()
-        
-        # Device status metrics - based on dynamic is_active property
-        all_devices = list(Device.objects.all())
-        active_devices_count = sum(1 for d in all_devices if d.is_active)
-        inactive_devices_count = total_devices - active_devices_count
-        devices_by_location_count = Location.objects.filter(devices__isnull=False).distinct().count()
-        
-        # Recent device activity sorted by last active time descending
-        recent_devices = sorted(all_devices, key=lambda d: d.last_active or timezone.now(), reverse=True)[:10]
-        
+
+        assigned_devices = Device.objects.filter(location__isnull=False).count()
+        devices_active_7days = Device.objects.filter(
+            measurements__timestamp__gte=seven_days_ago
+        ).distinct().count()
+
+        # Annotate assigned devices with recent-activity flag for the map
+        has_recent_meas = Exists(
+            Measurement.objects.filter(device=OuterRef('pk'), timestamp__gte=one_hour_ago)
+        )
+        assigned_device_list = list(
+            Device.objects.filter(location__isnull=False)
+            .select_related('location')
+            .annotate(has_recent=has_recent_meas)
+        )
+
+        # Device map: coordinates come from Location.location (PlainLocationField "lat,lon")
+        device_map_data = []
+        for d in assigned_device_list:
+            if not d.location.location:
+                continue
+            try:
+                lat, lon = (float(x.strip()) for x in d.location.location.split(','))
+            except ValueError:
+                continue
+            last = d.last_active
+            device_map_data.append({
+                'device_id': d.device_id,
+                'model': d.model,
+                'device_type': d.device_type,
+                'location': d.location.description,
+                'lat': lat,
+                'lon': lon,
+                'is_active': d.has_recent,
+                'last_active': last.strftime('%Y-%m-%d %H:%M') if last else 'N/A',
+            })
+        device_map_json = json.dumps(device_map_data)
+
         extra_context = extra_context or {}
         extra_context.update({
-            'total_devices': total_devices,
+            'assigned_devices': assigned_devices,
             'active_devices_last_hour': active_devices_last_hour,
-            'total_locations': total_locations,
-            'events_today': events_today,
-            'active_devices_count': active_devices_count,
-            'inactive_devices_count': inactive_devices_count,
-            'devices_by_location_count': devices_by_location_count,
-            'recent_devices': recent_devices,
+            'devices_active_7days': devices_active_7days,
+            'device_map_json': device_map_json,
         })
-        
+
         return super().index(request, extra_context=extra_context)
 
 # Replace the default admin site

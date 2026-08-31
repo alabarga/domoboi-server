@@ -50,7 +50,7 @@ UNFOLD = {
 
     "SIDEBAR": {
         "show_search": True,
-        "show_all_applications": True,
+        "show_all_applications": False,
         "navigation": [
             {
                 "title": _("Despliegue"),
@@ -111,6 +111,17 @@ UNFOLD = {
                     },
                 ],
             },
+            {
+                "title": _("Desarrollador"),
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": _("API Docs"),
+                        "icon": "article",
+                        "link": "/nilm/api/docs/",
+                    },
+                ],
+            },
         ],
     },
 }
@@ -136,8 +147,23 @@ INSTALLED_APPS = [
     'django.contrib.humanize',
     'django_extensions',
     'location_field',
+    'rest_framework',
+    'drf_spectacular',
     'nilm',
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [],
+    'DEFAULT_PERMISSION_CLASSES': [],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Domoboi Edge API',
+    'DESCRIPTION': 'API for edge devices (DOMOBOI/Tuya) to push measurements and events.',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+}
 
 GRAPH_MODELS = {
   'app_labels': ["nilm"],
@@ -255,10 +281,11 @@ LOGIN_REDIRECT_URL = '/nilm/'
 
 GOOGLE_MAPS_API_KEY = os.environ.get('GOOGLE_MAPS_API_KEY', '')
 
-# django-location-field configuration
+# django-location-field configuration — use OpenStreetMap so no API key is required
 LOCATION_FIELD = {
-    'provider.google.api_key': GOOGLE_MAPS_API_KEY,
-    'provider.google.api': f'https://maps.google.com/maps/api/js?key={GOOGLE_MAPS_API_KEY}',
+    'map.provider': 'openstreetmap',
+    'search.provider': 'nominatim',
+    'provider.openstreetmap.max_zoom': 18,
 }
 
 # Import local settings overrides if they exist (allows overriding database, DEBUG, etc.)

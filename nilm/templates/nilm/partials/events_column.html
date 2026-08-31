@@ -1,0 +1,56 @@
+{% load static i18n %}
+<!-- HTMX partial — replaces #events-column on date change -->
+<div id="events-column" class="col-span-1 lg:col-span-2 space-y-4">
+
+  <!-- Date picker -->
+  <div class="rounded-xl border p-4 flex flex-col sm:flex-row sm:items-center gap-3"
+       style="background:var(--surface); border-color:var(--border);">
+    <div class="flex items-center gap-2 text-sm font-medium">
+      <i class="ri-calendar-line" style="color:var(--accent);"></i>
+      <span style="color:var(--text-primary);">{% trans "Eventos del" %}
+        <strong>{{ selected_date|date:"j N Y" }}</strong>
+      </span>
+    </div>
+    <input type="date" name="date" value="{{ selected_date|date:'Y-m-d' }}"
+           hx-get="{% url 'nilm:location_detail' location.pk %}"
+           hx-target="#events-column"
+           hx-trigger="change"
+           hx-push-url="true"
+           hx-indicator="#events-skeleton"
+           class="sm:ml-auto text-sm rounded-lg px-3 py-1.5 focus:outline-none"
+           style="border:1px solid rgba(255,255,255,0.15); background:var(--surface-raised); color:var(--text-primary);">
+  </div>
+
+  {% if is_placeholder and recent_events %}
+  <p class="text-xs flex items-center gap-1 px-1" style="color:var(--text-muted);">
+    <i class="ri-information-line"></i> {% trans "Actividad estimada — sin datos reales para este día." %}
+  </p>
+  {% endif %}
+
+  <div id="events-skeleton" class="htmx-indicator space-y-3">
+    {% for i in "xxx" %}<div class="event-card event-card-gray flex items-center gap-4 px-4 py-3" style="background:var(--surface);">
+      <div class="skeleton w-12 h-12 rounded-xl flex-shrink-0"></div>
+      <div class="flex-1 space-y-2"><div class="skeleton h-4 rounded w-28"></div><div class="skeleton h-3 rounded w-14"></div></div>
+      <div class="skeleton h-6 w-12 rounded"></div>
+    </div>{% endfor %}
+  </div>
+
+  <div id="events-scroll-container" class="space-y-3">
+    {% include 'nilm/partials/event_cards.html' %}
+  </div>
+
+  {% if has_next_events %}
+  <div id="events-loading-spinner" class="flex justify-center py-4">
+    <div class="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin"
+         style="border-color:var(--accent); border-top-color:transparent;"></div>
+  </div>
+  {% endif %}
+
+  {% if not recent_events %}
+  <div class="rounded-xl border p-8 text-center" style="background:var(--surface); border-color:var(--border);">
+    <i class="ri-calendar-2-line text-3xl mb-2 block" style="color:var(--text-muted); opacity:.4;"></i>
+    <p class="text-sm" style="color:var(--text-muted);">{% trans "No hay eventos para este día." %}</p>
+  </div>
+  {% endif %}
+
+</div>

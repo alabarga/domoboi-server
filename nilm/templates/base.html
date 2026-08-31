@@ -1,47 +1,156 @@
 {% load static i18n %}
-<!DOCTYPE html>
 {% get_current_language as LANGUAGE_CODE %}
-<html lang="{{ LANGUAGE_CODE }}" {% block html_attribute %}{% endblock html_attribute %}>
-
+<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
   <meta charset="utf-8"/>
-  <meta http-equiv="x-ua-compatible" content="ie=edge"/>
-  <title>
-    {% block title %}{% endblock title %} | Reback - Responsive Admin Dashboard Template
-  </title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <meta name="description" content="A fully responsive premium admin dashboard template"/>
-  <meta name="author" content="Techzaa"/>
-  <link rel="icon" href="{% static 'images/favicon.ico' %}"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="theme-color" content="#00E5C9"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="DOMOBOI"/>
+  <title>{% block title %}DOMOBOI{% endblock %}</title>
+  <link rel="icon" href="{% static 'images/icon.svg' %}" type="image/svg+xml"/>
+  <link rel="apple-touch-icon" href="{% static 'images/apple-touch-icon.png' %}"/>
+  <link rel="manifest" href="{% static 'manifest.json' %}"/>
 
-  <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
 
-  {% block css %}
-    {% block extra_css %} {% endblock extra_css %}
+  <!-- Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet"/>
 
-    <!-- <link href="{% static 'css/vendors.min.css' %}" rel="stylesheet" /> -->
-    <link href="{% static 'css/app.min.css' %}" rel="stylesheet"/>
-    <link href="{% static 'css/icons.min.css' %}" rel="stylesheet"/>
+  <!-- Tailwind (compiled) -->
+  <link rel="stylesheet" href="{% static 'css/tailwind.css' %}"/>
 
-    <script defer src="{% static 'js/config.min.js' %}"></script>
-    <script defer src="{% static 'js/layout.min.js' %}"></script>
-  {% endblock css %}
+  <style>
+    /* ─── Thermoelectric palette ─────────────────────────────── */
+    :root {
+      --bg:             #0B1120;
+      --surface:        #131E35;
+      --surface-raised: #1B2B47;
+      --border:         rgba(255,255,255,0.07);
+      --accent:         #00E5C9;
+      --accent-warm:    #FF9500;
+      --danger:         #FF3B5C;
+      --text-primary:   #ECF1FA;
+      --text-muted:     #647FA8;
+      --brand:          #7C3AED;
+    }
 
+    /* ─── Base resets ────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text-primary);
+      font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+      min-height: 100dvh;
+    }
+
+    /* ─── Global Tailwind class overrides (dark palette) ────── */
+    .bg-white, .bg-gray-50           { background: var(--surface) !important; }
+    .bg-gray-100                      { background: var(--surface-raised) !important; }
+    .border-gray-200, .border-gray-100{ border-color: var(--border) !important; }
+    .text-gray-900, .text-gray-800    { color: var(--text-primary) !important; }
+    .text-gray-700, .text-gray-600    { color: var(--text-primary) !important; opacity: .85; }
+    .text-gray-500, .text-gray-400    { color: var(--text-muted) !important; }
+    .text-gray-300                    { color: var(--text-muted) !important; opacity: .5; }
+    .text-violet-600, .text-violet-700{ color: var(--accent) !important; }
+    .bg-violet-100                    { background: rgba(0,229,201,0.12) !important; }
+    .bg-violet-600, .bg-violet-700    { background: var(--accent) !important; color: #0B1120 !important; }
+    .hover\:bg-violet-700:hover       { background: #00c4ad !important; }
+    .hover\:bg-violet-50:hover,
+    .hover\:bg-violet-100:hover       { background: rgba(0,229,201,0.08) !important; }
+    .hover\:border-violet-300:hover   { border-color: var(--accent) !important; opacity: .5; }
+    .focus\:ring-violet-500:focus     { --tw-ring-color: var(--accent) !important; }
+    .hover\:text-violet-700:hover     { color: var(--accent) !important; }
+    .border-gray-300                  { border-color: rgba(255,255,255,0.15) !important; }
+
+    /* Green/amber event overrides for dark bg */
+    .bg-green-100   { background: rgba(0,229,201,0.12) !important; }
+    .text-green-700 { color: #00E5C9 !important; }
+    .bg-amber-100   { background: rgba(255,149,0,0.15) !important; }
+    .text-amber-700 { color: #FF9500 !important; }
+    .bg-orange-100  { background: rgba(255,90,30,0.15) !important; }
+    .text-orange-600,.text-orange-700 { color: #FF6030 !important; }
+    .bg-red-100     { background: rgba(255,59,92,0.15) !important; }
+    .text-red-600,.text-red-700       { color: #FF3B5C !important; }
+
+    /* Input fields */
+    input[type="date"], input[type="text"], input[type="email"],
+    input[type="password"], select, textarea {
+      background: var(--surface-raised) !important;
+      color: var(--text-primary) !important;
+      border-color: rgba(255,255,255,0.15) !important;
+      color-scheme: dark;
+    }
+    input::placeholder { color: var(--text-muted) !important; }
+
+    /* Shadow overrides */
+    .shadow-sm { box-shadow: 0 1px 3px rgba(0,0,0,0.4) !important; }
+    .hover\:shadow-md:hover { box-shadow: 0 4px 16px rgba(0,229,201,0.1) !important; }
+
+    /* ─── Monospace for times & values ──────────────────────── */
+    .mono { font-family: 'JetBrains Mono', 'Fira Code', monospace; }
+
+    /* ─── Event card — left accent bar (the signature detail) ─ */
+    .event-card {
+      border-left: 2px solid var(--accent) !important;
+      border-top: none !important;
+      border-right: none !important;
+      border-bottom: none !important;
+      border-radius: 0 12px 12px 0 !important;
+    }
+    .event-card-warm   { border-left-color: var(--accent-warm) !important; }
+    .event-card-danger { border-left-color: var(--danger) !important; }
+    .event-card-gray   { border-left-color: rgba(255,255,255,0.2) !important; }
+
+    /* ─── Skeleton shimmer ───────────────────────────────────── */
+    .skeleton {
+      background: linear-gradient(90deg,
+        var(--surface) 25%, var(--surface-raised) 50%, var(--surface) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 6px;
+    }
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* ─── HTMX loading indicator ─────────────────────────────── */
+    .htmx-indicator { display: none; }
+    .htmx-request .htmx-indicator { display: flex; }
+    .htmx-request.htmx-indicator  { display: flex; }
+
+    /* ─── Leaflet tile fix (Tailwind preflight conflict) ─────── */
+    .leaflet-container img { max-width: none !important; max-height: none !important; }
+    .leaflet-container { position: relative; }
+  </style>
+
+  {% block extra_css %}{% endblock %}
 </head>
+<body>
+  {% block content %}{% endblock %}
 
-<body {% block body_attribute %}{% endblock body_attribute %}>
+  <!-- HTMX -->
+  <script src="https://unpkg.com/htmx.org@2.0.3" defer></script>
 
-{% block preloader %}{% endblock %}
+  {% block extra_javascript %}{% endblock %}
 
-{% block content %}{% endblock content %}
-
-{% block javascript %}
-  <script defer src="{% static 'js/vendors.min.js' %}"></script>
-  <script defer src="{% static 'js/app.min.js' %}"></script>
-
-  {% block extra_javascript %} {% endblock extra_javascript %}
-{% endblock javascript %}
-
+  <!-- Service Worker registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/nilm/sw.js', { scope: '/nilm/' })
+          .catch(function (err) { console.warn('SW registration failed:', err); });
+      });
+    }
+  </script>
 </body>
-
 </html>

@@ -1,85 +1,52 @@
 {% extends "vertical.html" %}
 {% load static i18n %}
 
-{% block title %}{% translate "Mapa de Ubicaciones" %}{% endblock title %}
+{% block title %}{% trans "Mapa" %} | DOMOBOI{% endblock %}
 
-{% block page_title %}
-{% include 'partials/page-title.html' with title=_("Mapa de Ubicaciones") subtitle=_("Ubicaciones asignadas en el mapa") %}
-{% endblock page_title %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'location_field/leaflet/leaflet.css' %}"/>
+{% endblock %}
 
 {% block page_content %}
-<div class="row mb-4">
-    <div class="col-12 d-flex justify-content-between align-items-center">
-        <h4 class="card-title text-dark fw-bold mb-0">{% translate "Mapa de Domicilios" %}</h4>
-        <a href="{% url 'nilm:location_list' %}" class="btn btn-primary d-flex align-items-center gap-2">
-            <i class="ri-list-check"></i> {% translate "Ver en Lista" %}
-        </a>
-    </div>
-</div>
 
-<div class="row">
-    <div class="col-12">
-        <div class="card shadow-sm border border-opacity-50">
-            <div class="card-body p-2">
-                <!-- Full width map container -->
-                <div id="gmaps-markers" class="gmaps rounded shadow-xs" style="height: 550px; width: 100%;"></div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock page_content %}
+  <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div id="locations-map" style="height: 70vh; min-height: 400px;"></div>
+  </div>
+
+{% endblock %}
 
 {% block extra_javascript %}
-  <script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}"></script>
-  <script src="{% static 'vendor/gmaps/gmaps.min.js' %}"></script>
-  {% if locations %}
-    <script id="marker-data" type="application/json">
-      [
-      {% for location in locations %}
-        {
-          "pk": {{ location.pk }},
-          "lat": {{ location.location|cut:' '|cut:','|slice:':8' }},
-          "lng": {{ location.location|cut:' '|cut:','|slice:'9:' }},
-          "title": "{{ location.description|escapejs }}",
-          "address": "{{ location.address|escapejs }}"
-        }{% if not forloop.last %},{% endif %}
-      {% endfor %}
-      ]
-    </script>
-  {% endif %}
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      if (document.getElementById('gmaps-markers')) {
-        var markerData = [];
-        try {
-          markerData = JSON.parse(document.getElementById('marker-data').textContent);
-        } catch (e) {}
-        
-        var center = markerData.length ? markerData[0] : {lat: 41.3874, lng: 2.1686};
-        var map = new GMaps({
-          div: '#gmaps-markers',
-          lat: center.lat,
-          lng: center.lng,
-          zoom: 12
-        });
-
-        markerData.forEach(function(marker) {
-          var detailsUrl = "/nilm/locations/" + marker.pk + "/";
-          var infoContent = '<div class="p-2" style="max-width: 250px;">' +
-                              '<h6 class="fw-bold mb-1 text-dark">' + marker.title + '</h6>' +
-                              '<p class="text-muted fs-12 mb-2"><i class="ri-map-pin-line"></i> ' + marker.address + '</p>' +
-                              '<a href="' + detailsUrl + '" class="btn btn-xs btn-primary d-inline-block">{% translate "Explorar" %} <i class="ri-arrow-right-line ms-1"></i></a>' +
-                            '</div>';
-          map.addMarker({
-            lat: marker.lat,
-            lng: marker.lng,
-            title: marker.title,
-            infoWindow: {
-              content: infoContent
-            }
-          });
-        });
-      }
-    });
-  </script>
+<script id="locations-map-data" type="application/json">{{ location_map_json|safe }}</script>
+<script src="{% static 'location_field/leaflet/leaflet.js' %}"></script>
+<script>
+(function () {
+  var L = window.L || window.leaflet;
+  if (!L) return;
+  var container = document.getElementById('locations-map');
+  if (!container || container._leaflet_id) return;
+  var locations = JSON.parse(document.getElementById('locations-map-data').textContent);
+  var center = locations.length ? [locations[0].lat, locations[0].lon] : [41.05, 0.43];
+  var map = L.map(container).setView(center, 7);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom: 19
+  }).addTo(map);
+  var bounds = [];
+  locations.forEach(function (loc) {
+    var marker = L.circleMarker([loc.lat, loc.lon], {
+      radius: 10, fillColor: '#7c3aed', color: '#fff', weight: 2, fillOpacity: 0.85
+    }).addTo(map);
+    marker.bindPopup(
+      '<strong class="text-sm">' + loc.description + '</strong><br>' +
+      '<a href="/nilm/locations/' + loc.pk + '/" ' +
+         'style="color:#7c3aed;font-size:0.8em;font-weight:600;">{% trans "Explorar" %} →</a>'
+    );
+    bounds.push([loc.lat, loc.lon]);
+  });
+  setTimeout(function () {
+    map.invalidateSize();
+    if (bounds.length > 1) map.fitBounds(bounds, {padding: [40, 40]});
+  }, 150);
+})();
+</script>
 {% endblock %}

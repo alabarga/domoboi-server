@@ -1,5 +1,5 @@
 {% extends "admin/base.html" %}
-{% load i18n %}
+{% load i18n static %}
 
 {% block breadcrumbs %}{% endblock %}
 
@@ -10,17 +10,11 @@
 {% endblock %}
 
 {% block content %}
-    <div class="flex flex-col lg:flex-row lg:gap-8">
-        <div class="grow">
-            {% include "unfold/helpers/app_list_default.html" %}
-        </div>
+    {# Use the Leaflet bundled with django-location-field (already in static, no CDN needed) #}
+    <link rel="stylesheet" href="{% static 'location_field/leaflet/leaflet.css' %}"/>
 
-        {% include "unfold/helpers/history.html" %}
-    </div>
-    
-    <!-- Custom Dashboard Widgets -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
-        <!-- Total Devices Widget -->
+    <!-- Stat Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div class="flex items-center">
                 <div class="flex-shrink-0">
@@ -31,13 +25,12 @@
                     </div>
                 </div>
                 <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-500">{% trans "Total Devices" %}</p>
-                    <p class="text-2xl font-semibold text-gray-900">{{ total_devices }}</p>
+                    <p class="text-sm font-medium text-gray-500">{% trans "Dispositivos" %}</p>
+                    <p class="text-2xl font-semibold text-gray-900">{{ assigned_devices }}</p>
                 </div>
             </div>
         </div>
 
-        <!-- Active Devices Last Hour Widget -->
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div class="flex items-center">
                 <div class="flex-shrink-0">
@@ -48,87 +41,87 @@
                     </div>
                 </div>
                 <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-500">{% trans "Active Last Hour" %}</p>
+                    <p class="text-sm font-medium text-gray-500">{% trans "Activos última hora" %}</p>
                     <p class="text-2xl font-semibold text-gray-900">{{ active_devices_last_hour }}</p>
                 </div>
             </div>
         </div>
 
-        <!-- Total Locations Widget -->
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div class="flex items-center">
                 <div class="flex-shrink-0">
                     <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
                         <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                         </svg>
                     </div>
                 </div>
                 <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-500">{% trans "Total Locations" %}</p>
-                    <p class="text-2xl font-semibold text-gray-900">{{ total_locations }}</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Recent Events Widget -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div class="flex items-center">
-                <div class="flex-shrink-0">
-                    <div class="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
-                        <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                    </div>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-500">{% trans "Events Today" %}</p>
-                    <p class="text-2xl font-semibold text-gray-900">{{ events_today }}</p>
+                    <p class="text-sm font-medium text-gray-500">{% trans "Activos última semana" %}</p>
+                    <p class="text-2xl font-semibold text-gray-900">{{ devices_active_7days }}</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Device Status Chart -->
-    <div class="mt-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h3 class="text-lg font-medium text-gray-900 mb-4">{% trans "Device Status Overview" %}</h3>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="text-center">
-                <div class="text-3xl font-bold text-green-600">{{ active_devices_count }}</div>
-                <div class="text-sm text-gray-500">{% trans "Active Devices" %}</div>
-            </div>
-            <div class="text-center">
-                <div class="text-3xl font-bold text-red-600">{{ inactive_devices_count }}</div>
-                <div class="text-sm text-gray-500">{% trans "Inactive Devices" %}</div>
-            </div>
-            <div class="text-center">
-                <div class="text-3xl font-bold text-blue-600">{{ devices_by_location_count }}</div>
-                <div class="text-sm text-gray-500">{% trans "Locations with Devices" %}</div>
-            </div>
-        </div>
+    <!-- Device Map -->
+    <div class="mt-6 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">{% trans "Device Map" %}</h3>
+        <div id="device-map" style="height:420px; z-index:1; border-radius:0.5rem;"></div>
     </div>
 
-    <!-- Recent Activity -->
-    <div class="mt-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h3 class="text-lg font-medium text-gray-900 mb-4">{% trans "Recent Device Activity" %}</h3>
-        <div class="space-y-3">
-            {% for device in recent_devices %}
-            <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
-                <div class="flex items-center">
-                    <div class="w-2 h-2 bg-green-400 rounded-full mr-3"></div>
-                    <div>
-                        <p class="text-sm font-medium text-gray-900">{{ device.model }} ({{ device.device_id }})</p>
-                        <p class="text-xs text-gray-500">{{ device.location.description }}</p>
-                    </div>
-                </div>
-                <div class="text-xs text-gray-500">
-                    {{ device.last_active|timesince }} {% trans "ago" %}
-                </div>
-            </div>
-            {% empty %}
-            <p class="text-gray-500 text-sm">{% trans "No recent device activity" %}</p>
-            {% endfor %}
-        </div>
-    </div>
+    {# JSON data island #}
+    <script id="device-map-data" type="application/json">{{ device_map_json|safe }}</script>
+
+    {# Leaflet JS — same bundle used by django-location-field, no CDN #}
+    <script src="{% static 'location_field/leaflet/leaflet.js' %}"></script>
+    <script>
+    (function () {
+        // django-location-field bundles Leaflet as window.leaflet (not window.L)
+        var L = window.L || window.leaflet;
+        if (!L) { console.error('Leaflet not loaded'); return; }
+
+        var devices = JSON.parse(document.getElementById('device-map-data').textContent);
+
+        var map = L.map('device-map').setView([41.05, 0.43], 6);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+            maxZoom: 19
+        }).addTo(map);
+
+        var bounds = [];
+        devices.forEach(function (d) {
+            var color = d.is_active ? '#10B981' : '#EF4444';
+            var label = d.is_active ? '{% trans "Active" %}' : '{% trans "Inactive" %}';
+            var typeColor = d.device_type === 'TUYA' ? '#F59E0B' : '#3B82F6';
+            var marker = L.circleMarker([d.lat, d.lon], {
+                radius: 10,
+                fillColor: color,
+                color: '#fff',
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 0.85
+            }).addTo(map);
+            marker.bindPopup(
+                '<strong>' + d.model + '</strong> ' +
+                '<span style="background:' + typeColor + ';color:#fff;padding:1px 6px;border-radius:9999px;font-size:0.7em;">' + d.device_type + '</span><br>' +
+                '<code style="font-size:0.75em;">' + d.device_id + '</code><br>' +
+                d.location + '<br>' +
+                '<em style="font-size:0.8em;">{% trans "Last seen" %}: ' + d.last_active + '</em><br>' +
+                '<span style="color:' + color + ';font-weight:600;">' + label + '</span>'
+            );
+            bounds.push([d.lat, d.lon]);
+        });
+
+        // Leaflet miscalculates tile grid when the container hasn't finished layout yet.
+        // invalidateSize() + fitBounds() in a timeout lets the browser settle first.
+        setTimeout(function () {
+            map.invalidateSize();
+            if (bounds.length > 1) {
+                map.fitBounds(bounds, {padding: [40, 40]});
+            }
+        }, 150);
+    })();
+    </script>
 {% endblock %}

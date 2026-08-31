@@ -82,20 +82,19 @@ class UserProfile(models.Model):
 
 class Device(models.Model):
     """Model for storing device information"""
+    DEVICE_TYPES = [
+        ('DOMOBOI', 'Domoboi Edge (ATM90E36)'),
+        ('TUYA',    'Tuya Cloud Device'),
+    ]
     device_id = models.CharField(max_length=100, unique=True)
     model = models.CharField(max_length=100)
-    location = models.ForeignKey(Location, on_delete=models.CASCADE, related_name='devices')
-    
+    device_type = models.CharField(max_length=10, choices=DEVICE_TYPES, default='DOMOBOI')
+    location = models.ForeignKey(Location, null=True, blank=True, on_delete=models.SET_NULL, related_name='devices')
+
     @property
     def last_active(self):
-        """Returns the timestamp of the latest measurement for the device, or a random time within the last 1-5 minutes if none exists"""
         last_meas = self.measurements.order_by('-timestamp').first()
-        if last_meas and last_meas.timestamp:
-            return last_meas.timestamp
-        # Fallback to random time within the last 1-5 minutes
-        now = timezone.now()
-        random_minutes = random.randint(1, 5)
-        return now - timezone.timedelta(minutes=random_minutes)
+        return last_meas.timestamp if (last_meas and last_meas.timestamp) else None
     
     @property
     def is_active(self):
@@ -104,7 +103,8 @@ class Device(models.Model):
         return self.measurements.filter(timestamp__gte=cutoff).exists()
     
     def __str__(self):
-        return f"{self.model} ({self.device_id}) - {self.location.description}"
+        loc = self.location.description if self.location else "Unassigned"
+        return f"{self.model} ({self.device_id}) - {loc}"
     
     class Meta:
         ordering = ['model', 'device_id']
@@ -114,24 +114,36 @@ class Measurement(models.Model):
     device = models.ForeignKey(Device, on_delete=models.CASCADE, related_name='measurements', null=True, blank=True)
     start_time = models.DateTimeField(null=True, blank=True)
     end_time = models.DateTimeField(null=True, blank=True)
-    
-    # JSON array containing the list of raw readings (Amperes or Watts) during the cycle
+
+    # JSON array of raw numeric samples (Amperes or Watts) — populated by DOMOBOI edge devices
     readings = models.JSONField(default=list)
-    
+
+    # Statistical summary of the readings window — populated by domoboi-edge: {avg, min, max, std}
+    features = models.JSONField(null=True, blank=True, default=None)
+
+    # Structured snapshot from calibrated meters (Tuya) — {power_w, voltage_v, current_a, energy_kwh, ...}
+    telemetry = models.JSONField(null=True, blank=True, default=None)
+
     # Legacy fields (automatically populated for compatibility with existing admin/dashboards)
     timestamp = models.DateTimeField(null=True, blank=True)
     value = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
-    
+
     @property
     def location(self):
         return self.device.location if self.device else None
-    
+
     def save(self, *args, **kwargs):
         if not self.timestamp:
             self.timestamp = self.start_time
         if self.readings and len(self.readings) > 0 and (self.value is None or self.value == 0.0):
-            # Populate value with the mean of the readings only if not explicitly set
+            # DOMOBOI path: auto-compute value from readings mean
             self.value = sum(self.readings) / len(self.readings)
+        elif not self.readings and self.telemetry and self.telemetry.get('power_w'):
+            # Tuya path: back-fill readings from power_w for backward compat
+            power = float(self.telemetry['power_w'])
+            self.readings = [power]
+            if not self.value:
+                self.value = power
         super().save(*args, **kwargs)
 
     def __str__(self):

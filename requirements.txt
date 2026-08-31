@@ -1,7 +1,10 @@
 Django
+Pillow
 django-unfold
 python-dotenv
 django-location-field
 six
 whitenoise
 django-extensions
+djangorestframework>=3.15
+drf-spectacular>=0.27

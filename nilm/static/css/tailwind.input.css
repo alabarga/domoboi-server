@@ -1,0 +1,4 @@
+@import "tailwindcss";
+
+/* Tell v4 where to scan for class names */
+@source "../../../nilm/templates/**/*.html";

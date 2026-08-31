@@ -1,7 +1,9 @@
+import datetime
+import json
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.decorators import login_required
-from django.views.generic import ListView, DetailView, UpdateView, CreateView
+from django.views.generic import ListView, DetailView, UpdateView, CreateView, View
 from django.views.generic.edit import FormView
 from django.urls import reverse_lazy, reverse
 from django.contrib import messages
@@ -34,7 +36,7 @@ class LocationMapView(LoginRequiredMixin, ListView):
     model = Location
     template_name = 'nilm/location_map.html'
     context_object_name = 'locations'
-    
+
     def get_queryset(self):
         if self.request.user.is_superuser:
             return Location.objects.all()
@@ -45,11 +47,22 @@ class LocationMapView(LoginRequiredMixin, ListView):
             except UserProfile.DoesNotExist:
                 return Location.objects.none()
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['location_map_json'] = _build_location_map_json(self.get_queryset())
+        return context
+
 class LocationDetailView(LoginRequiredMixin, DetailView):
     """View for displaying location details"""
     model = Location
     template_name = 'nilm/location_detail.html'
     context_object_name = 'location'
+
+    def get_template_names(self):
+        # HTMX date-picker swap: return only the events column partial
+        if self.request.headers.get('HX-Request'):
+            return ['nilm/partials/events_column.html']
+        return super().get_template_names()
     
     def get_queryset(self):
         if self.request.user.is_superuser:
@@ -64,13 +77,36 @@ class LocationDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['persons'] = self.object.persons.all()
-        context['recent_measurements'] = self.object.measurements.all()[:10]
-        
-        # Paginate events for the current location, initially show page 1 (6 items)
-        events_qs = self.object.events.all()
-        paginator = Paginator(events_qs, 6)
-        context['recent_events'] = paginator.get_page(1)
-        context['has_next_events'] = paginator.num_pages > 1
+
+        # Date filter — default to today
+        date_str = self.request.GET.get('date')
+        try:
+            selected_date = datetime.date.fromisoformat(date_str) if date_str else datetime.date.today()
+        except ValueError:
+            selected_date = datetime.date.today()
+
+        events_qs = self.object.events.filter(start_time__date=selected_date).order_by('start_time')
+        if events_qs.exists():
+            paginator = Paginator(events_qs, 10)
+            context['recent_events'] = paginator.get_page(1)
+            context['has_next_events'] = paginator.num_pages > 1
+            context['is_placeholder'] = False
+        else:
+            context['recent_events'] = get_placeholder_events(self.object, selected_date)
+            context['has_next_events'] = False
+            context['is_placeholder'] = True
+        context['selected_date'] = selected_date
+
+        # Map data — single marker for this location
+        loc = self.object
+        map_data = []
+        if loc.location:
+            try:
+                lat, lon = (float(x.strip()) for x in loc.location.split(','))
+                map_data = [{'pk': loc.pk, 'description': loc.description, 'lat': lat, 'lon': lon}]
+            except ValueError:
+                pass
+        context['location_map_json'] = json.dumps(map_data)
         return context
 
 class LocationUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
@@ -91,6 +127,16 @@ class LocationUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     
     def get_success_url(self):
         return reverse('nilm:location_detail', kwargs={'pk': self.object.pk})
+
+class LocationAssignView(LoginRequiredMixin, View):
+    """Assign a location to the currently logged-in user's profile."""
+    def get(self, request, location_id):
+        location = get_object_or_404(Location, pk=location_id)
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
+        profile.locations.add(location)
+        messages.success(request, f"Se ha asignado la ubicación «{location.description}».")
+        return redirect('nilm:location_detail', pk=location_id)
+
 
 class PersonListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     """View for listing all persons (admin only)"""
@@ -202,6 +248,65 @@ def add_comment(request, person_id):
     
     return redirect('nilm:person_detail', pk=person_id)
 
+# Plausible daily household schedule used as placeholder when no real events exist.
+_DAILY_SCHEDULE = [
+    {'hour':  6, 'minute': 30, 'type': 'LIGHTS',          'duration':  8, 'class_name': 'NORMAL'},
+    {'hour':  7, 'minute':  0, 'type': 'KETTLE',           'duration':  5, 'class_name': 'NORMAL'},
+    {'hour':  7, 'minute': 10, 'type': 'MICROWAVE',        'duration':  3, 'class_name': 'NORMAL'},
+    {'hour':  7, 'minute': 30, 'type': 'FRIDGE',           'duration':  2, 'class_name': 'NORMAL'},
+    {'hour':  9, 'minute':  0, 'type': 'WASHING MACHINE',  'duration': 92, 'class_name': 'NORMAL'},
+    {'hour': 10, 'minute': 45, 'type': 'IRON',             'duration': 22, 'class_name': 'NORMAL'},
+    {'hour': 12, 'minute':  0, 'type': 'MICROWAVE',        'duration':  4, 'class_name': 'NORMAL'},
+    {'hour': 12, 'minute': 15, 'type': 'KETTLE',           'duration':  4, 'class_name': 'NORMAL'},
+    {'hour': 14, 'minute': 30, 'type': 'TV',               'duration': 90, 'class_name': 'NORMAL'},
+    {'hour': 16, 'minute': 30, 'type': 'KETTLE',           'duration':  5, 'class_name': 'NORMAL'},
+    {'hour': 18, 'minute': 30, 'type': 'OVEN',             'duration': 52, 'class_name': 'NORMAL'},
+    {'hour': 18, 'minute': 35, 'type': 'FRIDGE',           'duration':  3, 'class_name': 'NORMAL'},
+    {'hour': 19, 'minute': 30, 'type': 'LIGHTS',           'duration':180, 'class_name': 'NORMAL'},
+    {'hour': 20, 'minute': 30, 'type': 'TV',               'duration':120, 'class_name': 'NORMAL'},
+    {'hour': 23, 'minute':  0, 'type': 'LIGHTS',           'duration': 25, 'class_name': 'NORMAL'},
+]
+
+
+def get_placeholder_events(location, date):
+    """Return a plausible timed sequence of demo Event objects (unsaved) for `date`.
+
+    If `date` is today, truncates to events whose start_time <= now.
+    If a past date, returns the complete daily sequence.
+    """
+    now = datetime.datetime.now()
+    today = now.date()
+    events = []
+    for item in _DAILY_SCHEDULE:
+        start = datetime.datetime.combine(date, datetime.time(item['hour'], item['minute']))
+        if date == today and start > now:
+            continue  # future — not shown yet
+        end = start + datetime.timedelta(minutes=item['duration'])
+        events.append(Event(
+            location=location,
+            start_time=start,
+            end_time=end,
+            type=item['type'],
+            class_name=item['class_name'],
+            description='',
+        ))
+    return events
+
+
+def _build_location_map_json(locations_qs):
+    """Build JSON list of {pk, description, lat, lon} for a queryset of Locations."""
+    data = []
+    for loc in locations_qs:
+        if not loc.location:
+            continue
+        try:
+            lat, lon = (float(x.strip()) for x in loc.location.split(','))
+            data.append({'pk': loc.pk, 'description': loc.description, 'lat': lat, 'lon': lon})
+        except ValueError:
+            pass
+    return json.dumps(data)
+
+
 def ensure_user_has_data_and_events(user):
     import random
     from django.utils import timezone
@@ -256,7 +361,17 @@ class DashboardView(LoginRequiredMixin, ListView):
     model = Location
     template_name = 'nilm/dashboard.html'
     context_object_name = 'locations'
-    
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated and not request.user.is_superuser:
+            try:
+                locs = list(request.user.profile.locations.all())
+                if len(locs) == 1:
+                    return redirect('nilm:location_detail', pk=locs[0].pk)
+            except UserProfile.DoesNotExist:
+                pass
+        return super().dispatch(request, *args, **kwargs)
+
     def get_queryset(self):
         ensure_user_has_data_and_events(self.request.user)
         if self.request.user.is_superuser:
@@ -270,6 +385,7 @@ class DashboardView(LoginRequiredMixin, ListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        locations_qs = self.get_queryset()
         if self.request.user.is_superuser:
             context['total_persons'] = Person.objects.count()
             context['total_events'] = Event.objects.count()
@@ -282,6 +398,7 @@ class DashboardView(LoginRequiredMixin, ListView):
             except UserProfile.DoesNotExist:
                 context['total_persons'] = 0
                 context['total_events'] = 0
+        context['location_map_json'] = _build_location_map_json(locations_qs)
         return context
 
 
@@ -378,18 +495,29 @@ class EventLoadMoreView(LoginRequiredMixin, ListView):
         location_id = self.request.GET.get('location_id')
         if not location_id:
             return Event.objects.none()
-        
+
         # Verify access
         if self.request.user.is_superuser:
-            return Event.objects.filter(location_id=location_id)
+            qs = Event.objects.filter(location_id=location_id)
         else:
             try:
                 profile = self.request.user.profile
                 if profile.locations.filter(id=location_id).exists():
-                    return Event.objects.filter(location_id=location_id)
+                    qs = Event.objects.filter(location_id=location_id)
+                else:
+                    return Event.objects.none()
             except UserProfile.DoesNotExist:
+                return Event.objects.none()
+
+        # Optional date filter
+        date_str = self.request.GET.get('date')
+        if date_str:
+            try:
+                selected_date = datetime.date.fromisoformat(date_str)
+                qs = qs.filter(start_time__date=selected_date)
+            except ValueError:
                 pass
-            return Event.objects.none()
+        return qs.order_by('start_time')
 
     def render_to_response(self, context, **response_kwargs):
         page_obj = context.get('page_obj')
@@ -399,127 +527,159 @@ class EventLoadMoreView(LoginRequiredMixin, ListView):
         return response
 
 
-from django.views import View
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
-from django.utils.dateparse import parse_datetime
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
+from drf_spectacular.openapi import OpenApiTypes
+from .serializers import (
+    EventIngestionSerializer, EventIngestionResponseSerializer,
+    MeasurementIngestionSerializer, MeasurementIngestionResponseSerializer,
+    DeviceCheckSerializer, DeviceCheckResponseSerializer,
+)
+from .permissions import IsEdgeDevice
 from .models import Measurement
-import json
 
-@method_decorator(csrf_exempt, name='dispatch')
-class EventIngestionView(View):
+
+class EventIngestionView(APIView):
+    """Receive a detected appliance event from an edge device."""
+    authentication_classes = []
+    permission_classes = [IsEdgeDevice]
+
+    @extend_schema(
+        request=EventIngestionSerializer,
+        responses={
+            201: EventIngestionResponseSerializer,
+            400: OpenApiResponse(description="Invalid payload or device not found"),
+            401: OpenApiResponse(description="Missing or invalid Authorization token"),
+        },
+        summary="Ingest appliance event",
+        description=(
+            "Called by DOMOBOI edge devices when NILM detects a power-step event "
+            "(appliance switched on or off). The location is resolved automatically "
+            "from the registered device."
+        ),
+        tags=["Edge Device API"],
+    )
     def post(self, request, *args, **kwargs):
-        from django.conf import settings
-        auth_header = request.headers.get('Authorization', '')
-        # Verify simple API token authorization from settings.py
-        expected_token = f"Token {getattr(settings, 'EDGE_API_TOKEN', 'default-api-token-value-here')}"
-        if auth_header != expected_token:
-            return JsonResponse({"error": "Unauthorized"}, status=401)
-            
+        serializer = EventIngestionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        d = serializer.validated_data
         try:
-            data = json.loads(request.body)
-            device_id = data.get('device_id')
-            start_time_str = data.get('start_time')
-            end_time_str = data.get('end_time')
-            appliance_type = data.get('type')
-            class_name = data.get('class_name', 'NORMAL')
-            description = data.get('description', '')
-            
-            device = get_object_or_404(Device, device_id=device_id)
-            location = device.location
-            start_time = parse_datetime(start_time_str)
-            end_time = parse_datetime(end_time_str)
-            
+            device = get_object_or_404(Device, device_id=d['device_id'])
             event = Event.objects.create(
-                location=location,
-                start_time=start_time,
-                end_time=end_time,
-                type=appliance_type,
-                class_name=class_name,
-                description=description
+                location=device.location,
+                start_time=d['start_time'],
+                end_time=d['end_time'],
+                type=d['type'],
+                class_name=d['class_name'],
+                description=d['description'],
             )
-            return JsonResponse({"status": "success", "event_id": event.id}, status=201)
-        except Exception as e:
-            return JsonResponse({"error": str(e)}, status=400)
+            return Response({"status": "success", "event_id": event.id}, status=201)
+        except Exception as exc:
+            return Response({"error": str(exc)}, status=400)
 
 
-@method_decorator(csrf_exempt, name='dispatch')
-class MeasurementIngestionView(View):
+class MeasurementIngestionView(APIView):
+    """Receive a raw electrical measurement segment from an edge device."""
+    authentication_classes = []
+    permission_classes = [IsEdgeDevice]
+
+    @extend_schema(
+        request=MeasurementIngestionSerializer,
+        responses={
+            201: MeasurementIngestionResponseSerializer,
+            400: OpenApiResponse(description="Invalid payload or device not found"),
+            401: OpenApiResponse(description="Missing or invalid Authorization token"),
+        },
+        summary="Ingest measurement segment",
+        description=(
+            "Called by DOMOBOI edge devices to store a raw power-reading window "
+            "(typically 30 samples over 3 seconds around a power-step event), "
+            "or by the Tuya cloud daemon to store periodic energy snapshots. "
+            "For DOMOBOI devices: `readings` is a numeric array and `value` is the "
+            "net Watt step-change. "
+            "For Tuya devices: `telemetry` carries the full snapshot "
+            "(power_w, voltage_v, current_a, energy_kwh, …); `readings` and `value` "
+            "are auto-filled from telemetry.power_w if omitted."
+        ),
+        tags=["Edge Device API"],
+    )
     def post(self, request, *args, **kwargs):
-        from django.conf import settings
-        from django.utils.dateparse import parse_datetime
-        
-        auth_header = request.headers.get('Authorization', '')
-        expected_token = f"Token {getattr(settings, 'EDGE_API_TOKEN', 'default-api-token-value-here')}"
-        if auth_header != expected_token:
-            return JsonResponse({"error": "Unauthorized"}, status=401)
-            
+        serializer = MeasurementIngestionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        d = serializer.validated_data
         try:
-            data = json.loads(request.body)
-            device_id = data.get('device_id')
-            start_time_str = data.get('start_time')
-            end_time_str = data.get('end_time')
-            readings = data.get('readings', [])
-            value = data.get('value')  # delta_p size from edge
-            
-            device = get_object_or_404(Device, device_id=device_id)
-            location = device.location
-            start_time = parse_datetime(start_time_str)
-            end_time = parse_datetime(end_time_str)
-            
-            # Save raw telemetry segment
+            device = get_object_or_404(Device, device_id=d['device_id'])
             meas = Measurement.objects.create(
                 device=device,
-                start_time=start_time,
-                end_time=end_time,
-                readings=readings,
-                value=value if value is not None else 0.0
+                start_time=d['start_time'],
+                end_time=d['end_time'],
+                readings=d['readings'],
+                value=d['value'] if d['value'] is not None else 0.0,
+                features=d.get('features'),
+                telemetry=d.get('telemetry'),
             )
-            
-            return JsonResponse({
-                "status": "success", 
-                "measurement_id": meas.id
-            }, status=201)
-        except Exception as e:
-            return JsonResponse({"error": str(e)}, status=400)
+            return Response({"status": "success", "measurement_id": meas.id}, status=201)
+        except Exception as exc:
+            return Response({"error": str(exc)}, status=400)
 
 
-@method_decorator(csrf_exempt, name='dispatch')
-class DeviceConfigCheckView(View):
+class DeviceConfigCheckView(APIView):
+    """Check whether a device is registered and configured in the system."""
+    authentication_classes = []
+    permission_classes = [IsEdgeDevice]
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name='device_id', type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY, required=True,
+                description="Unique device identifier to look up",
+            )
+        ],
+        responses={
+            200: DeviceCheckResponseSerializer,
+            400: OpenApiResponse(description="Missing device_id parameter"),
+            401: OpenApiResponse(description="Missing or invalid Authorization token"),
+        },
+        summary="Check device registration",
+        description=(
+            "Edge devices call this on startup to verify they are registered. "
+            "Returns status='ok' with device details if found, or status='NOK' "
+            "if the device_id is not in the database. Both cases return HTTP 200 — "
+            "check the `status` field."
+        ),
+        tags=["Edge Device API"],
+    )
     def get(self, request, *args, **kwargs):
-        from django.conf import settings
-        auth_header = request.headers.get('Authorization', '')
-        expected_token = f"Token {getattr(settings, 'EDGE_API_TOKEN', 'default-api-token-value-here')}"
-        if auth_header != expected_token:
-            return JsonResponse({"error": "Unauthorized"}, status=401)
-            
         device_id = request.GET.get('device_id')
         if not device_id:
             try:
-                data = json.loads(request.body)
-                device_id = data.get('device_id')
+                device_id = request.data.get('device_id')
             except Exception:
                 pass
-                
         if not device_id:
-            return JsonResponse({"error": "Missing device_id parameter"}, status=400)
-            
+            return Response({"error": "Missing device_id parameter"}, status=400)
         try:
             device = Device.objects.get(device_id=device_id)
-            return JsonResponse({
+            return Response({
                 "status": "ok",
                 "device_id": device.device_id,
                 "model": device.model,
-                "location": device.location.description
-            }, status=200)
+                "location": device.location.description,
+            })
         except Device.DoesNotExist:
-            return JsonResponse({
-                "status": "NOK",
-                "message": f"Device {device_id} is not configured"
-            }, status=200)
-        except Exception as e:
-            return JsonResponse({"error": str(e)}, status=400)
+            return Response({"status": "NOK", "message": f"Device {device_id} is not configured"})
+        except Exception as exc:
+            return Response({"error": str(exc)}, status=400)
 
+    @extend_schema(
+        request=DeviceCheckSerializer,
+        responses={200: DeviceCheckResponseSerializer},
+        summary="Check device registration (POST)",
+        description="Same as GET but accepts device_id in the request body.",
+        tags=["Edge Device API"],
+    )
     def post(self, request, *args, **kwargs):
         return self.get(request, *args, **kwargs)
 

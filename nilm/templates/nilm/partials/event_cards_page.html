@@ -1,0 +1,13 @@
+{% load i18n %}
+
+{% if show_date_header and page_date %}
+<div class="flex items-center gap-3 my-4 px-1">
+  <div class="h-px flex-1" style="background:rgba(240,168,48,0.2);"></div>
+  <span class="mono text-xs font-semibold px-2" style="color:var(--accent);">
+    {{ page_date|date:"j N Y" }}
+  </span>
+  <div class="h-px flex-1" style="background:rgba(240,168,48,0.2);"></div>
+</div>
+{% endif %}
+
+{% include 'nilm/partials/event_cards.html' %}

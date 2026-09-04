@@ -1,15 +1,15 @@
 {% load static %}
-const CACHE = 'domoboi-v1';
+const CACHE = 'domoboi-v4';
 
+// Only pre-cache same-origin resources — external CDN URLs block SW fetch (no CORS).
+// CDN assets (Remixicon, HTMX) are cached lazily on first page load by the fetch handler.
 const PRECACHE = [
   '/nilm/',
   '/nilm/locations/',
   '/nilm/offline/',
+  '{% static "css/tailwind.css" %}',
   '{% static "location_field/leaflet/leaflet.css" %}',
   '{% static "location_field/leaflet/leaflet.js" %}',
-  'https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css',
-  'https://cdn.tailwindcss.com',
-  'https://unpkg.com/htmx.org@2.0.3',
 ];
 
 self.addEventListener('install', e => {
@@ -29,6 +29,9 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const req = e.request;
   const url = new URL(req.url);
+
+  // Only handle http/https — chrome-extension:// etc. cannot be cached
+  if (!url.protocol.startsWith('http')) return;
 
   // Never cache POST / non-GET
   if (req.method !== 'GET') return;
@@ -69,5 +72,44 @@ self.addEventListener('fetch', e => {
       .catch(() =>
         caches.match(req).then(cached => cached || caches.match('/nilm/offline/'))
       )
+  );
+});
+
+// ── Push notifications ────────────────────────────────────────────────────────
+
+self.addEventListener('push', e => {
+  if (!e.data) return;
+  var data = {};
+  try {
+    var parsed = e.data.json();
+    // pywebpush double-encodes: if result is a string, parse once more
+    if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+    data = parsed;
+  } catch(err) {
+    data = {head: 'DOMOBOI', body: e.data.text()};
+  }
+  e.waitUntil(
+    self.registration.showNotification(data.head || 'DOMOBOI', {
+      body:    data.body  || '',
+      icon:    data.icon  || '/static/images/icon-192.png',
+      badge:   '/static/images/icon-192.png',
+      data:    {url: data.url || '/nilm/'},
+      vibrate: [200, 100, 200],
+      tag:     'domoboi-alert',
+      renotify: true,
+    })
+  );
+});
+
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  var url = (e.notification.data && e.notification.data.url) || '/nilm/';
+  e.waitUntil(
+    clients.matchAll({type: 'window', includeUncontrolled: true}).then(cls => {
+      for (var i = 0; i < cls.length; i++) {
+        if ('focus' in cls[i]) return cls[i].focus();
+      }
+      if (clients.openWindow) return clients.openWindow(url);
+    })
   );
 });

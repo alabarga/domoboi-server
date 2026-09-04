@@ -34,12 +34,12 @@
   var bounds = [];
   locations.forEach(function (loc) {
     var marker = L.circleMarker([loc.lat, loc.lon], {
-      radius: 10, fillColor: '#7c3aed', color: '#fff', weight: 2, fillOpacity: 0.85
+      radius: 10, fillColor: '#F0A830', color: '#fff', weight: 2, fillOpacity: 0.85
     }).addTo(map);
     marker.bindPopup(
       '<strong class="text-sm">' + loc.description + '</strong><br>' +
       '<a href="/nilm/locations/' + loc.pk + '/" ' +
-         'style="color:#7c3aed;font-size:0.8em;font-weight:600;">{% trans "Explorar" %} →</a>'
+         'style="color:#F0A830;font-size:0.8em;font-weight:600;">{% trans "Explorar" %} →</a>'
     );
     bounds.push([loc.lat, loc.lon]);
   });

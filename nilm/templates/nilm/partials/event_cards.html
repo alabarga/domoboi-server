@@ -6,20 +6,22 @@
   flex items-center gap-4 px-4 py-3"
   style="background: var(--surface);">
 
-  <!-- Appliance icon -->
+  <!-- Appliance icon (Material Symbols Rounded) -->
   <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-       style="{% if cn == 'alert' %}background:rgba(255,59,92,0.15);color:#FF3B5C;
-              {% elif cn == 'anormal' or cn == 'unexpected' %}background:rgba(255,149,0,0.15);color:#FF9500;
-              {% else %}background:rgba(0,229,201,0.12);color:#00E5C9;{% endif %}">
-    {% if event.type == 'FRIDGE' %}<i class="ri-fridge-line text-2xl"></i>
-    {% elif event.type == 'OVEN' %}<i class="ri-fire-line text-2xl"></i>
-    {% elif event.type == 'KETTLE' %}<i class="ri-cup-line text-2xl"></i>
-    {% elif event.type == 'MICROWAVE' %}<i class="ri-radar-line text-2xl"></i>
-    {% elif event.type == 'WASHING MACHINE' %}<i class="ri-water-flash-line text-2xl"></i>
-    {% elif event.type == 'IRON' %}<i class="ri-scissors-line text-2xl"></i>
-    {% elif event.type == 'LIGHTS' %}<i class="ri-lightbulb-line text-2xl"></i>
-    {% elif event.type == 'TV' %}<i class="ri-tv-line text-2xl"></i>
-    {% else %}<i class="ri-plug-line text-2xl"></i>{% endif %}
+       style="{% if cn == 'alert' %}background:rgba(224,59,59,0.15);color:var(--danger);
+              {% elif cn == 'anormal' or cn == 'unexpected' %}background:rgba(224,92,58,0.15);color:var(--accent-warm);
+              {% else %}background:rgba(240,168,48,0.12);color:var(--accent);{% endif %}">
+    <span class="material-symbols-rounded">
+      {% if event.type == 'FRIDGE' %}kitchen
+      {% elif event.type == 'OVEN' %}oven_gen
+      {% elif event.type == 'KETTLE' %}kettle
+      {% elif event.type == 'MICROWAVE' %}microwave
+      {% elif event.type == 'WASHING MACHINE' %}local_laundry_service
+      {% elif event.type == 'IRON' %}iron
+      {% elif event.type == 'LIGHTS' %}lightbulb
+      {% elif event.type == 'TV' %}tv
+      {% else %}electrical_services{% endif %}
+    </span>
   </div>
 
   <!-- Name + status -->
@@ -29,8 +31,8 @@
     </p>
     {% if cn != 'normal' %}
     <span class="inline-block mt-0.5 text-xs font-medium px-2 py-0.5 rounded-full"
-          style="{% if cn == 'alert' %}background:rgba(255,59,92,0.15);color:#FF3B5C;
-                 {% else %}background:rgba(255,149,0,0.15);color:#FF9500;{% endif %}">
+          style="{% if cn == 'alert' %}background:rgba(224,59,59,0.15);color:var(--danger);
+                 {% else %}background:rgba(224,92,58,0.15);color:var(--accent-warm);{% endif %}">
       {{ event.get_class_name_display }}
     </span>
     {% endif %}

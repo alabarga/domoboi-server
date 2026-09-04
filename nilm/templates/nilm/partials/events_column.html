@@ -44,6 +44,12 @@
     <div class="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin"
          style="border-color:var(--accent); border-top-color:transparent;"></div>
   </div>
+  {% elif prev_date %}
+  <div id="events-loading-spinner" data-next-date="{{ prev_date|date:'Y-m-d' }}"
+       class="flex justify-center py-4">
+    <div class="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin"
+         style="border-color:var(--accent); border-top-color:transparent;"></div>
+  </div>
   {% endif %}
 
   {% if not recent_events %}
@@ -54,3 +60,57 @@
   {% endif %}
 
 </div>
+
+{% if has_next_events or prev_date %}
+<script>
+(function () {
+  var spinner = document.getElementById('events-loading-spinner');
+  if (!spinner) return;
+  var container = document.getElementById('events-scroll-container');
+  var locationId = '{{ location.pk }}';
+  var loading = false;
+  var hasMore = true;
+  var nextDateAttr = spinner.dataset.nextDate;
+  var selectedDate, page;
+  if (nextDateAttr) {
+    selectedDate = nextDateAttr;
+    page = 1;
+  } else {
+    selectedDate = '{{ selected_date|date:"Y-m-d" }}';
+    page = 2;
+  }
+  var observer = new IntersectionObserver(function (entries) {
+    if (!entries[0].isIntersecting || loading || !hasMore) return;
+    loading = true;
+    var url = '{% url "nilm:event_load_more" %}?location_id=' + locationId
+              + '&date=' + selectedDate + '&page=' + page;
+    fetch(url, {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+      .then(function (r) {
+        var sameHasNext = r.headers.get('X-Has-Next') === 'true';
+        var nextDate = r.headers.get('X-Next-Date');
+        if (!sameHasNext && nextDate) {
+          selectedDate = nextDate;
+          page = 1;
+          hasMore = true;
+        } else {
+          hasMore = sameHasNext;
+          if (hasMore) page++;
+        }
+        return r.text();
+      })
+      .then(function (html) {
+        container.insertAdjacentHTML('beforeend', html);
+        loading = false;
+        if (!hasMore) { spinner.remove(); observer.disconnect(); }
+      })
+      .catch(function (err) {
+        console.error('Event load failed:', err);
+        loading = false;
+        spinner.remove();
+        observer.disconnect();
+      });
+  }, {threshold: 0.5});
+  observer.observe(spinner);
+})();
+</script>
+{% endif %}

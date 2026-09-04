@@ -149,6 +149,7 @@ INSTALLED_APPS = [
     'location_field',
     'rest_framework',
     'drf_spectacular',
+    'webpush',
     'nilm',
 ]
 
@@ -194,6 +195,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'domoboi.context_processors.google_maps_api_key',
+                'domoboi.context_processors.webpush_settings',
             ],
         },
     },
@@ -281,6 +283,10 @@ LOGIN_REDIRECT_URL = '/nilm/'
 
 GOOGLE_MAPS_API_KEY = os.environ.get('GOOGLE_MAPS_API_KEY', '')
 
+# Web Push (VAPID) — keys come from local_settings.py vars or .env fallback
+VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY", "")
+VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "")
+
 # django-location-field configuration — use OpenStreetMap so no API key is required
 LOCATION_FIELD = {
     'map.provider': 'openstreetmap',
@@ -293,3 +299,10 @@ try:
     from .local_settings import *
 except ImportError:
     pass
+
+# Build WEBPUSH_SETTINGS after local_settings so VAPID_* vars are fully resolved
+WEBPUSH_SETTINGS = {
+    "VAPID_PUBLIC_KEY": VAPID_PUBLIC_KEY,
+    "VAPID_PRIVATE_KEY": VAPID_PRIVATE_KEY,
+    "VAPID_ADMIN_EMAIL": "admin@domoboi.es",
+}

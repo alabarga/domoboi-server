@@ -12,7 +12,7 @@
         <!-- Logo -->
         <a href="{% url 'nilm:dashboard' %}" class="flex items-center gap-2 font-bold text-lg"
            style="color:var(--accent); letter-spacing:-0.01em; font-family:'Space Grotesk',sans-serif;">
-          <i class="ri-building-2-line text-xl"></i>
+          <img src="{% static 'images/icon.svg' %}" width="32" height="32" alt="" style="border-radius:6px; flex-shrink:0;"/>
           <span>DOMOBOI</span>
         </a>
 
@@ -30,17 +30,32 @@
              class="px-3 py-1.5 rounded-md text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-violet-700 transition-colors flex items-center gap-1">
             <i class="ri-map-2-line"></i> {% trans "Mapa" %}
           </a>
+          {% if user.is_superuser %}
+          <a href="{% url 'admin:index' %}"
+             class="px-3 py-1.5 rounded-md text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-violet-700 transition-colors flex items-center gap-1">
+            <i class="ri-settings-3-line"></i> {% trans "Admin" %}
+          </a>
+          {% endif %}
         </div>
 
         <!-- Right side: user + language -->
         <div class="flex items-center gap-2">
           {% if user.is_authenticated %}
+            <!-- Notification bell (shown by JS only when Push API is available) -->
+            <button id="notify-btn" title="Notificaciones"
+                    class="hidden p-2 rounded-md text-gray-500 hover:bg-gray-100 transition-colors"
+                    aria-label="Activar notificaciones">
+              <i id="notify-icon" class="ri-notification-line text-lg"></i>
+            </button>
             <span class="hidden sm:block text-xs text-gray-500">{{ user.username }}</span>
-            <a href="{% url 'logout' %}"
-               class="text-sm px-3 py-1.5 rounded-md text-red-600 hover:bg-red-50 transition-colors flex items-center gap-1">
-              <i class="ri-logout-box-r-line"></i>
-              <span class="hidden sm:inline">{% trans "Salir" %}</span>
-            </a>
+            <form method="post" action="{% url 'logout' %}" class="flex">
+              {% csrf_token %}
+              <button type="submit"
+                      class="text-sm px-3 py-1.5 rounded-md text-red-600 hover:bg-red-50 transition-colors flex items-center gap-1 cursor-pointer bg-transparent border-0">
+                <i class="ri-logout-box-r-line"></i>
+                <span class="hidden sm:inline">{% trans "Salir" %}</span>
+              </button>
+            </form>
           {% endif %}
 
           <!-- Language switcher -->
@@ -83,13 +98,22 @@
          class="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-gray-700 hover:bg-violet-50 hover:text-violet-700">
         <i class="ri-map-2-line"></i> {% trans "Mapa" %}
       </a>
+      {% if user.is_superuser %}
+      <a href="{% url 'admin:index' %}"
+         class="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-gray-700 hover:bg-violet-50 hover:text-violet-700">
+        <i class="ri-settings-3-line"></i> {% trans "Admin" %}
+      </a>
+      {% endif %}
       {% if user.is_authenticated %}
         <div class="pt-1 border-t border-gray-100">
           <span class="block px-3 py-1 text-xs text-gray-400">{{ user.username }}</span>
-          <a href="{% url 'logout' %}"
-             class="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-red-600 hover:bg-red-50">
-            <i class="ri-logout-box-r-line"></i> {% trans "Salir" %}
-          </a>
+          <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit"
+                    class="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-red-600 hover:bg-red-50 w-full cursor-pointer bg-transparent border-0">
+              <i class="ri-logout-box-r-line"></i> {% trans "Salir" %}
+            </button>
+          </form>
         </div>
       {% endif %}
     </div>

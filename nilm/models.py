@@ -223,3 +223,43 @@ def create_user_profile(sender, instance, created, **kwargs):
 def save_user_profile(sender, instance, **kwargs):
     UserProfile.objects.get_or_create(user=instance)
 
+
+@receiver(post_save, sender=Event)
+def notify_alert_subscribers(sender, instance, created, **kwargs):
+    """Send push notification to location subscribers when an ALERT event is created."""
+    if not created or instance.class_name != 'ALERT' or not instance.location:
+        return
+    import json
+    import threading
+    try:
+        from webpush import send_user_notification
+    except ImportError:
+        return
+
+    profiles = UserProfile.objects.filter(
+        locations=instance.location
+    ).select_related('user')
+
+    # pywebpush JSON-encodes the payload string — pass a plain string so the
+    # browser receives one JSON layer that the SW can parse directly after unwrapping.
+    head = f'⚠️ {instance.get_type_display()}'
+    body = instance.description or f'Actividad inusual en {instance.location.description}'
+    payload = json.dumps({
+        'head': head,
+        'body': body,
+        'icon': '/static/images/icon-192.png',
+        'url': f'/nilm/locations/{instance.location.pk}/',
+    })
+
+    def _send():
+        import logging
+        log = logging.getLogger(__name__)
+        for profile in profiles:
+            try:
+                send_user_notification(user=profile.user, payload=payload, ttl=3600)
+                log.info('Push sent to %s', profile.user.username)
+            except Exception as exc:
+                log.warning('Push failed for %s: %s', profile.user.username, exc)
+
+    threading.Thread(target=_send, daemon=True).start()
+

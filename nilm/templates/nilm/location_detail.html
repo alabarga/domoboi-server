@@ -107,9 +107,16 @@
         {% include 'nilm/partials/event_cards.html' %}
       </div>
 
-      <!-- Infinite scroll trigger -->
+      <!-- Infinite scroll trigger (Case A: more pages on same date) -->
       {% if has_next_events %}
       <div id="events-loading-spinner" class="flex justify-center py-4">
+        <div class="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin"
+             style="border-color:var(--accent); border-top-color:transparent;"></div>
+      </div>
+      <!-- Case B: first page exhausted but a previous date has real events -->
+      {% elif prev_date %}
+      <div id="events-loading-spinner" data-next-date="{{ prev_date|date:'Y-m-d' }}"
+           class="flex justify-center py-4">
         <div class="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin"
              style="border-color:var(--accent); border-top-color:transparent;"></div>
       </div>
@@ -145,41 +152,63 @@
     attribution: '&copy; OpenStreetMap', maxZoom: 19
   }).addTo(map);
   L.circleMarker([loc.lat, loc.lon], {
-    radius: 10, fillColor: '#7c3aed', color: '#fff', weight: 2, fillOpacity: 0.9
+    radius: 10, fillColor: '#F0A830', color: '#fff', weight: 2, fillOpacity: 0.9
   }).addTo(map);
   setTimeout(function () { map.invalidateSize(); }, 150);
 })();
 </script>
 
-{% if has_next_events %}
+{% if has_next_events or prev_date %}
 <script>
 (function () {
-  var page = 2;
+  var spinner = document.getElementById('events-loading-spinner');
+  if (!spinner) return;
+  var container = document.getElementById('events-scroll-container');
+  var locationId = '{{ location.pk }}';
   var loading = false;
   var hasMore = true;
-  var spinner = document.getElementById('events-loading-spinner');
-  var container = document.getElementById('events-scroll-container');
-  var selectedDate = '{{ selected_date|date:"Y-m-d" }}';
-  var locationId = '{{ location.pk }}';
 
-  if (!spinner) return;
+  // Case B: first page already complete, jump straight to previous date
+  var nextDateAttr = spinner.dataset.nextDate;
+  var selectedDate, page;
+  if (nextDateAttr) {
+    selectedDate = nextDateAttr;
+    page = 1;
+  } else {
+    selectedDate = '{{ selected_date|date:"Y-m-d" }}';
+    page = 2;
+  }
 
   var observer = new IntersectionObserver(function (entries) {
-    if (entries[0].isIntersecting && !loading && hasMore) {
-      loading = true;
-      var url = '{% url "nilm:event_load_more" %}?location_id=' + locationId + '&date=' + selectedDate + '&page=' + page;
-      fetch(url, {headers: {'X-Requested-With': 'XMLHttpRequest'}})
-        .then(function (r) {
-          hasMore = r.headers.get('X-Has-Next') === 'true';
-          return r.text();
-        })
-        .then(function (html) {
-          container.insertAdjacentHTML('beforeend', html);
-          page++;
-          loading = false;
-          if (!hasMore) { spinner.remove(); observer.disconnect(); }
-        });
-    }
+    if (!entries[0].isIntersecting || loading || !hasMore) return;
+    loading = true;
+    var url = '{% url "nilm:event_load_more" %}?location_id=' + locationId
+              + '&date=' + selectedDate + '&page=' + page;
+    fetch(url, {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+      .then(function (r) {
+        var sameHasNext = r.headers.get('X-Has-Next') === 'true';
+        var nextDate = r.headers.get('X-Next-Date');
+        if (!sameHasNext && nextDate) {
+          selectedDate = nextDate;
+          page = 1;
+          hasMore = true;
+        } else {
+          hasMore = sameHasNext;
+          if (hasMore) page++;
+        }
+        return r.text();
+      })
+      .then(function (html) {
+        container.insertAdjacentHTML('beforeend', html);
+        loading = false;
+        if (!hasMore) { spinner.remove(); observer.disconnect(); }
+      })
+      .catch(function (err) {
+        console.error('Event load failed:', err);
+        loading = false;
+        spinner.remove();
+        observer.disconnect();
+      });
   }, {threshold: 0.5});
 
   observer.observe(spinner);

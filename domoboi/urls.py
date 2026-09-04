@@ -24,6 +24,7 @@ urlpatterns = [
     path('nilm/', include('nilm.urls')),
     path('login/', auth_views.LoginView.as_view(template_name='registration/login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='/login/'), name='logout'),
+    path('webpush/', include('webpush.urls')),
     path('i18n/', include('django.conf.urls.i18n')),
-    path('', RedirectView.as_view(pattern_name='admin:index', permanent=False)),
+    path('', RedirectView.as_view(url='/nilm/', permanent=False)),
 ]

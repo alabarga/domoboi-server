@@ -1,15 +1,61 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- Background -->
-  <rect width="512" height="512" rx="96" fill="#0B1120"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <rect width="1024" height="1024" rx="150" fill="#1A1410"/>
+
   <!-- House outline -->
-  <path d="M256 110 L96 230 L96 420 L416 420 L416 230 Z"
-        fill="none" stroke="#00E5C9" stroke-width="22" stroke-linejoin="round"/>
-  <!-- Door -->
-  <rect x="210" y="300" width="92" height="120" rx="8"
-        fill="none" stroke="#00E5C9" stroke-width="18"/>
-  <!-- Windows — amber thermal glow -->
-  <rect x="126" y="255" width="80" height="70" rx="6" fill="#FF9500"/>
-  <rect x="306" y="255" width="80" height="70" rx="6" fill="#FF9500"/>
-  <!-- Roof peak signal dot -->
-  <circle cx="256" cy="110" r="20" fill="#00E5C9"/>
+  <path
+    d="M150 510
+       L512 210
+       L680 350
+       L680 300
+       Q680 275 705 275
+       H765
+       Q790 275 790 300
+       V442
+       L874 510"
+    fill="none"
+    stroke="#FFF6E8"
+    stroke-width="64"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <path
+    d="M220 475
+       V790
+       Q220 820 250 820
+       H430"
+    fill="none"
+    stroke="#FFF6E8"
+    stroke-width="64"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <path
+    d="M594 820
+       H774
+       Q804 820 804 790
+       V580"
+    fill="none"
+    stroke="#FFF6E8"
+    stroke-width="64"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <!-- Energy pulse -->
+  <path
+    d="M285 585
+       H390
+       L445 500
+       L515 665
+       L595 400
+       L665 585
+       H805"
+    fill="none"
+    stroke="#F0A830"
+    stroke-width="58"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
 </svg>

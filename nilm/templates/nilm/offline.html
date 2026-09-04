@@ -4,32 +4,30 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <meta name="theme-color" content="#00E5C9"/>
+  <meta name="theme-color" content="#F0A830"/>
   <title>Sin conexión — DOMOBOI</title>
   <link rel="stylesheet" href="/static/css/tailwind.css"/>
   <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet"/>
   <style>
     :root {
-      --bg: #0B1120; --surface: #131E35; --accent: #00E5C9;
-      --text-primary: #ECF1FA; --text-muted: #647FA8;
+      --bg: #1A1410; --surface: #251D18; --surface-raised: #352920;
+      --accent: #F0A830; --text-primary: #F5EDE0; --text-muted: #9B8878;
     }
     body { background: var(--bg); color: var(--text-primary); font-family: 'Space Grotesk', system-ui, sans-serif; }
   </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-6">
   <div class="text-center max-w-xs">
-    <div class="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6"
-         style="background: rgba(0,229,201,0.12);">
-      <i class="ri-wifi-off-line text-4xl" style="color: var(--accent);"></i>
-    </div>
+    <img src="/static/images/icon.svg" width="80" height="80" alt="DOMOBOI"
+         class="mx-auto mb-6" style="border-radius:18px;"/>
     <h1 class="text-2xl font-bold mb-2" style="color: var(--text-primary);">Sin conexión</h1>
     <p class="text-sm mb-6" style="color: var(--text-muted);">
       No hay conexión a internet. Vuelve a intentarlo cuando tengas señal.
     </p>
     <button onclick="location.reload()"
             class="px-6 py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80"
-            style="background: var(--accent); color: #0B1120;">
+            style="background: var(--accent); color: #1A1410;">
       Reintentar
     </button>
   </div>

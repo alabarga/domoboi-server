@@ -5,7 +5,9 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-  <meta name="theme-color" content="#00E5C9"/>
+  <meta name="theme-color" content="#F0A830"/>
+  <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="apple-mobile-web-app-title" content="DOMOBOI"/>
@@ -17,27 +19,27 @@
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0&display=block" rel="stylesheet"/>
 
-  <!-- Icons -->
+  <!-- UI icons (nav, arrows, etc.) -->
   <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet"/>
 
   <!-- Tailwind (compiled) -->
   <link rel="stylesheet" href="{% static 'css/tailwind.css' %}"/>
 
   <style>
-    /* ─── Thermoelectric palette ─────────────────────────────── */
+    /* ─── Hearth palette ─────────────────────────────────────── */
     :root {
-      --bg:             #0B1120;
-      --surface:        #131E35;
-      --surface-raised: #1B2B47;
-      --border:         rgba(255,255,255,0.07);
-      --accent:         #00E5C9;
-      --accent-warm:    #FF9500;
-      --danger:         #FF3B5C;
-      --text-primary:   #ECF1FA;
-      --text-muted:     #647FA8;
-      --brand:          #7C3AED;
+      --bg:             #1A1410;   /* warm charcoal */
+      --surface:        #251D18;   /* dark warm brown */
+      --surface-raised: #352920;   /* elevated states */
+      --border:         rgba(255,220,160,0.08);
+      --accent:         #F0A830;   /* amber gold */
+      --accent-warm:    #E05C3A;   /* terracotta */
+      --danger:         #E03B3B;
+      --text-primary:   #F5EDE0;   /* warm off-white */
+      --text-muted:     #9B8878;   /* warm taupe */
+      --brand:          #F0A830;
     }
 
     /* ─── Base resets ────────────────────────────────────────── */
@@ -52,53 +54,60 @@
       min-height: 100dvh;
     }
 
-    /* ─── Global Tailwind class overrides (dark palette) ────── */
-    .bg-white, .bg-gray-50           { background: var(--surface) !important; }
-    .bg-gray-100                      { background: var(--surface-raised) !important; }
-    .border-gray-200, .border-gray-100{ border-color: var(--border) !important; }
-    .text-gray-900, .text-gray-800    { color: var(--text-primary) !important; }
-    .text-gray-700, .text-gray-600    { color: var(--text-primary) !important; opacity: .85; }
-    .text-gray-500, .text-gray-400    { color: var(--text-muted) !important; }
-    .text-gray-300                    { color: var(--text-muted) !important; opacity: .5; }
-    .text-violet-600, .text-violet-700{ color: var(--accent) !important; }
-    .bg-violet-100                    { background: rgba(0,229,201,0.12) !important; }
-    .bg-violet-600, .bg-violet-700    { background: var(--accent) !important; color: #0B1120 !important; }
-    .hover\:bg-violet-700:hover       { background: #00c4ad !important; }
+    /* ─── Global Tailwind class overrides (Hearth palette) ───── */
+    .bg-white, .bg-gray-50            { background: var(--surface) !important; }
+    .bg-gray-100                       { background: var(--surface-raised) !important; }
+    .border-gray-200, .border-gray-100 { border-color: var(--border) !important; }
+    .text-gray-900, .text-gray-800     { color: var(--text-primary) !important; }
+    .text-gray-700, .text-gray-600     { color: var(--text-primary) !important; opacity: .85; }
+    .text-gray-500, .text-gray-400     { color: var(--text-muted) !important; }
+    .text-gray-300                     { color: var(--text-muted) !important; opacity: .5; }
+    .text-violet-600, .text-violet-700 { color: var(--accent) !important; }
+    .bg-violet-100                     { background: rgba(240,168,48,0.12) !important; }
+    .bg-violet-600, .bg-violet-700     { background: var(--accent) !important; color: #1A1410 !important; }
+    .hover\:bg-violet-700:hover        { background: #d4921f !important; }
     .hover\:bg-violet-50:hover,
-    .hover\:bg-violet-100:hover       { background: rgba(0,229,201,0.08) !important; }
-    .hover\:border-violet-300:hover   { border-color: var(--accent) !important; opacity: .5; }
-    .focus\:ring-violet-500:focus     { --tw-ring-color: var(--accent) !important; }
-    .hover\:text-violet-700:hover     { color: var(--accent) !important; }
-    .border-gray-300                  { border-color: rgba(255,255,255,0.15) !important; }
+    .hover\:bg-violet-100:hover        { background: rgba(240,168,48,0.08) !important; }
+    .hover\:border-violet-300:hover    { border-color: var(--accent) !important; opacity: .4; }
+    .focus\:ring-violet-500:focus      { --tw-ring-color: var(--accent) !important; }
+    .hover\:text-violet-700:hover      { color: var(--accent) !important; }
+    .border-gray-300                   { border-color: rgba(245,237,224,0.15) !important; }
 
-    /* Green/amber event overrides for dark bg */
-    .bg-green-100   { background: rgba(0,229,201,0.12) !important; }
-    .text-green-700 { color: #00E5C9 !important; }
-    .bg-amber-100   { background: rgba(255,149,0,0.15) !important; }
-    .text-amber-700 { color: #FF9500 !important; }
-    .bg-orange-100  { background: rgba(255,90,30,0.15) !important; }
-    .text-orange-600,.text-orange-700 { color: #FF6030 !important; }
-    .bg-red-100     { background: rgba(255,59,92,0.15) !important; }
-    .text-red-600,.text-red-700       { color: #FF3B5C !important; }
+    /* Green → amber (normal events); red stays red */
+    .bg-green-100    { background: rgba(240,168,48,0.12) !important; }
+    .text-green-700  { color: var(--accent) !important; }
+    .bg-amber-100    { background: rgba(224,92,58,0.15) !important; }
+    .text-amber-700  { color: var(--accent-warm) !important; }
+    .bg-orange-100   { background: rgba(224,92,58,0.15) !important; }
+    .text-orange-600,.text-orange-700 { color: var(--accent-warm) !important; }
+    .bg-red-100      { background: rgba(224,59,59,0.15) !important; }
+    .text-red-600,.text-red-700       { color: var(--danger) !important; }
 
     /* Input fields */
     input[type="date"], input[type="text"], input[type="email"],
     input[type="password"], select, textarea {
       background: var(--surface-raised) !important;
       color: var(--text-primary) !important;
-      border-color: rgba(255,255,255,0.15) !important;
+      border-color: rgba(245,237,224,0.15) !important;
       color-scheme: dark;
     }
     input::placeholder { color: var(--text-muted) !important; }
 
-    /* Shadow overrides */
-    .shadow-sm { box-shadow: 0 1px 3px rgba(0,0,0,0.4) !important; }
-    .hover\:shadow-md:hover { box-shadow: 0 4px 16px rgba(0,229,201,0.1) !important; }
+    /* Shadows */
+    .shadow-sm { box-shadow: 0 1px 3px rgba(0,0,0,0.5) !important; }
+    .hover\:shadow-md:hover { box-shadow: 0 4px 16px rgba(240,168,48,0.12) !important; }
 
     /* ─── Monospace for times & values ──────────────────────── */
     .mono { font-family: 'JetBrains Mono', 'Fira Code', monospace; }
 
-    /* ─── Event card — left accent bar (the signature detail) ─ */
+    /* ─── Material Symbols (appliance icons) ─────────────────── */
+    .material-symbols-rounded {
+      font-size: 1.5rem;
+      line-height: 1;
+      user-select: none;
+    }
+
+    /* ─── Event card — left accent bar ──────────────────────── */
     .event-card {
       border-left: 2px solid var(--accent) !important;
       border-top: none !important;
@@ -108,7 +117,7 @@
     }
     .event-card-warm   { border-left-color: var(--accent-warm) !important; }
     .event-card-danger { border-left-color: var(--danger) !important; }
-    .event-card-gray   { border-left-color: rgba(255,255,255,0.2) !important; }
+    .event-card-gray   { border-left-color: rgba(245,237,224,0.15) !important; }
 
     /* ─── Skeleton shimmer ───────────────────────────────────── */
     .skeleton {
@@ -133,24 +142,132 @@
     .leaflet-container { position: relative; }
   </style>
 
+  {% if WEBPUSH_SETTINGS.VAPID_PUBLIC_KEY %}
+  <meta name="vapid-key" content="{{ WEBPUSH_SETTINGS.VAPID_PUBLIC_KEY }}"/>
+  {% endif %}
+
   {% block extra_css %}{% endblock %}
 </head>
 <body>
   {% block content %}{% endblock %}
+
+  <!-- ERUDA mobile DevTools — REMOVE BEFORE PRODUCTION -->
+  <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+  <script>eruda.init();</script>
 
   <!-- HTMX -->
   <script src="https://unpkg.com/htmx.org@2.0.3" defer></script>
 
   {% block extra_javascript %}{% endblock %}
 
-  <!-- Service Worker registration -->
+  <!-- Service Worker registration + push subscription -->
   <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/nilm/sw.js', { scope: '/nilm/' })
-          .catch(function (err) { console.warn('SW registration failed:', err); });
-      });
+  (function () {
+    if (!('serviceWorker' in navigator)) return;
+
+    // Helper: convert base64url to Uint8Array (required by pushManager.subscribe)
+    function urlB64ToUint8(b64) {
+      var pad = '='.repeat((4 - b64.length % 4) % 4);
+      var raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
+      var arr = new Uint8Array(raw.length);
+      for (var i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+      return arr;
     }
+
+    function getCsrf() {
+      // Try cookie first, fall back to hidden CSRF input (always present in nav forms)
+      var m = document.cookie.match(/csrftoken=([^;]+)/);
+      if (m) return m[1];
+      var el = document.querySelector('[name=csrfmiddlewaretoken]');
+      return el ? el.value : '';
+    }
+
+    function updateBell(subscribed) {
+      var btn = document.getElementById('notify-btn');
+      var ico = document.getElementById('notify-icon');
+      if (!btn || !ico) return;
+      btn.classList.remove('hidden');
+      ico.className = subscribed ? 'ri-notification-fill text-lg' : 'ri-notification-line text-lg';
+      btn.style.color = subscribed ? 'var(--accent)' : 'var(--text-muted)';
+      btn.title = subscribed ? 'Notificaciones activas — pulsa para desactivar' : 'Activar notificaciones';
+    }
+
+    function toast(msg) {
+      var t = document.createElement('div');
+      t.textContent = msg;
+      t.style.cssText = 'position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);padding:.6rem 1.2rem;border-radius:999px;font-size:.85rem;font-weight:600;z-index:9999;background:var(--surface-raised);color:var(--text-primary);box-shadow:0 4px 20px rgba(0,0,0,.4);';
+      document.body.appendChild(t);
+      setTimeout(function() { t.remove(); }, 3000);
+    }
+
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('/nilm/sw.js', {scope: '/nilm/'})
+        .then(function (reg) {
+          // Only wire up bell if Push API is available and there's a VAPID key
+          if (!('PushManager' in window)) return;
+          var vapidKey = document.querySelector('meta[name="vapid-key"]');
+          if (!vapidKey || !vapidKey.content) return;
+
+          // Show bell in current subscription state
+          reg.pushManager.getSubscription().then(function (sub) { updateBell(!!sub); });
+
+          var btn = document.getElementById('notify-btn');
+          if (!btn) return;
+
+          btn.addEventListener('click', function () {
+            reg.pushManager.getSubscription().then(function (existing) {
+              if (existing) {
+                existing.unsubscribe().then(function () {
+                  var cached = JSON.parse(localStorage.getItem('wpSub') || '{}');
+                  localStorage.removeItem('wpSub');
+                  fetch('/webpush/save_information', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                      browser: navigator.userAgent.toLowerCase().includes('firefox') ? 'firefox' : 'chrome',
+                      user_agent: navigator.userAgent,
+                      status_type: 'unsubscribe',
+                      group: '',
+                      subscription: cached.endpoint ? cached : {endpoint: existing.endpoint},
+                    })
+                  });
+                  updateBell(false);
+                  toast('Notificaciones desactivadas');
+                }).catch(function(e) { toast('Error: ' + e.message); });
+              } else {
+                Notification.requestPermission().then(function (perm) {
+                  if (perm !== 'granted') { toast('Permiso denegado'); return; }
+                  reg.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlB64ToUint8(vapidKey.content)
+                  }).then(function (sub) {
+                    var subJson = sub.toJSON();
+                    // Cache full subscription so unsubscribe can send all required fields
+                    localStorage.setItem('wpSub', JSON.stringify(subJson));
+                    fetch('/webpush/save_information', {
+                      method: 'POST',
+                      headers: {'Content-Type': 'application/json'},
+                      body: JSON.stringify({
+                        browser: navigator.userAgent.toLowerCase().includes('firefox') ? 'firefox' : 'chrome',
+                        user_agent: navigator.userAgent,
+                        status_type: 'subscribe',
+                        group: '',
+                        subscription: subJson,
+                      })
+                    }).then(function(r) {
+                      if (r.ok) { toast('Notificaciones activadas ✓'); }
+                      else { r.text().then(function(t) { toast('Error al guardar: ' + r.status); console.error(t); }); }
+                    });
+                    updateBell(true);
+                  }).catch(function(e) { toast('Error al suscribir: ' + e.message); });
+                });
+              }
+            }).catch(function(e) { toast('Error: ' + e.message); });
+          });
+        })
+        .catch(function (err) { console.warn('SW registration failed:', err); });
+    });
+  })();
   </script>
 </body>
 </html>

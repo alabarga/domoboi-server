@@ -85,7 +85,7 @@ class LocationDetailView(LoginRequiredMixin, DetailView):
         except ValueError:
             selected_date = datetime.date.today()
 
-        events_qs = self.object.events.filter(start_time__date=selected_date).order_by('start_time')
+        events_qs = self.object.events.filter(start_time__date=selected_date).order_by('-start_time')
         if events_qs.exists():
             paginator = Paginator(events_qs, 10)
             context['recent_events'] = paginator.get_page(1)
@@ -96,6 +96,15 @@ class LocationDetailView(LoginRequiredMixin, DetailView):
             context['has_next_events'] = False
             context['is_placeholder'] = True
         context['selected_date'] = selected_date
+
+        # Most recent previous date that has real events (for cross-date scroll)
+        context['prev_date'] = (
+            self.object.events
+            .filter(start_time__date__lt=selected_date)
+            .order_by('-start_time')
+            .values_list('start_time__date', flat=True)
+            .first()
+        )
 
         # Map data — single marker for this location
         loc = self.object
@@ -127,6 +136,18 @@ class LocationUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     
     def get_success_url(self):
         return reverse('nilm:location_detail', kwargs={'pk': self.object.pk})
+
+def service_worker(request):
+    """Serve the service worker JS with no-cache headers so updates are always picked up."""
+    from django.template.response import TemplateResponse
+    response = TemplateResponse(
+        request, 'nilm/sw.js',
+        content_type='application/javascript; charset=utf-8'
+    )
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response['Service-Worker-Allowed'] = '/nilm/'
+    return response
+
 
 class LocationAssignView(LoginRequiredMixin, View):
     """Assign a location to the currently logged-in user's profile."""
@@ -290,7 +311,7 @@ def get_placeholder_events(location, date):
             class_name=item['class_name'],
             description='',
         ))
-    return events
+    return list(reversed(events))  # latest first
 
 
 def _build_location_map_json(locations_qs):
@@ -484,46 +505,73 @@ class AdminProfileUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView
 
 
 class EventLoadMoreView(LoginRequiredMixin, ListView):
-    """View for loading paginated events on home dashboard (AJAX)"""
+    """Paginated event loader for infinite scroll — supports cross-date continuation."""
     model = Event
-    template_name = 'nilm/partials/event_cards.html'
+    template_name = 'nilm/partials/event_cards_page.html'
     context_object_name = 'recent_events'
-    paginate_by = 6
+    paginate_by = 10
 
     def get_queryset(self):
         ensure_user_has_data_and_events(self.request.user)
         location_id = self.request.GET.get('location_id')
         if not location_id:
+            self._base_qs = Event.objects.none()
+            self._selected_date = None
             return Event.objects.none()
 
-        # Verify access
         if self.request.user.is_superuser:
-            qs = Event.objects.filter(location_id=location_id)
+            base_qs = Event.objects.filter(location_id=location_id)
         else:
             try:
                 profile = self.request.user.profile
                 if profile.locations.filter(id=location_id).exists():
-                    qs = Event.objects.filter(location_id=location_id)
+                    base_qs = Event.objects.filter(location_id=location_id)
                 else:
+                    self._base_qs = Event.objects.none()
+                    self._selected_date = None
                     return Event.objects.none()
             except UserProfile.DoesNotExist:
+                self._base_qs = Event.objects.none()
+                self._selected_date = None
                 return Event.objects.none()
 
-        # Optional date filter
+        self._base_qs = base_qs
         date_str = self.request.GET.get('date')
+        self._selected_date = None
         if date_str:
             try:
-                selected_date = datetime.date.fromisoformat(date_str)
-                qs = qs.filter(start_time__date=selected_date)
+                self._selected_date = datetime.date.fromisoformat(date_str)
+                base_qs = base_qs.filter(start_time__date=self._selected_date)
             except ValueError:
                 pass
-        return qs.order_by('start_time')
+        return base_qs.order_by('-start_time')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        try:
+            page_num = int(self.request.GET.get('page', 1))
+        except (ValueError, TypeError):
+            page_num = 1
+        context['show_date_header'] = (page_num == 1 and self.request.GET.get('date') is not None)
+        context['page_date'] = self._selected_date
+        return context
 
     def render_to_response(self, context, **response_kwargs):
         page_obj = context.get('page_obj')
         has_next = page_obj.has_next() if page_obj else False
         response = super().render_to_response(context, **response_kwargs)
         response['X-Has-Next'] = 'true' if has_next else 'false'
+        # When this date is exhausted, tell the client the previous date with real events
+        if not has_next and self._selected_date and self._base_qs is not None:
+            prev_date = (
+                self._base_qs
+                .filter(start_time__date__lt=self._selected_date)
+                .order_by('-start_time')
+                .values_list('start_time__date', flat=True)
+                .first()
+            )
+            if prev_date:
+                response['X-Next-Date'] = prev_date.isoformat()
         return response
 
 

@@ -2,6 +2,19 @@
 <!-- HTMX partial — replaces #events-column on date change -->
 <div id="events-column" class="col-span-1 lg:col-span-2 space-y-4">
 
+  {% if is_placeholder and recent_events %}
+  <div class="rounded-xl border p-4 flex items-start gap-3"
+       style="background:#F0A830; border-color:#d9951f;">
+    <i class="ri-lightbulb-flash-line text-xl flex-shrink-0" style="color:#5c3a00;"></i>
+    <div class="space-y-1">
+      <p class="text-sm font-semibold" style="color:#5c3a00;">{% trans "Domoboi está aprendiendo" %}</p>
+      <p class="text-xs leading-relaxed" style="color:#5c3a00;">
+        {% trans "Estamos aprendiendo las rutinas de tu hogar. Por ahora, los eventos que ves son ejemplos. Te avisaremos cuando empecemos a mostrar eventos reales." %}
+      </p>
+    </div>
+  </div>
+  {% endif %}
+
   <!-- Date picker -->
   <div class="rounded-xl border p-4 flex flex-col sm:flex-row sm:items-center gap-3"
        style="background:var(--surface); border-color:var(--border);">
@@ -20,12 +33,6 @@
            class="sm:ml-auto text-sm rounded-lg px-3 py-1.5 focus:outline-none"
            style="border:1px solid rgba(255,255,255,0.15); background:var(--surface-raised); color:var(--text-primary);">
   </div>
-
-  {% if is_placeholder and recent_events %}
-  <p class="text-xs flex items-center gap-1 px-1" style="color:var(--text-muted);">
-    <i class="ri-information-line"></i> {% trans "Actividad estimada — sin datos reales para este día." %}
-  </p>
-  {% endif %}
 
   <div id="events-skeleton" class="htmx-indicator space-y-3">
     {% for i in "xxx" %}<div class="event-card event-card-gray flex items-center gap-4 px-4 py-3" style="background:var(--surface);">

@@ -1,19 +1,45 @@
+# NOT the current deployment method. The production host (Opalstack shared
+# hosting) has no root, so the collector runs from cron instead — see
+# scripts/README.md. This unit is kept for a future move to a VPS or container
+# host, where a supervised long-running process is preferable to a 60s cron tick.
+#
 [Unit]
 Description=Domoboi Tuya cloud measurement bridge
 Documentation=https://github.com/alabarga/domoboi_django
 After=network-online.target
 Wants=network-online.target
+# Never stop retrying: the Tuya cloud being unreachable for an extended period
+# must not permanently disable the collector.
+StartLimitIntervalSec=0
 
 [Service]
 Type=simple
-User=pi
-WorkingDirectory=/home/pi/domoboi_django/scripts
-EnvironmentFile=/home/pi/domoboi_django/scripts/.env
-ExecStart=/home/pi/venv/bin/python tuya_daemon.py
+
+# --- adjust these four to the deployment before installing -------------------
+User=domoboi
+Group=domoboi
+WorkingDirectory=/srv/domoboi_django
+ExecStart=/srv/domoboi_django/.venv/bin/python manage.py tuya_poll
+# -----------------------------------------------------------------------------
+
+# Only the TUYA_* variables are needed. There is no HTTP hop any more — the
+# command writes through the ORM — so no API URL or edge token is required.
+# Keep this file mode 0600 and owned by the service user: it holds
+# TUYA_ACCESS_SECRET.
+EnvironmentFile=/srv/domoboi_django/scripts/.env
+
 Restart=always
 RestartSec=30
+
 StandardOutput=journal
 StandardError=journal
+SyslogIdentifier=domoboi-tuya
+
+# The process only needs to read the project and talk to the network.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
 
 [Install]
 WantedBy=multi-user.target

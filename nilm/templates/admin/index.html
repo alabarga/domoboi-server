@@ -41,7 +41,7 @@
                     </div>
                 </div>
                 <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-500">{% trans "Activos última hora" %}</p>
+                    <p class="text-sm font-medium text-gray-500">{% trans "Activos últimas 24h" %}</p>
                     <p class="text-2xl font-semibold text-gray-900">{{ active_devices_last_hour }}</p>
                 </div>
             </div>
@@ -75,6 +75,9 @@
 
     {# Leaflet JS — same bundle used by django-location-field, no CDN #}
     <script src="{% static 'location_field/leaflet/leaflet.js' %}"></script>
+    <script>window.L = window.L || window.leaflet;</script>
+    <script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&region=ES"></script>
+    <script src="https://unpkg.com/leaflet.gridlayer.googlemutant@0.14.0/dist/Leaflet.GoogleMutant.js"></script>
     <script>
     (function () {
         // django-location-field bundles Leaflet as window.leaflet (not window.L)
@@ -85,10 +88,7 @@
 
         var map = L.map('device-map').setView([41.05, 0.43], 6);
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-            maxZoom: 19
-        }).addTo(map);
+        L.gridLayer.googleMutant({ type: 'roadmap', maxZoom: 20 }).addTo(map);
 
         var bounds = [];
         devices.forEach(function (d) {

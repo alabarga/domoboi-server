@@ -252,7 +252,7 @@ TIME_ZONE = 'Europe/Madrid'
 
 USE_I18N = True
 
-USE_TZ = False
+USE_TZ = True
 
 LANGUAGES = [
     ('es', _('Spanish')),
@@ -282,6 +282,14 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/nilm/'
 
 GOOGLE_MAPS_API_KEY = os.environ.get('GOOGLE_MAPS_API_KEY', '')
+
+# Tuya cloud bridge — consumed by the `tuya_poll` management command.
+# Read here rather than via TuyaConfig.from_env(), which walks the filesystem
+# for a .env (cwd-dependent) and mutates os.environ.
+TUYA_ACCESS_ID = os.environ.get('TUYA_ACCESS_ID', '')
+TUYA_ACCESS_SECRET = os.environ.get('TUYA_ACCESS_SECRET', '')
+TUYA_REGION = os.environ.get('TUYA_REGION', 'eu')
+TUYA_POLL_INTERVAL = int(os.environ.get('TUYA_POLL_INTERVAL', '60'))
 
 # Web Push (VAPID) — keys come from local_settings.py vars or .env fallback
 VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY", "")

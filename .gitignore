@@ -47,3 +47,9 @@ Lahomes-Django_v1.0/
 data/
 docs/
 notebooks/
+
+# Tuya collector: regenerable cache of per-device datapoint scales
+.tuya_spec_cache.json
+
+# Database dumps
+*.dump

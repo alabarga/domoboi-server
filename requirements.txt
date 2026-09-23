@@ -35,3 +35,12 @@ django-webpush==0.3.6
 
 # Dev / management commands
 django-extensions==4.1
+
+# Tuya cloud bridge — used by the `tuya_poll` management command.
+# Requires the companion repo to be pushed and tagged first; until then install
+# it locally with:  pip install -e ../domoboi-tuya
+tuya-energy @ git+https://github.com/alabarga/domoboi-tuya@v1.0.0
+
+# HTTP client. Previously undeclared — scripts/tuya_daemon.py imports it and it
+# was only present transitively via django-webpush -> pywebpush.
+requests>=2.31

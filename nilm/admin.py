@@ -132,11 +132,13 @@ import json
 class CustomAdminSite(UnfoldAdminSite):
     def index(self, request, extra_context=None):
         now = timezone.now()
-        one_hour_ago = now - timedelta(hours=1)
+        # Same window as Device.is_active, so the dashboard and the device list
+        # can never disagree about what "active" means.
+        active_cutoff = now - Device.ACTIVITY_WINDOW
         seven_days_ago = now - timedelta(days=7)
 
         active_devices_last_hour = Device.objects.filter(
-            measurements__timestamp__gte=one_hour_ago
+            measurements__timestamp__gte=active_cutoff
         ).distinct().count()
 
         assigned_devices = Device.objects.filter(location__isnull=False).count()
@@ -146,7 +148,7 @@ class CustomAdminSite(UnfoldAdminSite):
 
         # Annotate assigned devices with recent-activity flag for the map
         has_recent_meas = Exists(
-            Measurement.objects.filter(device=OuterRef('pk'), timestamp__gte=one_hour_ago)
+            Measurement.objects.filter(device=OuterRef('pk'), timestamp__gte=active_cutoff)
         )
         assigned_device_list = list(
             Device.objects.filter(location__isnull=False)

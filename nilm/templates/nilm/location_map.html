@@ -18,6 +18,9 @@
 {% block extra_javascript %}
 <script id="locations-map-data" type="application/json">{{ location_map_json|safe }}</script>
 <script src="{% static 'location_field/leaflet/leaflet.js' %}"></script>
+<script>window.L = window.L || window.leaflet;</script>
+<script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&region=ES"></script>
+<script src="https://unpkg.com/leaflet.gridlayer.googlemutant@0.14.0/dist/Leaflet.GoogleMutant.js"></script>
 <script>
 (function () {
   var L = window.L || window.leaflet;
@@ -27,10 +30,7 @@
   var locations = JSON.parse(document.getElementById('locations-map-data').textContent);
   var center = locations.length ? [locations[0].lat, locations[0].lon] : [41.05, 0.43];
   var map = L.map(container).setView(center, 7);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    maxZoom: 19
-  }).addTo(map);
+  L.gridLayer.googleMutant({ type: 'roadmap', maxZoom: 20 }).addTo(map);
   var bounds = [];
   locations.forEach(function (loc) {
     var marker = L.circleMarker([loc.lat, loc.lon], {

@@ -138,8 +138,10 @@ class NILMExplorerAndScrollTests(TestCase):
         # Clear events to test manual pagination limits
         Event.objects.all().delete()
 
+        # Needs more than one page: paginate_by is 10, so exactly 10 events
+        # would yield a single page and X-Has-Next would be 'false'.
         now = timezone.now()
-        for i in range(10):
+        for i in range(15):
             Event.objects.create(
                 location=self.location,
                 start_time=now - timedelta(hours=i),
@@ -147,7 +149,8 @@ class NILMExplorerAndScrollTests(TestCase):
                 type='LIGHTS',
                 class_name='NORMAL'
             )
-        
+
+
         response_page1 = self.client.get(reverse('nilm:event_load_more') + f'?location_id={self.location.id}&page=1')
         self.assertEqual(response_page1.status_code, 200)
         self.assertEqual(response_page1['X-Has-Next'], 'true')

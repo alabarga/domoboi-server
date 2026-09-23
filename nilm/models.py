@@ -86,6 +86,12 @@ class Device(models.Model):
         ('DOMOBOI', 'Domoboi Edge (ATM90E36)'),
         ('TUYA',    'Tuya Cloud Device'),
     ]
+    #: How long after its last measurement a device still counts as active.
+    #: Tuya collection runs as a once-daily history backfill during the training
+    #: phase, so anything shorter than a day would report every device inactive.
+    #: Referenced by the admin dashboard too — keep the definition in one place.
+    ACTIVITY_WINDOW = timezone.timedelta(hours=24)
+
     device_id = models.CharField(max_length=100, unique=True)
     model = models.CharField(max_length=100)
     device_type = models.CharField(max_length=10, choices=DEVICE_TYPES, default='DOMOBOI')
@@ -98,8 +104,8 @@ class Device(models.Model):
     
     @property
     def is_active(self):
-        """Returns True if the device has sent a measurement in the last 60 minutes"""
-        cutoff = timezone.now() - timezone.timedelta(minutes=60)
+        """True if the device has sent a measurement within ACTIVITY_WINDOW."""
+        cutoff = timezone.now() - self.ACTIVITY_WINDOW
         return self.measurements.filter(timestamp__gte=cutoff).exists()
     
     def __str__(self):
@@ -158,6 +164,23 @@ class Measurement(models.Model):
     
     class Meta:
         ordering = ['-timestamp']
+        constraints = [
+            # Makes ingestion idempotent: re-running a backfill is a no-op
+            # rather than silently duplicating rows.
+            models.UniqueConstraint(
+                fields=['device', 'timestamp'],
+                name='uniq_measurement_device_timestamp',
+            ),
+        ]
+        indexes = [
+            # Serves both Device.is_active (device + timestamp >= cutoff) and
+            # Device.last_active (ORDER BY timestamp DESC LIMIT 1), neither of
+            # which had an index despite `ordering` forcing a sort on every query.
+            models.Index(
+                fields=['device', '-timestamp'],
+                name='meas_device_ts_idx',
+            ),
+        ]
 
 
 class Event(models.Model):

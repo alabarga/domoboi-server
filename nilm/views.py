@@ -11,6 +11,7 @@ from django.http import JsonResponse
 from django.db.models import Q
 from django.core.paginator import Paginator
 from django.contrib.auth.models import User
+from django.utils import timezone
 from .models import Location, Person, Event, Comment, UserProfile, Device
 from .forms import CommentForm, LocationUpdateForm, UserProfileUpdateForm, UserLocationAssignmentForm
 
@@ -81,9 +82,9 @@ class LocationDetailView(LoginRequiredMixin, DetailView):
         # Date filter — default to today
         date_str = self.request.GET.get('date')
         try:
-            selected_date = datetime.date.fromisoformat(date_str) if date_str else datetime.date.today()
+            selected_date = datetime.date.fromisoformat(date_str) if date_str else timezone.localdate()
         except ValueError:
-            selected_date = datetime.date.today()
+            selected_date = timezone.localdate()
 
         events_qs = self.object.events.filter(start_time__date=selected_date).order_by('-start_time')
         if events_qs.exists():
@@ -295,11 +296,14 @@ def get_placeholder_events(location, date):
     If `date` is today, truncates to events whose start_time <= now.
     If a past date, returns the complete daily sequence.
     """
-    now = datetime.datetime.now()
+    now = timezone.localtime()
     today = now.date()
     events = []
     for item in _DAILY_SCHEDULE:
-        start = datetime.datetime.combine(date, datetime.time(item['hour'], item['minute']))
+        # Build the wall-clock time in the active timezone, not the server's.
+        start = timezone.make_aware(
+            datetime.datetime.combine(date, datetime.time(item['hour'], item['minute']))
+        )
         if date == today and start > now:
             continue  # future — not shown yet
         end = start + datetime.timedelta(minutes=item['duration'])
@@ -330,7 +334,6 @@ def _build_location_map_json(locations_qs):
 
 def ensure_user_has_data_and_events(user):
     import random
-    from django.utils import timezone
     from .models import Location, Event, UserProfile
     
     # 1. If not superuser, assign random locations if they have none
@@ -656,20 +659,42 @@ class MeasurementIngestionView(APIView):
         serializer = MeasurementIngestionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         d = serializer.validated_data
+
         try:
-            device = get_object_or_404(Device, device_id=d['device_id'])
-            meas = Measurement.objects.create(
-                device=device,
-                start_time=d['start_time'],
-                end_time=d['end_time'],
-                readings=d['readings'],
-                value=d['value'] if d['value'] is not None else 0.0,
-                features=d.get('features'),
-                telemetry=d.get('telemetry'),
+            device = Device.objects.get(device_id=d['device_id'])
+        except Device.DoesNotExist:
+            return Response(
+                {"error": f"Device {d['device_id']} is not registered."},
+                status=404,
             )
-            return Response({"status": "success", "measurement_id": meas.id}, status=201)
-        except Exception as exc:
-            return Response({"error": str(exc)}, status=400)
+
+        # Idempotent on (device, timestamp), which carries a unique constraint.
+        # An edge device draining its offline buffer will legitimately re-send
+        # rows it already delivered — if that returned an error, sender.py's
+        # drain loop would abort on the first one and the buffer would never
+        # empty. Re-posting the same measurement is a no-op, not a failure.
+        #
+        # timestamp mirrors what Measurement.save() would derive from
+        # start_time; it has to be passed explicitly because it is the key.
+        meas, created = Measurement.objects.get_or_create(
+            device=device,
+            timestamp=d['start_time'],
+            defaults={
+                'start_time': d['start_time'],
+                'end_time': d['end_time'],
+                'readings': d['readings'],
+                'value': d['value'] if d['value'] is not None else 0.0,
+                'features': d.get('features'),
+                'telemetry': d.get('telemetry'),
+            },
+        )
+        return Response(
+            {
+                "status": "success" if created else "duplicate",
+                "measurement_id": meas.id,
+            },
+            status=201 if created else 200,
+        )
 
 
 class DeviceConfigCheckView(APIView):
@@ -714,7 +739,8 @@ class DeviceConfigCheckView(APIView):
                 "status": "ok",
                 "device_id": device.device_id,
                 "model": device.model,
-                "location": device.location.description,
+                # location is nullable — an unassigned device is still registered
+                "location": device.location.description if device.location else None,
             })
         except Device.DoesNotExist:
             return Response({"status": "NOK", "message": f"Device {device_id} is not configured"})

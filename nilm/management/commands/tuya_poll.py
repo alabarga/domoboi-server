@@ -60,15 +60,17 @@ DEFAULT_HISTORY_CODES = "cur_power,cur_current,cur_voltage,add_ele"
 # than as a physical limit — see MILLI_EXPONENT in tuya_energy/dp.py.
 MAX_PLAUSIBLE_CURRENT_A = 100.0
 
-# Tuya's datapoint-log endpoints return at most 100 rows per request, and the
-# v1.0 fallback (/v1.0/devices/{id}/logs) reports has_next=true while serving an
-# empty second page — so pagination cannot get past the cap. Verified: a single
-# 24h window yields 100 readings, while four 6h windows over the same period
-# yield 400. The backfill therefore slices the range into small windows so each
-# request stays well under the limit; without this a day's history is silently
-# truncated to the first 100 rows and still reported as success.
-HISTORY_PAGE_CAP = 100
-DEFAULT_WINDOW_HOURS = 2
+# Tuya serves datapoint logs 100 rows at a time and the client follows the
+# `next_row_key` cursor, so window size no longer bounds how much is retrieved —
+# a 24h window returns however many rows exist (measured: 932). Slicing is kept
+# only as an escape hatch; one window per day matches the underlying client's
+# own day-sized paging and keeps the request count low, which matters because
+# the endpoint throttles.
+#
+# (Until the signing fix in tuya_energy, base64 cursors were percent-encoded and
+# page 2 was rejected with "sign invalid", which the client swallowed — every
+# fetch silently stopped at 100 rows and looked like a server-side page cap.)
+DEFAULT_WINDOW_HOURS = 24
 
 # The datapoint-log endpoint is rate limited, and it degrades rather than
 # failing: hammer it and successive requests return partial results, then empty
@@ -173,8 +175,9 @@ class Command(BaseCommand):
         parser.add_argument(
             "--window-hours", type=float, default=DEFAULT_WINDOW_HOURS,
             help=f"Slice the --history range into windows of this many hours "
-                 f"(default: {DEFAULT_WINDOW_HOURS}). Tuya caps every request at "
-                 f"{HISTORY_PAGE_CAP} rows, so larger windows silently lose data.",
+                 f"(default: {DEFAULT_WINDOW_HOURS}). Results are fully paginated "
+                 f"within each window, so this only affects request granularity, "
+                 f"not completeness.",
         )
 
     # ------------------------------------------------------------------ setup
@@ -336,20 +339,18 @@ class Command(BaseCommand):
         return stored, len(errors)
 
     def _fetch_history(self, client, tuya_id, since, until, code_list, window):
-        """Fetch history in small windows, working around the request cap and throttling.
+        """Fetch history window by window, retrying windows that come back empty.
 
-        Returns (readings, stats). Two distinct hazards are handled:
-
-        * **The 100-row cap.** Each request returns at most HISTORY_PAGE_CAP rows
-          and the v1.0 fallback cannot paginate past it, so windows are kept
-          small and any that come back full are counted as possibly truncated.
-        * **Silent throttling.** An over-driven endpoint returns empty rather
-          than erroring. Every empty window is retried after a backoff; if the
-          retry finds data we were throttled, so the pacing is raised for the
-          remainder of the run.
+        Row count is bounded by the data, not the window: the client pages
+        through `next_row_key` until exhausted. The remaining hazard is silent
+        throttling — an over-driven endpoint returns an empty result rather
+        than an error, which is indistinguishable from "no data here". Every
+        empty window is therefore retried after a backoff, and if the retry
+        finds data we were being throttled, so pacing is raised for the rest of
+        the run.
         """
         readings = []
-        stats = {"capped": 0, "empty": 0, "recovered": 0, "throttled": False}
+        stats = {"empty": 0, "recovered": 0, "throttled": False}
         pacing = HISTORY_REQUEST_PACING_S
         start = since
         first = True
@@ -373,8 +374,6 @@ class Command(BaseCommand):
             else:
                 stats["empty"] += 1  # genuinely empty, or throttled beyond recovery
 
-            if len(batch) >= HISTORY_PAGE_CAP:
-                stats["capped"] += 1
             readings.extend(batch)
             start = end
 
@@ -414,13 +413,6 @@ class Command(BaseCommand):
                 self.stdout.write(
                     f"    recovered {stats['recovered']} window(s) after backing off"
                 )
-            if stats["capped"]:
-                incomplete.append(tuya_id)
-                self.stderr.write(self.style.WARNING(
-                    f"    {stats['capped']} window(s) hit the {HISTORY_PAGE_CAP}-row cap — "
-                    f"possibly truncated; re-run with a smaller --window-hours "
-                    f"(currently {window_hours:g})."
-                ))
             if stats["empty"]:
                 # Distinguishing "device was off" from "still throttled" is not
                 # possible from here, so say so rather than implying completeness.

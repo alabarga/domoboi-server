@@ -1,5 +1,5 @@
 {% load static %}
-const CACHE = 'domoboi-v4';
+const CACHE = 'domoboi-v5';
 
 // Only pre-cache same-origin resources — external CDN URLs block SW fetch (no CORS).
 // CDN assets (Remixicon, HTMX) are cached lazily on first page load by the fetch handler.

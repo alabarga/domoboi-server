@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}Reconstrucción de señal · DOMOBOI{% endblock %}
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 py-8">
+  <h1 class="text-xl font-semibold mb-1">Reconstrucción de señal NILM</h1>
+  <p class="text-sm text-gray-500 mb-6">
+    Elige un dispositivo DOMOBOI para ver su señal de potencia reconstruida
+    a partir de los eventos capturados, y etiquetar manualmente el
+    electrodoméstico de cada evento.
+  </p>
+
+  <form method="get" action="{% url 'reconstruction:device_redirect' %}" class="flex gap-2 mb-6">
+    <input type="text" name="device_id" placeholder="ID de dispositivo (p.ej. domoboi-01)"
+           class="flex-1 rounded-lg border px-3 py-2 text-sm" required>
+    <button type="submit" class="bg-violet-600 text-white px-4 py-2 rounded-lg text-sm font-medium">
+      Ver señal
+    </button>
+  </form>
+
+  <div class="bg-gray-50 border rounded-xl px-4 py-3 mb-6 flex items-center justify-between">
+    <div class="text-sm">
+      <span class="text-gray-500">Media global de eventos/día:</span>
+      <span class="font-semibold mono">
+        {% if global_avg_events_per_day is not None %}
+          {{ global_avg_events_per_day|floatformat:1 }}
+        {% else %}
+          —
+        {% endif %}
+      </span>
+    </div>
+    <div class="text-[11px] text-gray-500">
+      promedio entre los domoboi con datos, cada uno pesa igual
+    </div>
+  </div>
+
+  <div class="space-y-2">
+    {% for d in devices %}
+    <a href="{% url 'reconstruction:device_signal' d.device_id %}"
+       class="event-card bg-gray-50 border rounded-r-xl px-4 py-3 flex items-center justify-between shadow-sm hover:shadow-md">
+      <div>
+        <div class="font-medium mono">{{ d.device_id }}</div>
+        <div class="text-xs text-gray-500">{{ d.model }} · {{ d.location.description|default:"Sin ubicación" }}</div>
+      </div>
+      <div class="text-right">
+        <div class="text-xs mono">
+          {% if d.is_active %}
+            <span class="text-green-700">● activo</span>
+          {% else %}
+            <span class="text-gray-500">inactivo</span>
+          {% endif %}
+        </div>
+        <div class="text-[11px] text-gray-500 mono mt-0.5">
+          {% if d.event_stats.avg_per_day is not None %}
+            {{ d.event_stats.avg_per_day|floatformat:1 }} eventos/día
+            <span class="text-gray-400">({{ d.event_stats.total }} total, {{ d.event_stats.active_days }} día{{ d.event_stats.active_days|pluralize }})</span>
+          {% else %}
+            sin datos
+          {% endif %}
+        </div>
+      </div>
+    </a>
+    {% empty %}
+    <p class="text-sm text-gray-500">No hay dispositivos registrados todavía.</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

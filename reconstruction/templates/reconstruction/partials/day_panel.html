@@ -1,0 +1,186 @@
+{% load i18n %}
+<div class="grid md:grid-cols-[280px_1fr] gap-6">
+
+  <!-- Calendario: mapa de calor de eventos por día -->
+  <div class="bg-gray-50 border rounded-xl p-4 h-fit">
+    <div class="flex items-center justify-between mb-3">
+      <button type="button" class="text-sm px-2 py-1 rounded hover:bg-violet-50"
+        hx-get="{% url 'reconstruction:device_signal' device.device_id %}?year={{ prev_month.0 }}&month={{ prev_month.1 }}"
+        hx-target="#day-panel" hx-swap="innerHTML" hx-push-url="true">‹</button>
+      <div class="text-sm font-medium capitalize">{{ first_of_month|date:"F Y" }}</div>
+      <button type="button" class="text-sm px-2 py-1 rounded hover:bg-violet-50"
+        hx-get="{% url 'reconstruction:device_signal' device.device_id %}?year={{ next_month.0 }}&month={{ next_month.1 }}"
+        hx-target="#day-panel" hx-swap="innerHTML" hx-push-url="true">›</button>
+    </div>
+
+    <div class="grid grid-cols-7 gap-1 text-[10px] text-gray-500 mb-1 text-center">
+      <div>L</div><div>M</div><div>X</div><div>J</div><div>V</div><div>S</div><div>D</div>
+    </div>
+
+    {% for row in weeks %}
+    <div class="grid grid-cols-7 gap-1 mb-1">
+      {% for cell in row %}
+        {% if cell %}
+        <button type="button"
+          class="aspect-square rounded text-[10px] flex items-center justify-center
+                 {% if selected_day == cell.date %}ring-2 ring-violet-600{% endif %}
+                 {% if cell.level == 0 %}bg-gray-100 text-gray-400
+                 {% elif cell.level == 1 %}bg-violet-100 text-violet-700
+                 {% elif cell.level == 2 %}bg-green-100 text-green-700
+                 {% elif cell.level == 3 %}bg-amber-100 text-amber-700
+                 {% else %}bg-red-100 text-red-700{% endif %}"
+          title="{{ cell.count }} evento{{ cell.count|pluralize }}"
+          hx-get="{% url 'reconstruction:device_signal' device.device_id %}?year={{ year }}&month={{ month }}&day={{ cell.date|date:'Y-m-d' }}"
+          hx-target="#day-panel" hx-swap="innerHTML" hx-push-url="true">
+          {{ cell.date.day }}
+        </button>
+        {% else %}
+        <div></div>
+        {% endif %}
+      {% endfor %}
+    </div>
+    {% endfor %}
+
+    <div class="text-[11px] text-gray-500 mt-2">
+      {{ total_month_events }} evento{{ total_month_events|pluralize }} este mes
+    </div>
+  </div>
+
+  <!-- Señal reconstruida + lista de eventos del día -->
+  <div class="space-y-4 min-w-0">
+    {% if selected_day %}
+    <div class="bg-gray-50 border rounded-xl p-4">
+      <div class="text-sm font-medium mb-2 capitalize">
+        Señal reconstruida — {{ selected_day|date:"l j \d\e F" }}
+      </div>
+      <canvas id="signal-chart" height="90"></canvas>
+      {% if is_tuya %}
+      <p class="text-[11px] text-gray-500 mt-2">
+        Enchufe Tuya: cada muestra es ya una lectura real de potencia
+        absoluta (polling periódico), así que la curva une
+        {{ total_events_that_day }} muestra{{ total_events_that_day|pluralize }} reales
+        con una línea recta — no hay escalón ni reconstrucción que inventar.
+      </p>
+      {% else %}
+      <p class="text-[11px] text-gray-500 mt-2">
+        Reconstrucción por escalones a partir de {{ total_events_that_day }}
+        evento{{ total_events_that_day|pluralize }} capturado{{ total_events_that_day|pluralize }}
+        (ventanas de ~3s). Entre eventos se asume potencia constante = último
+        nivel medido; no se interpola ni se inventa nada en los huecos.
+      </p>
+      {% endif %}
+      {% if events_truncated %}
+      <p class="text-[11px] text-amber-700 mt-1">
+        La lista de abajo muestra las primeras {{ event_rows|length }} de
+        {{ total_events_that_day }} muestras del día (el gráfico sí usa todas).
+      </p>
+      {% endif %}
+    </div>
+
+    <div class="bg-gray-50 border rounded-xl divide-y">
+      {% for row in event_rows %}
+      {% if is_tuya %}
+      <div class="p-3 flex items-center gap-3 event-card">
+        <i class="ri-flashlight-line text-lg text-gray-400"></i>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm mono">
+            {{ row.measurement.start_time|date:"H:i:s" }}
+            <span class="text-gray-500">
+              · {{ row.power|floatformat:0 }} W
+              {% if row.delta_vs_prev != None %}
+                ({% if row.delta_vs_prev >= 0 %}+{% endif %}{{ row.delta_vs_prev|floatformat:0 }} vs anterior)
+              {% endif %}
+            </span>
+          </div>
+          {% if row.measurement.telemetry %}
+          <div class="text-[11px] text-gray-500">
+            {% if row.measurement.telemetry.voltage_v %}V {{ row.measurement.telemetry.voltage_v|floatformat:0 }} ·{% endif %}
+            {% if row.measurement.telemetry.current_a %}A {{ row.measurement.telemetry.current_a|floatformat:2 }} ·{% endif %}
+            {% if row.measurement.telemetry.energy_kwh %}{{ row.measurement.telemetry.energy_kwh|floatformat:2 }} kWh{% endif %}
+          </div>
+          {% endif %}
+        </div>
+        <div id="label-{{ row.measurement.id }}">
+          {% include "reconstruction/partials/label_badge.html" with measurement=row.measurement label=row.label form=row.form device=device %}
+        </div>
+      </div>
+      {% else %}
+      <div class="p-3 flex items-center gap-3 event-card {% if row.direction == 'OFF' %}event-card-gray{% endif %}">
+        <i class="ri-flashlight-line text-lg {% if row.direction == 'ON' %}text-green-700{% else %}text-gray-400{% endif %}"></i>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm mono">
+            {{ row.measurement.start_time|date:"H:i:s" }}
+            <span class="text-gray-500">· {{ row.direction }} · {{ row.measurement.value|floatformat:0 }} W</span>
+          </div>
+          {% if row.measurement.features %}
+          <div class="text-[11px] text-gray-500">
+            avg {{ row.measurement.features.avg|floatformat:1 }}W ·
+            std {{ row.measurement.features.std|floatformat:1 }} ·
+            min {{ row.measurement.features.min|floatformat:0 }} ·
+            max {{ row.measurement.features.max|floatformat:0 }}
+          </div>
+          {% endif %}
+        </div>
+        <div id="label-{{ row.measurement.id }}">
+          {% include "reconstruction/partials/label_badge.html" with measurement=row.measurement label=row.label form=row.form device=device %}
+        </div>
+      </div>
+      {% endif %}
+      {% empty %}
+      <div class="p-4 text-sm text-gray-500">
+        Este día no tiene datos capturados para este dispositivo.
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-gray-50 border rounded-xl p-6 text-sm text-gray-500">
+      Selecciona en el calendario un día con eventos para ver la señal reconstruida.
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% if selected_day %}
+<script>
+(function () {
+  var points = {{ chart_points_json|safe }};
+  var canvas = document.getElementById('signal-chart');
+  if (!canvas || typeof Chart === 'undefined') return;
+  if (window._domoboiChart) { window._domoboiChart.destroy(); }
+  window._domoboiChart = new Chart(canvas, {
+    type: 'line',
+    data: {
+      datasets: [{
+        label: 'Potencia reconstruida (W)',
+        data: points.map(function (p) { return {x: p.t, y: p.p}; }),
+        borderWidth: 1.5,
+        borderColor: '#F0A830',
+        backgroundColor: 'rgba(240,168,48,0.15)',
+        fill: true,
+        pointRadius: 0,
+        tension: 0,
+      }]
+    },
+    options: {
+      responsive: true,
+      animation: false,
+      interaction: { mode: 'nearest', intersect: false },
+      scales: {
+        x: {
+          type: 'time',
+          time: { unit: 'hour', tooltipFormat: 'HH:mm:ss' },
+          ticks: { color: '#9B8878' },
+          grid: { color: 'rgba(245,237,224,0.06)' },
+        },
+        y: {
+          ticks: { color: '#9B8878' },
+          title: { display: true, text: 'W', color: '#9B8878' },
+          grid: { color: 'rgba(245,237,224,0.06)' },
+        },
+      },
+      plugins: { legend: { display: false } },
+    },
+  });
+})();
+</script>
+{% endif %}

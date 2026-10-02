@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ device.device_id }} · Reconstrucción de señal{% endblock %}
+
+{% block extra_javascript %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 py-6">
+  <div class="mb-4">
+    <a href="{% url 'reconstruction:device_list' %}" class="text-xs text-gray-500 hover:text-violet-700">
+      &larr; Dispositivos
+    </a>
+    <h1 class="text-xl font-semibold mono">{{ device.device_id }}</h1>
+    <p class="text-xs text-gray-500">
+      {{ device.model }} · {{ device.location.description|default:"Sin ubicación" }}
+    </p>
+  </div>
+
+  <div id="day-panel">
+    {% include "reconstruction/partials/day_panel.html" %}
+  </div>
+</div>
+{% endblock %}

@@ -139,10 +139,16 @@ tengas suficientes eventos etiquetados.
 
 ## Nota sobre `USE_TZ`
 
-El proyecto usa `USE_TZ = False` (datetimes naive en hora local). El
-código de `reconstruction` ya lo tiene en cuenta (`signal.py` y
-`views.py` evitan `timezone.localdate()`/`localtime()` sobre naive
-datetimes) y seguiría funcionando si en el futuro activas `USE_TZ = True`.
+El proyecto usa `USE_TZ = True` con `TIME_ZONE = 'Europe/Madrid'`: la BD
+guarda instantes UTC y las plantillas, el calendario y la reconstrucción
+los muestran y agrupan por día en hora de Madrid. `signal.py` y `views.py`
+conservan una rama para `USE_TZ = False` (datetimes naive) solo por
+compatibilidad.
+
+Los DOMOBOI y los Tuya están alineados en el tiempo (comprobado contra
+producción el 2026-10-05). Los datos de la API que lleguen sin zona horaria se
+interpretan como hora de Madrid, así que el edge debe enviar ISO-8601 con
+zona (`+02:00` o `Z`) o hora local de Madrid.
 
 ## Probado
 

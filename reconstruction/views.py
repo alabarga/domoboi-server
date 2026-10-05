@@ -11,7 +11,13 @@ from nilm.models import Device, Measurement
 
 from .forms import EventLabelForm
 from .models import EventLabel
-from .signal import build_daily_reconstruction, build_month_calendar, device_event_averages, _tuya_power
+from .signal import (
+    build_daily_reconstruction,
+    build_month_calendar,
+    build_tuya_energy,
+    device_event_averages,
+    _tuya_power,
+)
 
 # Los Tuya hacen polling cada ~60s (ver TUYA_POLL_INTERVAL): un día entero
 # puede acumular >1000 muestras. Se limita la lista renderizada para no
@@ -56,8 +62,8 @@ class DeviceSignalView(StaffRequiredMixin, View):
 
     def get(self, request, device_id):
         device = get_object_or_404(Device, device_id=device_id)
-        # domoboi-server usa USE_TZ=False (datetimes naive en hora local),
-        # así que timezone.localdate()/localtime() no son aplicables aquí.
+        # domoboi-server usa USE_TZ=True y TIME_ZONE='Europe/Madrid': "hoy" se
+        # calcula en hora de Madrid. La rama USE_TZ=False es solo compatibilidad.
         now = timezone.now()
         today = timezone.localtime(now).date() if settings.USE_TZ else now.date()
 
@@ -99,6 +105,12 @@ class DeviceSignalView(StaffRequiredMixin, View):
             points, events = build_daily_reconstruction(device, selected_day)
 
         is_tuya = device.device_type == 'TUYA'
+
+        # Los Tuya reportan también energía (kWh) aparte de la potencia:
+        # se dibuja como barras, no como parte de la curva de W.
+        energy_points, energy_total_kwh, energy_readings = ([], 0, 0)
+        if is_tuya and selected_day:
+            energy_points, energy_total_kwh, energy_readings = build_tuya_energy(device, selected_day)
 
         total_events_that_day = len(events)
         events_for_rows = events[:MAX_EVENT_ROWS]
@@ -147,6 +159,9 @@ class DeviceSignalView(StaffRequiredMixin, View):
             'total_events_that_day': total_events_that_day,
             'events_truncated': total_events_that_day > MAX_EVENT_ROWS,
             'chart_points_json': json.dumps(points),
+            'chart_energy_json': json.dumps(energy_points),
+            'energy_readings': energy_readings,
+            'energy_total_kwh': energy_total_kwh,
             'prev_month': prev_month,
             'next_month': next_month,
             'today': today,

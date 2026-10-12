@@ -138,6 +138,13 @@ class Measurement(models.Model):
     def location(self):
         return self.device.location if self.device else None
 
+    @property
+    def measurement_type(self):
+        """'current' (Tuya instantaneous), 'energy_added' (Tuya add_ele tick), or 'current_3s' (DOMOBOI window)."""
+        if self.telemetry:
+            return 'energy_added' if 'current_a' not in self.telemetry else 'current'
+        return 'current_3s'
+
     def save(self, *args, **kwargs):
         if not self.timestamp:
             self.timestamp = self.start_time

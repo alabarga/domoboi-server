@@ -164,6 +164,8 @@ class DeviceSignalView(StaffRequiredMixin, View):
             'energy_total_kwh': energy_total_kwh,
             'prev_month': prev_month,
             'next_month': next_month,
+            'prev_day': selected_day - datetime.timedelta(days=1) if selected_day else None,
+            'next_day': selected_day + datetime.timedelta(days=1) if selected_day else None,
             'today': today,
         }
 
@@ -198,4 +200,51 @@ class LabelUpdateView(StaffRequiredMixin, View):
             'label': label,
             'form': EventLabelForm(instance=label or EventLabel(measurement=measurement)),
             'device': device,
+        })
+
+
+class MeasurementDetailView(StaffRequiredMixin, View):
+    """
+    Ficha completa de una medida (se abre en pestaña nueva desde la gráfica o
+    desde la lista): todos sus campos, la forma de onda cruda y el menú de
+    etiquetado.
+    """
+    template_name = 'reconstruction/measurement_detail.html'
+
+    def get(self, request, device_id, measurement_id):
+        device = get_object_or_404(Device, device_id=device_id)
+        measurement = get_object_or_404(Measurement, pk=measurement_id, device=device)
+        label = EventLabel.objects.filter(measurement=measurement).first()
+
+        # Todos los campos del modelo, tal cual están guardados. Los JSON se
+        # muestran formateados; las fechas en hora local de Madrid.
+        fields = []
+        for f in measurement._meta.concrete_fields:
+            value = getattr(measurement, f.attname)
+            if isinstance(value, (dict, list)):
+                shown, is_json = json.dumps(value, indent=2, ensure_ascii=False), True
+            elif isinstance(value, datetime.datetime):
+                shown, is_json = timezone.localtime(value).strftime('%Y-%m-%d %H:%M:%S %Z'), False
+            else:
+                shown, is_json = value, False
+            fields.append({'name': f.name, 'value': shown, 'is_json': is_json})
+
+        duration = None
+        if measurement.start_time and measurement.end_time:
+            duration = (measurement.end_time - measurement.start_time).total_seconds()
+
+        day = timezone.localtime(measurement.start_time).date() if measurement.start_time else None
+
+        return render(request, self.template_name, {
+            'device': device,
+            'is_tuya': device.device_type == 'TUYA',
+            'measurement': measurement,
+            'label': label,
+            'form': EventLabelForm(instance=label or EventLabel(measurement=measurement)),
+            'fields': fields,
+            'duration': duration,
+            'day': day,
+            'readings_json': json.dumps(measurement.readings or []),
+            'start_iso': measurement.start_time.isoformat() if measurement.start_time else '',
+            'end_iso': measurement.end_time.isoformat() if measurement.end_time else '',
         })

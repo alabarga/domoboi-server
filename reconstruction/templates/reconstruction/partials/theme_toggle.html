@@ -1,0 +1,18 @@
+{% comment %} Botón de cambio de tema. Va en la cabecera de cada pantalla de reconstruction. {% endcomment %}
+<button type="button" id="theme-toggle" class="rc-btn" aria-label="Cambiar tema claro/oscuro"></button>
+<script>
+(function () {
+  var b = document.getElementById('theme-toggle');
+  if (!b) return;
+  function cur() { return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark'; }
+  function paint() { b.textContent = cur() === 'light' ? '🌙 Tema oscuro' : '☀️ Tema claro'; }
+  b.addEventListener('click', function () {
+    var next = cur() === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem('domoboi-theme', next); } catch (e) {}
+    paint();
+    window.dispatchEvent(new Event('domoboi-theme'));
+  });
+  paint();
+})();
+</script>

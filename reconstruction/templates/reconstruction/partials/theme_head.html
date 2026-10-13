@@ -1,0 +1,79 @@
+{% comment %} Tema claro/oscuro de reconstruction. Se incluye en el bloque extra_css (<head>).
+   El script aplica el tema guardado ANTES de pintar, para que no parpadee. {% endcomment %}
+<script>
+  try {
+    document.documentElement.setAttribute(
+      'data-theme', localStorage.getItem('domoboi-theme') === 'light' ? 'light' : 'dark');
+  } catch (e) { document.documentElement.setAttribute('data-theme', 'dark'); }
+</script>
+<style>
+  /* ─── Tema claro: solo cambia las variables de base.html y los colores
+         que base.html fija "a mano" con !important ─────────────────────── */
+  html[data-theme="light"] {
+    --bg:             #F7F3EC;
+    --surface:        #FFFFFF;
+    --surface-raised: #EFE8DC;
+    --border:         rgba(60,40,20,0.14);
+    --accent:         #B7791F;
+    --accent-warm:    #C2410C;
+    --danger:         #C62828;
+    --text-primary:   #2A2118;
+    --text-muted:     #7A6A5A;
+    --brand:          #B7791F;
+    --accent-flash:   rgba(183,121,31,0.28);
+    color-scheme: light;
+  }
+  html:not([data-theme="light"]) { --accent-flash: rgba(240,168,48,0.28); }
+
+  html[data-theme="light"] .border-gray-300 { border-color: rgba(60,40,20,0.22) !important; }
+  html[data-theme="light"] .bg-violet-100  { background: rgba(183,121,31,0.12) !important; }
+  html[data-theme="light"] .bg-violet-600,
+  html[data-theme="light"] .bg-violet-700  { color: #fff !important; }
+  html[data-theme="light"] .hover\:bg-violet-700:hover { background: #8f5d14 !important; }
+  html[data-theme="light"] .hover\:bg-violet-100:hover,
+  html[data-theme="light"] .hover\:bg-violet-50:hover  { background: rgba(183,121,31,0.10) !important; }
+  html[data-theme="light"] .bg-green-100  { background: rgba(183,121,31,0.14) !important; }
+  html[data-theme="light"] .bg-amber-100,
+  html[data-theme="light"] .bg-orange-100 { background: rgba(194,65,12,0.12) !important; }
+  html[data-theme="light"] .bg-red-100    { background: rgba(198,40,40,0.12) !important; }
+  html[data-theme="light"] .event-card-gray { border-left-color: rgba(60,40,20,0.25) !important; }
+  html[data-theme="light"] .shadow-sm { box-shadow: 0 1px 3px rgba(60,40,20,0.15) !important; }
+  html[data-theme="light"] .hover\:shadow-md:hover { box-shadow: 0 4px 16px rgba(60,40,20,0.15) !important; }
+  html[data-theme="light"] input[type="date"], html[data-theme="light"] input[type="text"],
+  html[data-theme="light"] input[type="email"], html[data-theme="light"] input[type="password"],
+  html[data-theme="light"] select, html[data-theme="light"] textarea {
+    color-scheme: light;
+    border-color: rgba(60,40,20,0.22) !important;
+  }
+  html[data-theme="light"] pre.json-box { background: var(--surface-raised); }
+
+  /* ─── Botones propios de reconstruction ─────────────────────────────── */
+  .rc-btn {
+    font-size: 12px; padding: 4px 10px; border-radius: 8px; cursor: pointer;
+    background: var(--surface-raised); color: var(--text-primary);
+    border: 1px solid var(--border);
+  }
+  .rc-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ─── Resaltado de la fila a la que lleva un clic en la gráfica ─────── */
+  @keyframes rc-rowflash {
+    0%, 65% { background: var(--accent-flash); box-shadow: inset 0 0 0 2px var(--accent); }
+    100%    { background: transparent;          box-shadow: inset 0 0 0 2px transparent; }
+  }
+  .row-flash { animation: rc-rowflash 2.8s ease-out; }
+  .rc-row { scroll-margin-top: 90px; }
+
+  /* Calendario | lista: dos columnas desde 768 px, apiladas en móvil */
+  .rc-split { display: grid; gap: 24px; align-items: start; }
+  @media (min-width: 768px) { .rc-split { grid-template-columns: 300px minmax(0, 1fr); } }
+
+  /* Contenedor de la gráfica: alto fijo y relativo (Chart.js lo necesita para no deformarse) */
+  .chart-box { position: relative; width: 100%; min-width: 0; }
+  .chart-box canvas { display: block; }
+
+  pre.json-box {
+    margin: 0; padding: 8px 10px; border-radius: 8px; font-size: 11px; line-height: 1.4;
+    max-height: 260px; overflow: auto; background: var(--bg); color: var(--text-primary);
+    white-space: pre-wrap; word-break: break-all;
+  }
+</style>

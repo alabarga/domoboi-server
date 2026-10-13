@@ -101,7 +101,10 @@ def _tuya_power_only(queryset):
 def build_daily_reconstruction(device, day):
     """
     Devuelve (points, events):
-      - points: lista de {"t": iso8601, "p": watts} lista para Chart.js.
+      - points: lista de {"t": iso8601, "p": watts[, "id": measurement_id]}
+        lista para Chart.js. El "id" (solo en los puntos que pertenecen a una
+        medida concreta, no en los tramos planos de relleno) permite que un
+        clic en la gráfica localice la medida en la lista.
       - events: lista de Measurement del día, ordenados por start_time.
     """
     if device.device_type == 'TUYA':
@@ -131,7 +134,7 @@ def _build_tuya_series(device, day):
         if power is None or not m.start_time:
             continue
         samples.append(m)
-        points.append({"t": m.start_time.isoformat(), "p": power})
+        points.append({"t": m.start_time.isoformat(), "p": power, "id": m.id})
     return points, samples
 
 
@@ -273,18 +276,18 @@ def _build_domoboi_reconstruction(device, day):
             for i, val in enumerate(readings):
                 t = m.start_time + timedelta(seconds=step * i)
                 try:
-                    points.append({"t": t.isoformat(), "p": float(val)})
+                    points.append({"t": t.isoformat(), "p": float(val), "id": m.id})
                 except (TypeError, ValueError):
                     continue
         elif n == 1:
             try:
-                points.append({"t": m.start_time.isoformat(), "p": float(readings[0])})
+                points.append({"t": m.start_time.isoformat(), "p": float(readings[0]), "id": m.id})
             except (TypeError, ValueError):
                 pass
         else:
             # sin readings crudos (payload antiguo/incompleto): al menos
             # marcamos el salto con el nivel base conocido
-            points.append({"t": m.start_time.isoformat(), "p": baseline})
+            points.append({"t": m.start_time.isoformat(), "p": baseline, "id": m.id})
 
         # nuevo nivel base tras el evento
         if m.features and m.features.get('avg') is not None:

@@ -8,5 +8,6 @@ urlpatterns = [
     path('', views.DeviceListView.as_view(), name='device_list'),
     path('go/', views.DeviceJumpView.as_view(), name='device_redirect'),
     path('<str:device_id>/', views.DeviceSignalView.as_view(), name='device_signal'),
+    path('<str:device_id>/measurement/<int:measurement_id>/', views.MeasurementDetailView.as_view(), name='measurement_detail'),
     path('<str:device_id>/label/<int:measurement_id>/', views.LabelUpdateView.as_view(), name='label_update'),
 ]

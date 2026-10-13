@@ -40,9 +40,9 @@ class UserProfileAdmin(ModelAdmin):
 
 @admin.register(Measurement)
 class MeasurementAdmin(ModelAdmin):
-    list_display = ['device', 'get_location', 'timestamp', 'value']
-    list_filter = ['device__location', 'timestamp']
-    search_fields = ['device__device_id', 'device__location__description']
+    list_display = ['device', 'get_device_type', 'get_location', 'timestamp', 'value']
+    list_filter = ['device__device_type', 'device__location', 'timestamp']
+    search_fields = ['device__device_id', 'device__location__description', 'telemetry']
     ordering = ['-timestamp']
     raw_id_fields = ['device']
     date_hierarchy = 'timestamp'
@@ -50,6 +50,11 @@ class MeasurementAdmin(ModelAdmin):
     def get_location(self, obj):
         return obj.location.description if obj.location else "-"
     get_location.short_description = 'Ubicación'
+
+    def get_device_type(self, obj):
+        return obj.device.device_type if obj.device else "-"
+    get_device_type.short_description = 'Tipo'
+    get_device_type.admin_order_field = 'device__device_type'
 
 @admin.register(Event)
 class EventAdmin(ModelAdmin):

@@ -151,6 +151,7 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'webpush',
     'nilm',
+    'reconstruction',
 ]
 
 REST_FRAMEWORK = {

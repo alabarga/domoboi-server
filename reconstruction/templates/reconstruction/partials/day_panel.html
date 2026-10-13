@@ -1,0 +1,359 @@
+{% load i18n %}
+<div class="flex flex-col gap-6">
+
+  <!-- Señal reconstruida (ancho completo) -->
+  <div class="min-w-0">
+    {% if selected_day %}
+    <div class="bg-gray-50 border rounded-xl p-4">
+      <div class="flex items-center justify-between gap-3 mb-2">
+        <div class="text-sm font-medium capitalize">
+          Señal reconstruida — {{ selected_day|date:"l j \d\e F" }}
+          <span class="normal-case text-gray-500 font-normal mono text-xs">
+            · {{ total_events_that_day }} evento{{ total_events_that_day|pluralize }}{% if events_truncated %} (lista: primeros {{ event_rows|length }}){% endif %}
+          </span>
+          <span id="chart-click-msg" class="normal-case text-amber-700 font-normal text-[11px]"></span>
+        </div>
+        <button type="button" id="chart-reset-zoom" class="rc-btn shrink-0">Restablecer zoom</button>
+      </div>
+      <div class="chart-box"><canvas id="signal-chart"></canvas></div>
+      <div class="flex items-center justify-between mt-3">
+        <button type="button" class="rc-btn"
+          hx-get="{% url 'reconstruction:device_signal' device.device_id %}?year={{ prev_day.year }}&month={{ prev_day.month }}&day={{ prev_day|date:'Y-m-d' }}"
+          hx-target="#day-panel" hx-swap="innerHTML" hx-push-url="true">&larr; Día anterior ({{ prev_day|date:"j M" }})</button>
+        <button type="button" class="rc-btn"
+          hx-get="{% url 'reconstruction:device_signal' device.device_id %}?year={{ next_day.year }}&month={{ next_day.month }}&day={{ next_day|date:'Y-m-d' }}"
+          hx-target="#day-panel" hx-swap="innerHTML" hx-push-url="true">Día siguiente ({{ next_day|date:"j M" }}) &rarr;</button>
+      </div>
+    </div>
+    {% else %}
+    <div class="bg-gray-50 border rounded-xl p-6 text-sm text-gray-500">
+      Selecciona en el calendario un día con eventos para ver la señal reconstruida.
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="rc-split">
+
+  <!-- Calendario: mapa de calor de eventos por día -->
+  <div class="bg-gray-50 border rounded-xl p-4 h-fit w-full" style="position:sticky;top:12px">
+    <div class="flex items-center justify-between mb-3">
+      <button type="button" class="text-sm px-2 py-1 rounded hover:bg-violet-50"
+        hx-get="{% url 'reconstruction:device_signal' device.device_id %}?year={{ prev_month.0 }}&month={{ prev_month.1 }}"
+        hx-target="#day-panel" hx-swap="innerHTML" hx-push-url="true">‹</button>
+      <div class="text-sm font-medium capitalize">{{ first_of_month|date:"F Y" }}</div>
+      <button type="button" class="text-sm px-2 py-1 rounded hover:bg-violet-50"
+        hx-get="{% url 'reconstruction:device_signal' device.device_id %}?year={{ next_month.0 }}&month={{ next_month.1 }}"
+        hx-target="#day-panel" hx-swap="innerHTML" hx-push-url="true">›</button>
+    </div>
+
+    <div class="grid grid-cols-7 gap-1 text-[10px] text-gray-500 mb-1 text-center">
+      <div>L</div><div>M</div><div>X</div><div>J</div><div>V</div><div>S</div><div>D</div>
+    </div>
+
+    {% for row in weeks %}
+    <div class="grid grid-cols-7 gap-1 mb-1">
+      {% for cell in row %}
+        {% if cell %}
+        <button type="button"
+          class="aspect-square rounded text-[10px] flex items-center justify-center
+                 {% if selected_day == cell.date %}ring-2 ring-violet-600{% endif %}
+                 {% if cell.level == 0 %}bg-gray-100 text-gray-400
+                 {% elif cell.level == 1 %}bg-violet-100 text-violet-700
+                 {% elif cell.level == 2 %}bg-green-100 text-green-700
+                 {% elif cell.level == 3 %}bg-amber-100 text-amber-700
+                 {% else %}bg-red-100 text-red-700{% endif %}"
+          title="{{ cell.count }} evento{{ cell.count|pluralize }}"
+          hx-get="{% url 'reconstruction:device_signal' device.device_id %}?year={{ year }}&month={{ month }}&day={{ cell.date|date:'Y-m-d' }}"
+          hx-target="#day-panel" hx-swap="innerHTML" hx-push-url="true">
+          {{ cell.date.day }}
+        </button>
+        {% else %}
+        <div></div>
+        {% endif %}
+      {% endfor %}
+    </div>
+    {% endfor %}
+
+    <div class="text-[11px] text-gray-500 mt-2">
+      {{ total_month_events }} evento{{ total_month_events|pluralize }} este mes
+    </div>
+  </div>
+
+  <!-- Lista de eventos del día -->
+  {% if selected_day %}
+  <div class="min-w-0">
+    <div class="bg-gray-50 border rounded-xl divide-y">
+      {% for row in event_rows %}
+      {% if is_tuya %}
+      <div id="m-{{ row.measurement.id }}" class="rc-row p-3 flex items-center gap-3 event-card">
+        <i class="ri-flashlight-line text-lg text-gray-400"></i>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm mono">
+            {{ row.measurement.start_time|date:"H:i:s" }}
+            <span class="text-gray-500">
+              · {{ row.power|floatformat:0 }} W
+              {% if row.delta_vs_prev != None %}
+                ({% if row.delta_vs_prev >= 0 %}+{% endif %}{{ row.delta_vs_prev|floatformat:0 }} vs anterior)
+              {% endif %}
+            </span>
+          </div>
+          {% if row.measurement.telemetry %}
+          <div class="text-[11px] text-gray-500">
+            {% if row.measurement.telemetry.voltage_v %}V {{ row.measurement.telemetry.voltage_v|floatformat:0 }} ·{% endif %}
+            {% if row.measurement.telemetry.current_a %}A {{ row.measurement.telemetry.current_a|floatformat:2 }} ·{% endif %}
+            {% if row.measurement.telemetry.energy_kwh %}{{ row.measurement.telemetry.energy_kwh|floatformat:2 }} kWh{% endif %}
+          </div>
+          {% endif %}
+        </div>
+        <a href="{% url 'reconstruction:measurement_detail' device.device_id row.measurement.id %}"
+           target="_blank" rel="noopener" title="Abrir todos los datos de esta medida en una pestaña nueva"
+           class="text-gray-500 hover:text-violet-700"><i class="ri-external-link-line"></i></a>
+        <div id="label-{{ row.measurement.id }}">
+          {% include "reconstruction/partials/label_badge.html" with measurement=row.measurement label=row.label form=row.form device=device %}
+        </div>
+      </div>
+      {% else %}
+      <div id="m-{{ row.measurement.id }}" class="rc-row p-3 flex items-center gap-3 event-card {% if row.direction == 'OFF' %}event-card-gray{% endif %}">
+        <i class="ri-flashlight-line text-lg {% if row.direction == 'ON' %}text-green-700{% else %}text-gray-400{% endif %}"></i>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm mono">
+            {{ row.measurement.start_time|date:"H:i:s" }}
+            <span class="text-gray-500">· {{ row.direction }} · {{ row.measurement.value|floatformat:0 }} W</span>
+          </div>
+          {% if row.measurement.features %}
+          <div class="text-[11px] text-gray-500">
+            avg {{ row.measurement.features.avg|floatformat:1 }}W ·
+            std {{ row.measurement.features.std|floatformat:1 }} ·
+            min {{ row.measurement.features.min|floatformat:0 }} ·
+            max {{ row.measurement.features.max|floatformat:0 }}
+          </div>
+          {% endif %}
+        </div>
+        <a href="{% url 'reconstruction:measurement_detail' device.device_id row.measurement.id %}"
+           target="_blank" rel="noopener" title="Abrir todos los datos de esta medida en una pestaña nueva"
+           class="text-gray-500 hover:text-violet-700"><i class="ri-external-link-line"></i></a>
+        <div id="label-{{ row.measurement.id }}">
+          {% include "reconstruction/partials/label_badge.html" with measurement=row.measurement label=row.label form=row.form device=device %}
+        </div>
+      </div>
+      {% endif %}
+      {% empty %}
+      <div class="p-4 text-sm text-gray-500">
+        Este día no tiene datos capturados para este dispositivo.
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+  </div>
+</div>
+
+{% if selected_day %}
+<script>
+(function () {
+  var points = {{ chart_points_json|safe }};
+  var energy = {{ chart_energy_json|safe }};
+  var detailUrlTpl = "{% url 'reconstruction:measurement_detail' device.device_id 0 %}";
+
+  function isLight() { return document.documentElement.getAttribute('data-theme') === 'light'; }
+  function palette() {
+    return isLight()
+      ? {line: '#B7791F', fill: 'rgba(183,121,31,0.15)', energy: '#7C3AED',
+         tick: '#7A6A5A', grid: 'rgba(60,40,20,0.10)'}
+      : {line: '#F0A830', fill: 'rgba(240,168,48,0.15)', energy: '#A78BFA',
+         tick: '#9B8878', grid: 'rgba(245,237,224,0.06)'};
+  }
+
+  // Puntos de la curva que pertenecen a una medida concreta (los tramos
+  // planos de relleno no tienen id): sirven para localizar el clic.
+  var idPoints = [];
+  points.forEach(function (p) {
+    if (p.id !== undefined) { idPoints.push({ts: Date.parse(p.t), id: p.id}); }
+  });
+
+  var msgTimer = null;
+  function say(text) {
+    var el = document.getElementById('chart-click-msg');
+    if (!el) return;
+    el.textContent = text;
+    clearTimeout(msgTimer);
+    msgTimer = setTimeout(function () { el.textContent = ''; }, 3000);
+  }
+
+  function goToMeasurement(id) {
+    var row = document.getElementById('m-' + id);
+    if (row) {
+      // está en la lista renderizada: desplazar y resaltar
+      row.scrollIntoView({behavior: 'smooth', block: 'center'});
+      row.classList.remove('row-flash');
+      void row.offsetWidth;            // reinicia la animación
+      row.classList.add('row-flash');
+    } else {
+      // fuera de la lista (pasa del límite de filas): ficha completa en pestaña nueva
+      window.open(detailUrlTpl.replace(/0\/$/, id + '/'), '_blank', 'noopener');
+    }
+  }
+
+  function build() {
+    var canvas = document.getElementById('signal-chart');
+    if (!canvas || typeof Chart === 'undefined') return;
+    var stale = Chart.getChart(canvas); if (stale) { stale.destroy(); }
+    if (window._domoboiChart) { try { window._domoboiChart.destroy(); } catch (e) {} }
+    var c = palette();
+    var lastZoom = 0;
+
+    var datasets = [{
+      type: 'line',
+      label: 'Potencia reconstruida (W)',
+      data: points.map(function (p) { return {x: p.t, y: p.p}; }),
+      borderWidth: 1.5,
+      borderColor: c.line,
+      backgroundColor: c.fill,
+      fill: true,
+      pointRadius: 0,
+      tension: 0,
+      yAxisID: 'y',
+      order: 2,
+    }];
+    if (energy.length) {
+      // Potencia media de cada tramo entre lecturas de energía (kWh / tiempo):
+      // tramos planos en el mismo eje de W, con hueco donde no hay tramo válido.
+      var avg = [];
+      energy.forEach(function (e, i) {
+        if (i > 0 && e.t0 > energy[i - 1].t1) { avg.push({x: energy[i - 1].t1, y: null}); }
+        avg.push({x: e.t0, y: e.w, kwh: e.kwh, min: e.min});
+        avg.push({x: e.t1, y: e.w, kwh: e.kwh, min: e.min});
+      });
+      datasets.push({
+        type: 'line',
+        label: 'Potencia media por energía (W)',
+        data: avg,
+        borderWidth: 2,
+        borderColor: c.energy,
+        pointRadius: 0,
+        tension: 0,
+        spanGaps: false,
+        yAxisID: 'y',
+        order: 1,
+      });
+    }
+
+    var coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+
+    window._domoboiChart = new Chart(canvas, {
+      type: 'line',
+      data: { datasets: datasets },
+      options: {
+        responsive: true,
+        aspectRatio: 2.8,               // proporción rectangular (ancho : alto)
+        animation: false,
+        interaction: { mode: 'nearest', intersect: false },
+        scales: {
+          x: {
+            type: 'time',
+            // sin `unit` fijo: al hacer zoom pasa solo de horas a minutos/segundos
+            time: { tooltipFormat: 'HH:mm:ss',
+                    displayFormats: {hour: 'HH:mm', minute: 'HH:mm', second: 'HH:mm:ss', millisecond: 'HH:mm:ss.SSS'} },
+            ticks: { color: c.tick },
+            grid: { color: c.grid },
+          },
+          y: {
+            ticks: { color: c.tick },
+            title: { display: true, text: 'W', color: c.tick },
+            grid: { color: c.grid },
+          },
+        },
+        onClick: function (evt, _els, chart) {
+          if (Date.now() - lastZoom < 400) return;        // era un arrastre de zoom, no un clic
+          var area = chart.chartArea;
+          if (evt.x < area.left || evt.x > area.right || evt.y < area.top || evt.y > area.bottom) return;
+          if (!idPoints.length) return;
+          var xs = chart.scales.x;
+          var clicked = xs.getValueForPixel(evt.x);
+          var tol = (xs.max - xs.min) * 0.03;              // 3 % del tramo visible
+          var best = null, bestD = Infinity;
+          for (var i = 0; i < idPoints.length; i++) {
+            var d = Math.abs(idPoints[i].ts - clicked);
+            if (d < bestD) { bestD = d; best = idPoints[i]; }
+          }
+          if (best && bestD <= tol) { goToMeasurement(best.id); }
+          else { say('No hay ninguna medida cerca de ese punto (haz zoom o pulsa más cerca de la curva).'); }
+        },
+        plugins: {
+          legend: { display: true, labels: { color: c.tick } },
+          zoom: {
+            limits: { x: {min: 'original', max: 'original'}, y: {min: 'original', max: 'original'} },
+            zoom: {
+              wheel: { enabled: true, speed: 0.1 },
+              drag:  { enabled: true, threshold: 10,
+                       backgroundColor: 'rgba(240,168,48,0.15)', borderColor: '#F0A830', borderWidth: 1 },
+              pinch: { enabled: true },
+              mode: 'xy',
+              onZoomComplete: function () { lastZoom = Date.now(); },
+            },
+            // táctil: un dedo mueve; ratón: Mayús + arrastrar
+            pan: { enabled: true, mode: 'xy', modifierKey: coarse ? null : 'shift',
+                   onPanComplete: function () { lastZoom = Date.now(); } },
+          },
+          tooltip: {
+            callbacks: {
+              label: function (ctx) {
+                var r = ctx.raw || {};
+                if (r.kwh !== undefined) {
+                  return ctx.dataset.label + ': ' + Math.round(ctx.parsed.y) + ' W · ' +
+                         r.kwh + ' kWh en ' + r.min + ' min';
+                }
+                // a bajas potencias el redondeo a W entero oculta el detalle
+                return ctx.dataset.label + ': ' + (Math.round(ctx.parsed.y * 10) / 10) + ' W';
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Tras un cambio de día (HTMX) el contenedor aún se está recolocando cuando se
+    // crea el lienzo: se reajusta el tamaño cuando el diseño ya es estable.
+    [60, 250, 700].forEach(function (ms) {
+      setTimeout(function () {
+        if (window._domoboiChart && document.body.contains(window._domoboiChart.canvas)) {
+          window._domoboiChart.resize();
+        }
+      }, ms);
+    });
+
+    var reset = document.getElementById('chart-reset-zoom');
+    if (reset) {
+      reset.onclick = function () { if (window._domoboiChart) window._domoboiChart.resetZoom(); };
+    }
+
+    // cambio de tema: recolorea sin recrear (conserva el zoom actual)
+    if (window._domoboiThemeHandler) {
+      window.removeEventListener('domoboi-theme', window._domoboiThemeHandler);
+    }
+    window._domoboiThemeHandler = function () {
+      var ch = window._domoboiChart; if (!ch) return;
+      var p = palette();
+      ch.data.datasets[0].borderColor = p.line;
+      ch.data.datasets[0].backgroundColor = p.fill;
+      if (ch.data.datasets[1]) { ch.data.datasets[1].borderColor = p.energy; }
+      ['x', 'y'].forEach(function (k) {
+        ch.options.scales[k].ticks.color = p.tick;
+        ch.options.scales[k].grid.color = p.grid;
+      });
+      ch.options.scales.y.title.color = p.tick;
+      ch.options.plugins.legend.labels.color = p.tick;
+      ch.update('none');
+    };
+    window.addEventListener('domoboi-theme', window._domoboiThemeHandler);
+  }
+
+  // En la carga completa, Chart.js se carga después de este bloque: se espera a `load`.
+  // En un intercambio HTMX (cambio de día/mes) el documento ya está cargado.
+  // requestAnimationFrame: deja que el navegador calcule el tamaño del contenedor
+  // antes de crear el lienzo (evita gráficas deformadas/borrosas al cambiar de día).
+  if (document.readyState === 'complete') { requestAnimationFrame(build); }
+  else { window.addEventListener('load', function () { requestAnimationFrame(build); }); }
+})();
+</script>
+{% endif %}

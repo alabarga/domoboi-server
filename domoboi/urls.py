@@ -27,4 +27,5 @@ urlpatterns = [
     path('webpush/', include('webpush.urls')),
     path('i18n/', include('django.conf.urls.i18n')),
     path('', RedirectView.as_view(url='/nilm/', permanent=False)),
+    path('reconstruction/', include('reconstruction.urls')),
 ]

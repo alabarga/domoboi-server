@@ -1,3 +1,4 @@
 @import "tailwindcss";
 
 @source "./nilm/templates/**/*.html";
+@source "./reconstruction/templates/**/*.html";

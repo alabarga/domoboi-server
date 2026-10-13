@@ -1,0 +1,19 @@
+{% load i18n %}
+<form
+  hx-post="{% url 'reconstruction:label_update' device.device_id measurement.id %}"
+  hx-trigger="change"
+  hx-target="#label-{{ measurement.id }}"
+  hx-swap="innerHTML"
+  class="flex items-center gap-1">
+  {% csrf_token %}
+  <select name="appliance_type"
+          class="text-[11px] rounded-lg border px-1.5 py-1 bg-gray-100
+                 {% if label %}text-green-700{% else %}text-gray-500{% endif %}">
+    <option value="">Sin etiquetar</option>
+    {% for value, display in form.fields.appliance_type.choices %}
+    <option value="{{ value }}" {% if label and label.appliance_type == value %}selected{% endif %}>
+      {{ display }}
+    </option>
+    {% endfor %}
+  </select>
+</form>

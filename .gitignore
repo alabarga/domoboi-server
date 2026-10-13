@@ -53,3 +53,4 @@ notebooks/
 
 # Database dumps
 *.dump
+test_tuya.py

@@ -349,8 +349,10 @@ class Command(BaseCommand):
         finds data we were being throttled, so pacing is raised for the rest of
         the run.
         """
+        from tuya_energy.errors import TuyaError
+
         readings = []
-        stats = {"empty": 0, "recovered": 0, "throttled": False}
+        stats = {"capped": 0, "empty": 0, "recovered": 0, "throttled": False, "errors": 0}
         pacing = HISTORY_REQUEST_PACING_S
         start = since
         first = True
@@ -363,7 +365,17 @@ class Command(BaseCommand):
                 if not first:
                     time.sleep(pacing if attempt == 0 else EMPTY_WINDOW_BACKOFF_S)
                 first = False
-                batch = list(client.history_readings(tuya_id, start, end, codes=code_list))
+                try:
+                    batch = list(client.history_readings(tuya_id, start, end, codes=code_list))
+                except TuyaError as exc:
+                    # Network timeouts surface as TuyaHTTPError, which the client
+                    # does not catch: without this one dead request aborted the
+                    # whole backfill. Treat it like an empty window and retry.
+                    stats["errors"] += 1
+                    self.stderr.write(self.style.WARNING(
+                        f"    {tuya_id} {start:%Y-%m-%d %H:%M}: {type(exc).__name__}: {exc}"
+                    ))
+                    batch = []
                 if batch:
                     if attempt:
                         # Data appeared only after backing off — we were throttled.
@@ -413,6 +425,19 @@ class Command(BaseCommand):
                 self.stdout.write(
                     f"    recovered {stats['recovered']} window(s) after backing off"
                 )
+            if stats["capped"]:
+                incomplete.append(tuya_id)
+                self.stderr.write(self.style.WARNING(
+                    f"    {stats['capped']} window(s) hit the {HISTORY_PAGE_CAP}-row cap — "
+                    f"possibly truncated; re-run with a smaller --window-hours "
+                    f"(currently {window_hours:g})."
+                ))
+            if stats["errors"]:
+                incomplete.append(tuya_id)
+                self.stderr.write(self.style.WARNING(
+                    f"    {stats['errors']} request(s) failed with a Tuya/network error "
+                    f"(retried); re-run later to fill any remaining gap"
+                ))
             if stats["empty"]:
                 # Distinguishing "device was off" from "still throttled" is not
                 # possible from here, so say so rather than implying completeness.

@@ -22,7 +22,51 @@ polling**: ~250× fewer API calls, ~6× fewer rows, real device timestamps, and
 change-driven sampling that captures transitions instead of re-reading a stable
 value 1,440 times.
 
+## Quick install (recommended)
+
+`scripts/install_tuya_cron.sh` writes the cron entries below for you. Run it as
+the server user that runs Django, from anywhere:
+
+```bash
+git pull
+.venv/bin/python -c "import tuya_energy"      # must not fail; see "Required environment"
+bash scripts/install_tuya_cron.sh             # shows the lines and asks for confirmation
+crontab -l                                    # check
+tail -f logs/tuya_poll.log                    # within ~15 min: "stored X/Y reading(s)"
+```
+
+What it installs (all inside a marked block, so re-running it replaces the
+block instead of duplicating it, and other crontab lines are never touched):
+
+| Schedule | Command | Purpose |
+|---|---|---|
+| `17 3 * * *` | `tuya_poll --history --since <2 days ago>` | Real device history, daily; the 2-day lookback self-heals a missed run |
+| `*/15 * * * *` | `tuya_poll --once` | Live reading, keeps `is_active` meaningful in the admin |
+| `0 4 * * 0` | `mv logs/tuya_poll.log logs/tuya_poll.log.1` | Weekly log rotation |
+
+Cron uses the **server's** timezone. Check it with `date`: if it prints UTC,
+03:17 is 05:17 in Madrid in summer (04:17 in winter). Either way it runs well
+after midnight, so the previous day is complete; keep it in mind when reading
+the log.
+
+Options: `--yes` installs without asking, `--remove` deletes the block, and
+`PYTHON=/path/to/python` overrides the interpreter (default `.venv/bin/python`,
+then `venv/bin/python`).
+
+**Run the first backfill by hand** before relying on the cron: the nightly job
+only looks 2 days back, and Tuya keeps about 7 days of history. Start from the
+last date that has data:
+
+```bash
+.venv/bin/python manage.py tuya_poll --history --since YYYY-MM-DD
+```
+
+Devices that are offline return empty windows; that is expected and not an error.
+
 ## Crontab entry (training phase)
+
+Manual equivalent of the install script (use this if you prefer to edit the
+crontab by hand):
 
 ```cron
 # Domoboi — pull yesterday's Tuya datapoint history, once a day at 03:17.

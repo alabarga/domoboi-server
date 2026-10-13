@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ device.device_id }} · Reconstrucción de señal{% endblock %}
+
+{% block extra_css %}{% include "reconstruction/partials/theme_head.html" %}{% endblock %}
+
+{% block extra_javascript %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+{# zoom: rueda, arrastre y pellizco (hammerjs es necesario para los gestos táctiles) #}
+<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+<script>
+  if (window.Chart && window.ChartZoom) { Chart.register(window.ChartZoom); }
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="mx-auto px-4 py-6" style="max-width:1800px">
+  <div class="mb-4 flex items-start justify-between gap-3">
+   <div>
+    <a href="{% url 'reconstruction:device_list' %}" class="text-xs text-gray-500 hover:text-violet-700">
+      &larr; Dispositivos
+    </a>
+    <h1 class="text-xl font-semibold mono">{{ device.device_id }}</h1>
+    <p class="text-xs text-gray-500">
+      {{ device.model }} · {{ device.location.description|default:"Sin ubicación" }}
+    </p>
+   </div>
+   {% include "reconstruction/partials/theme_toggle.html" %}
+  </div>
+
+  <div id="day-panel">
+    {% include "reconstruction/partials/day_panel.html" %}
+  </div>
+</div>
+{% endblock %}

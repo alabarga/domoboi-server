@@ -2,14 +2,26 @@
 <!-- HTMX partial — replaces #events-column on date change -->
 <div id="events-column" class="col-span-1 lg:col-span-2 space-y-4">
 
-  {% if is_placeholder and recent_events %}
+  {% if not device_active %}
+  <div class="rounded-xl border p-4 flex items-start gap-3"
+       style="background:#fee2e2; border-color:#f3a3a3;">
+    <i class="ri-plug-line text-xl flex-shrink-0" style="color:#991b1b;"></i>
+    <p class="text-sm font-semibold" style="color:#991b1b;">
+      {% if device_last_active %}
+        {% blocktrans with date=device_last_active|date:"j N Y" %}Dispositivo no conectado desde {{ date }}{% endblocktrans %}
+      {% else %}
+        {% trans "Dispositivo no conectado" %}
+      {% endif %}
+    </p>
+  </div>
+  {% else %}
   <div class="rounded-xl border p-4 flex items-start gap-3"
        style="background:#F0A830; border-color:#d9951f;">
     <i class="ri-lightbulb-flash-line text-xl flex-shrink-0" style="color:#5c3a00;"></i>
     <div class="space-y-1">
       <p class="text-sm font-semibold" style="color:#5c3a00;">{% trans "Domoboi está aprendiendo" %}</p>
       <p class="text-xs leading-relaxed" style="color:#5c3a00;">
-        {% trans "Estamos aprendiendo las rutinas de tu hogar. Por ahora, los eventos que ves son ejemplos. Te avisaremos cuando empecemos a mostrar eventos reales." %}
+        {% trans "Los eventos que ves son reales, aunque la clasificación puede no ser correcta." %}
       </p>
     </div>
   </div>

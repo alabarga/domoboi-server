@@ -87,16 +87,15 @@ class LocationDetailView(LoginRequiredMixin, DetailView):
             selected_date = timezone.localdate()
 
         events_qs = self.object.events.filter(start_time__date=selected_date).order_by('-start_time')
-        if events_qs.exists():
-            paginator = Paginator(events_qs, 10)
-            context['recent_events'] = paginator.get_page(1)
-            context['has_next_events'] = paginator.num_pages > 1
-            context['is_placeholder'] = False
-        else:
-            context['recent_events'] = get_placeholder_events(self.object, selected_date)
-            context['has_next_events'] = False
-            context['is_placeholder'] = True
+        paginator = Paginator(events_qs, 10)
+        context['recent_events'] = paginator.get_page(1)
+        context['has_next_events'] = paginator.num_pages > 1
         context['selected_date'] = selected_date
+
+        devices = self.object.devices.all()
+        context['device_active'] = any(d.is_active for d in devices)
+        last_actives = [d.last_active for d in devices if d.last_active]
+        context['device_last_active'] = max(last_actives) if last_actives else None
 
         # Most recent previous date that has real events (for cross-date scroll)
         context['prev_date'] = (
@@ -269,54 +268,6 @@ def add_comment(request, person_id):
         form = CommentForm()
     
     return redirect('nilm:person_detail', pk=person_id)
-
-# Plausible daily household schedule used as placeholder when no real events exist.
-_DAILY_SCHEDULE = [
-    {'hour':  6, 'minute': 30, 'type': 'LIGHTS',          'duration':  8, 'class_name': 'NORMAL'},
-    {'hour':  7, 'minute':  0, 'type': 'KETTLE',           'duration':  5, 'class_name': 'NORMAL'},
-    {'hour':  7, 'minute': 10, 'type': 'MICROWAVE',        'duration':  3, 'class_name': 'NORMAL'},
-    {'hour':  7, 'minute': 30, 'type': 'FRIDGE',           'duration':  2, 'class_name': 'NORMAL'},
-    {'hour':  9, 'minute':  0, 'type': 'WASHING MACHINE',  'duration': 92, 'class_name': 'NORMAL'},
-    {'hour': 10, 'minute': 45, 'type': 'IRON',             'duration': 22, 'class_name': 'NORMAL'},
-    {'hour': 12, 'minute':  0, 'type': 'MICROWAVE',        'duration':  4, 'class_name': 'NORMAL'},
-    {'hour': 12, 'minute': 15, 'type': 'KETTLE',           'duration':  4, 'class_name': 'NORMAL'},
-    {'hour': 14, 'minute': 30, 'type': 'TV',               'duration': 90, 'class_name': 'NORMAL'},
-    {'hour': 16, 'minute': 30, 'type': 'KETTLE',           'duration':  5, 'class_name': 'NORMAL'},
-    {'hour': 18, 'minute': 30, 'type': 'OVEN',             'duration': 52, 'class_name': 'NORMAL'},
-    {'hour': 18, 'minute': 35, 'type': 'FRIDGE',           'duration':  3, 'class_name': 'NORMAL'},
-    {'hour': 19, 'minute': 30, 'type': 'LIGHTS',           'duration':180, 'class_name': 'NORMAL'},
-    {'hour': 20, 'minute': 30, 'type': 'TV',               'duration':120, 'class_name': 'NORMAL'},
-    {'hour': 23, 'minute':  0, 'type': 'LIGHTS',           'duration': 25, 'class_name': 'NORMAL'},
-]
-
-
-def get_placeholder_events(location, date):
-    """Return a plausible timed sequence of demo Event objects (unsaved) for `date`.
-
-    If `date` is today, truncates to events whose start_time <= now.
-    If a past date, returns the complete daily sequence.
-    """
-    now = timezone.localtime()
-    today = now.date()
-    events = []
-    for item in _DAILY_SCHEDULE:
-        # Build the wall-clock time in the active timezone, not the server's.
-        start = timezone.make_aware(
-            datetime.datetime.combine(date, datetime.time(item['hour'], item['minute']))
-        )
-        if date == today and start > now:
-            continue  # future — not shown yet
-        end = start + datetime.timedelta(minutes=item['duration'])
-        events.append(Event(
-            location=location,
-            start_time=start,
-            end_time=end,
-            type=item['type'],
-            class_name=item['class_name'],
-            description='',
-        ))
-    return list(reversed(events))  # latest first
-
 
 def _build_location_map_json(locations_qs):
     """Build JSON list of {pk, description, lat, lon} for a queryset of Locations."""

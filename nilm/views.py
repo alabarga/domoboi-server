@@ -283,54 +283,6 @@ def _build_location_map_json(locations_qs):
     return json.dumps(data)
 
 
-def ensure_user_has_data_and_events(user):
-    import random
-    from .models import Location, Event, UserProfile
-    
-    # 1. If not superuser, assign random locations if they have none
-    if not user.is_superuser:
-        try:
-            profile = user.profile
-            if profile.locations.count() == 0:
-                all_locs = list(Location.objects.all())
-                if all_locs:
-                    profile.locations.add(*random.sample(all_locs, min(3, len(all_locs))))
-        except UserProfile.DoesNotExist:
-            pass
-
-    # 2. Get user locations
-    if user.is_superuser:
-        user_locs = list(Location.objects.all())
-    else:
-        try:
-            user_locs = list(user.profile.locations.all())
-        except UserProfile.DoesNotExist:
-            user_locs = []
-
-    # 3. Seed events if the user's locations have none
-    if user_locs and Event.objects.filter(location__in=user_locs).count() == 0:
-        types = ['FRIDGE', 'OVEN', 'KETTLE', 'MICROWAVE', 'WASHING MACHINE', 'IRON', 'LIGHTS', 'TV']
-        classes = ['NORMAL', 'UNEXPECTED', 'ANORMAL', 'ALERT']
-        now = timezone.now()
-        
-        for i in range(24):
-            loc = random.choice(user_locs)
-            etype = random.choice(types)
-            eclass = random.choice(classes)
-            duration = random.randint(5, 120)
-            start = now - timezone.timedelta(hours=random.randint(0, 48), minutes=random.randint(0, 59))
-            end = start + timezone.timedelta(minutes=duration)
-            
-            Event.objects.create(
-                location=loc,
-                start_time=start,
-                end_time=end,
-                type=etype,
-                class_name=eclass,
-                description=f"Funcionamiento detectado de {etype}."
-            )
-
-
 class DashboardView(LoginRequiredMixin, ListView):
     """Dashboard view showing overview of user's accessible data"""
     model = Location
@@ -348,7 +300,6 @@ class DashboardView(LoginRequiredMixin, ListView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
-        ensure_user_has_data_and_events(self.request.user)
         if self.request.user.is_superuser:
             return Location.objects.all()
         else:
@@ -466,7 +417,6 @@ class EventLoadMoreView(LoginRequiredMixin, ListView):
     paginate_by = 10
 
     def get_queryset(self):
-        ensure_user_has_data_and_events(self.request.user)
         location_id = self.request.GET.get('location_id')
         if not location_id:
             self._base_qs = Event.objects.none()

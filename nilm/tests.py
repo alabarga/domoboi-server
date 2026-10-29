@@ -129,14 +129,11 @@ class NILMExplorerAndScrollTests(TestCase):
     def test_infinite_scroll_endpoint(self):
         """Verify EventLoadMoreView handles pagination and custom headers."""
         self.client.login(username=self.username, password=self.password)
-        # Load initially with no events - should trigger auto-seeder to create 24 events
+        # No events: must not seed fake ones
         response = self.client.get(reverse('nilm:event_load_more') + f"?location_id={self.location.id}")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['X-Has-Next'], 'true')
-        self.assertEqual(Event.objects.filter(location=self.location).count(), 24)
-
-        # Clear events to test manual pagination limits
-        Event.objects.all().delete()
+        self.assertEqual(response['X-Has-Next'], 'false')
+        self.assertEqual(Event.objects.filter(location=self.location).count(), 0)
 
         # Needs more than one page: paginate_by is 10, so exactly 10 events
         # would yield a single page and X-Has-Next would be 'false'.

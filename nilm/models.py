@@ -226,6 +226,21 @@ class Event(models.Model):
     class Meta:
         ordering = ['-start_time']
         
+class Appliance(models.Model):
+    """An appliance type present at a location (one row per type)."""
+    location = models.ForeignKey(Location, on_delete=models.CASCADE, related_name='appliances')
+    type = models.CharField(max_length=20, choices=Event.APPLIANCE_TYPES)
+
+    def __str__(self):
+        return f"{self.location.description} - {self.get_type_display()}"
+
+    class Meta:
+        ordering = ['type']
+        constraints = [
+            models.UniqueConstraint(fields=['location', 'type'], name='uniq_appliance_location_type'),
+        ]
+
+
 class Comment(models.Model):
     """Model for storing user comments about persons"""
     person = models.ForeignKey(Person, on_delete=models.CASCADE, related_name='comments')

@@ -18,6 +18,7 @@ urlpatterns = [
     path('locations/map/', views.LocationMapView.as_view(), name='location_map'),
     path('locations/<int:pk>/', views.LocationDetailView.as_view(), name='location_detail'),
     path('locations/<int:pk>/edit/', views.LocationUpdateView.as_view(), name='location_update'),
+    path('locations/<int:pk>/appliances/', views.LocationAppliancesView.as_view(), name='location_appliances'),
     path('locations/<int:location_id>/assign/', views.LocationAssignView.as_view(), name='location_assign'),
     
     # Person views

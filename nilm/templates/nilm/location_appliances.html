@@ -1,0 +1,59 @@
+{% extends "vertical.html" %}
+{% load i18n event_utils %}
+
+{% block title %}{% trans "Electrodomésticos" %} · {{ location.description }} | DOMOBOI{% endblock %}
+
+{% block extra_css %}
+<style>
+  .appliance-tile {
+    background: var(--surface); color: var(--text-muted);
+    border: 2px solid var(--border);
+    transition: border-color .15s, color .15s, background .15s;
+  }
+  .appliance-tile:has(input:checked) {
+    border-color: var(--accent); color: var(--accent);
+    background: rgba(240,168,48,0.12);
+  }
+  .appliance-tile:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .appliance-tile .material-symbols-rounded { font-size: 2.25rem; }
+</style>
+{% endblock %}
+
+{% block page_content %}
+<form method="post" class="pb-24 sm:pb-0">
+  {% csrf_token %}
+
+  <!-- Header -->
+  <div class="flex items-center gap-3 mb-5">
+    <a href="{% url 'nilm:location_detail' location.pk %}"
+       class="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors">
+      <i class="ri-arrow-left-line text-lg"></i>
+    </a>
+    <div class="flex-1 min-w-0">
+      <h1 class="text-xl font-bold text-gray-900 truncate">{% trans "Electrodomésticos" %}</h1>
+      <p class="text-xs text-gray-400 truncate">{{ location.description }}</p>
+    </div>
+  </div>
+
+  <p class="text-sm text-gray-500 mb-4">{% trans "Marca los electrodomésticos que hay en este domicilio." %}</p>
+
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    {% for code, label, checked in choices %}
+    <label class="appliance-tile rounded-xl p-4 flex flex-col items-center justify-center gap-2 cursor-pointer select-none min-h-28">
+      <input type="checkbox" name="type" value="{{ code }}" class="sr-only" {% if checked %}checked{% endif %}>
+      <span class="material-symbols-rounded">{{ code|get_event_icon }}</span>
+      <span class="text-sm font-medium text-center" style="color:var(--text-primary);">{{ label }}</span>
+    </label>
+    {% endfor %}
+  </div>
+
+  <!-- Save: pinned to the bottom on mobile, inline on desktop -->
+  <div class="fixed sm:static bottom-0 inset-x-0 p-4 sm:px-0 sm:mt-6"
+       style="background:var(--bg);border-top:1px solid var(--border);">
+    <button type="submit"
+            class="w-full sm:w-auto bg-violet-600 hover:bg-violet-700 px-6 py-3 sm:py-2 rounded-lg text-sm font-semibold cursor-pointer">
+      {% trans "Guardar" %}
+    </button>
+  </div>
+</form>
+{% endblock %}

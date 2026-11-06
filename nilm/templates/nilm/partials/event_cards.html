@@ -1,4 +1,4 @@
-{% load i18n %}
+{% load i18n event_utils %}
 
 {% for event in recent_events %}
 {% with cn=event.class_name|lower %}
@@ -11,17 +11,7 @@
        style="{% if cn == 'alert' %}background:rgba(224,59,59,0.15);color:var(--danger);
               {% elif cn == 'anormal' or cn == 'unexpected' %}background:rgba(224,92,58,0.15);color:var(--accent-warm);
               {% else %}background:rgba(240,168,48,0.12);color:var(--accent);{% endif %}">
-    <span class="material-symbols-rounded">
-      {% if event.type == 'FRIDGE' %}kitchen
-      {% elif event.type == 'OVEN' %}oven_gen
-      {% elif event.type == 'KETTLE' %}kettle
-      {% elif event.type == 'MICROWAVE' %}microwave
-      {% elif event.type == 'WASHING MACHINE' %}local_laundry_service
-      {% elif event.type == 'IRON' %}iron
-      {% elif event.type == 'LIGHTS' %}lightbulb
-      {% elif event.type == 'TV' %}tv
-      {% else %}electrical_services{% endif %}
-    </span>
+    <span class="material-symbols-rounded">{{ event.type|get_event_icon }}</span>
   </div>
 
   <!-- Name + status -->

@@ -47,6 +47,7 @@ Lahomes-Django_v1.0/
 data/
 docs/
 notebooks/
+.claude/
 
 # Tuya collector: regenerable cache of per-device datapoint scales
 .tuya_spec_cache.json
@@ -54,3 +55,4 @@ notebooks/
 # Database dumps
 *.dump
 test_tuya.py
+backup/

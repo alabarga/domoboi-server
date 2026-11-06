@@ -2,7 +2,12 @@ from django.contrib import admin
 from unfold.admin import ModelAdmin, StackedInline
 from django.utils import timezone
 from datetime import timedelta
-from .models import Location, Person, UserProfile, Measurement, Event, Comment, Device
+from .models import Location, Person, UserProfile, Measurement, Event, Comment, Device, Appliance
+
+class ApplianceInline(admin.TabularInline):
+    model = Appliance
+    extra = 0
+
 
 @admin.register(Location)
 class LocationAdmin(ModelAdmin):
@@ -10,6 +15,7 @@ class LocationAdmin(ModelAdmin):
     list_filter = ['description']
     search_fields = ['description', 'address']
     ordering = ['description']
+    inlines = [ApplianceInline]
 
     def get_queryset(self, request):
         return super().get_queryset(request).prefetch_related('devices')

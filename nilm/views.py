@@ -12,7 +12,7 @@ from django.db.models import Q
 from django.core.paginator import Paginator
 from django.contrib.auth.models import User
 from django.utils import timezone
-from .models import Location, Person, Event, Comment, UserProfile, Device
+from .models import Location, Person, Event, Comment, UserProfile, Device, Appliance
 from .forms import CommentForm, LocationUpdateForm, UserProfileUpdateForm, UserLocationAssignmentForm
 
 class LocationListView(LoginRequiredMixin, ListView):
@@ -78,6 +78,7 @@ class LocationDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['persons'] = self.object.persons.all()
+        context['appliances'] = self.object.appliances.all()
 
         # Date filter — default to today
         date_str = self.request.GET.get('date')
@@ -136,6 +137,38 @@ class LocationUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     
     def get_success_url(self):
         return reverse('nilm:location_detail', kwargs={'pk': self.object.pk})
+
+class LocationAppliancesView(LoginRequiredMixin, View):
+    """Mobile-first picker for the appliance types present at a location"""
+    template_name = 'nilm/location_appliances.html'
+
+    def get_location(self, request, pk):
+        if request.user.is_superuser:
+            qs = Location.objects.all()
+        else:
+            try:
+                qs = request.user.profile.locations.all()
+            except UserProfile.DoesNotExist:
+                qs = Location.objects.none()
+        return get_object_or_404(qs, pk=pk)
+
+    def get(self, request, pk):
+        location = self.get_location(request, pk)
+        selected = set(location.appliances.values_list('type', flat=True))
+        return render(request, self.template_name, {
+            'location': location,
+            'choices': [(code, label, code in selected) for code, label in Event.APPLIANCE_TYPES],
+        })
+
+    def post(self, request, pk):
+        location = self.get_location(request, pk)
+        valid = {code for code, _ in Event.APPLIANCE_TYPES}
+        chosen = set(request.POST.getlist('type')) & valid
+        location.appliances.exclude(type__in=chosen).delete()
+        Appliance.objects.bulk_create(
+            [Appliance(location=location, type=t) for t in chosen], ignore_conflicts=True)
+        return redirect('nilm:location_detail', pk=location.pk)
+
 
 def service_worker(request):
     """Serve the service worker JS with no-cache headers so updates are always picked up."""

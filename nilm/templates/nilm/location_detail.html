@@ -1,5 +1,5 @@
 {% extends "vertical.html" %}
-{% load static i18n humanize %}
+{% load static i18n humanize event_utils %}
 
 {% block title %}{{ location.description }} | DOMOBOI{% endblock %}
 
@@ -22,6 +22,11 @@
         <span class="truncate">{{ location.address }}</span>
       </p>
     </div>
+    <a href="{% url 'nilm:location_appliances' location.pk %}"
+       class="flex-shrink-0 text-sm px-3 py-1.5 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-1">
+      <span class="material-symbols-rounded" style="font-size:1.1rem;">kitchen</span>
+      <span class="hidden sm:inline">{% trans "Electrodomésticos" %}</span>
+    </a>
     {% if request.user.is_superuser %}
       <a href="/admin/nilm/location/{{ location.pk }}/change/"
          class="flex-shrink-0 text-sm px-3 py-1.5 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-1">
@@ -29,6 +34,18 @@
       </a>
     {% endif %}
   </div>
+
+  {% if appliances %}
+  <!-- Appliances at this location -->
+  <a href="{% url 'nilm:location_appliances' location.pk %}" class="flex flex-wrap gap-2 mb-5">
+    {% for a in appliances %}
+    <span class="w-9 h-9 rounded-lg flex items-center justify-center"
+          style="background:rgba(240,168,48,0.12);color:var(--accent);" title="{{ a.get_type_display }}">
+      <span class="material-symbols-rounded" style="font-size:1.25rem;">{{ a.type|get_event_icon }}</span>
+    </span>
+    {% endfor %}
+  </a>
+  {% endif %}
 
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
 

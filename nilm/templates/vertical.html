@@ -44,6 +44,13 @@
 
         <!-- Right side: user + language -->
         <div class="flex items-center gap-2">
+          <!-- Light/dark theme toggle -->
+          <button type="button" id="theme-toggle"
+                  class="p-2 rounded-md text-gray-500 hover:bg-gray-100 transition-colors"
+                  aria-label="{% trans "Cambiar tema claro/oscuro" %}">
+            <i id="theme-icon" class="ri-sun-line text-lg"></i>
+          </button>
+
           {% if user.is_authenticated %}
             <!-- Notification bell (shown by JS only when Push API is available) -->
             <button id="notify-btn" title="Notificaciones"
@@ -107,6 +114,10 @@
          class="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-gray-700 hover:bg-violet-50 hover:text-violet-700">
         <i class="ri-settings-3-line"></i> {% trans "Admin" %}
       </a>
+      <a href="{% url 'reconstruction:device_list' %}"
+         class="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-gray-700 hover:bg-violet-50 hover:text-violet-700">
+        <i class="ri-settings-3-line"></i> {% trans "Detalle" %}
+      </a>
       {% endif %}
       {% if user.is_authenticated %}
         <div class="pt-1 border-t border-gray-100">
@@ -124,7 +135,7 @@
   </nav>
 
   <!-- Page content -->
-  <main class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
+  <main class="flex-1 {% block main_width %}max-w-7xl{% endblock %} mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
     {% block page_content %}{% endblock %}
   </main>
 
@@ -141,7 +152,24 @@
     var menu = document.getElementById('mobile-menu');
     menu.classList.toggle('hidden');
   });
-</script>
 
-{% block extra_javascript %}{% endblock %}
+  (function () {
+    var btn = document.getElementById('theme-toggle');
+    var ico = document.getElementById('theme-icon');
+    function cur() { return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark'; }
+    function paint() {
+      // Show the theme you'd switch TO
+      ico.className = (cur() === 'light' ? 'ri-moon-line' : 'ri-sun-line') + ' text-lg';
+      btn.title = cur() === 'light' ? '{% trans "Tema oscuro" %}' : '{% trans "Tema claro" %}';
+    }
+    btn.addEventListener('click', function () {
+      var next = cur() === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', next);
+      try { localStorage.setItem('domoboi-theme', next); } catch (e) {}
+      paint();
+      window.dispatchEvent(new Event('domoboi-theme'));
+    });
+    paint();
+  })();
+</script>
 {% endblock content %}

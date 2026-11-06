@@ -167,3 +167,49 @@ class NILMExplorerAndScrollTests(TestCase):
         self.assertEqual(self.client.cookies.get('django_language').value, 'ca')
 
 
+
+
+class LocationAppliancesTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='resident', password='pw12345!')
+        self.loc = Location.objects.create(description='Casa', address='Calle 1')
+        self.other = Location.objects.create(description='Otra', address='Calle 2')
+        self.user.profile.locations.add(self.loc)
+        self.client.login(username='resident', password='pw12345!')
+
+    def test_post_syncs_appliances(self):
+        from nilm.models import Appliance
+        Appliance.objects.create(location=self.loc, type='TV')
+        url = reverse('nilm:location_appliances', args=[self.loc.pk])
+        self.assertEqual(self.client.get(url).status_code, 200)
+        r = self.client.post(url, {'type': ['FRIDGE', 'OVEN', 'BOGUS']})
+        self.assertRedirects(r, reverse('nilm:location_detail', args=[self.loc.pk]))
+        self.assertEqual(set(self.loc.appliances.values_list('type', flat=True)), {'FRIDGE', 'OVEN'})
+
+    def test_no_access_404(self):
+        url = reverse('nilm:location_appliances', args=[self.other.pk])
+        self.assertEqual(self.client.get(url).status_code, 404)
+        self.assertEqual(self.client.post(url, {'type': ['TV']}).status_code, 404)
+
+
+class DetectionTests(TestCase):
+    def test_segments_fridge_oven_and_spike(self):
+        import datetime as dt
+        from nilm import detection as det
+        t0 = dt.datetime(2026, 10, 1, 12, 0)
+        # (minuto, W): base 60 W, nevera 150 W 20 min, pico aislado, horno 2 kW con 1 bajada de 1 min
+        pts = [(0, 60), (10, 210), (30, 60), (40, 900), (42, 60),
+               (60, 2060), (80, 1400), (81, 2060), (100, 60), (120, 60)]
+        series = [(t0 + dt.timedelta(minutes=m), float(p)) for m, p in pts]
+        clean, spikes = det.remove_spikes(series, 40)
+        self.assertEqual(spikes, 2)  # el pico de 900 W y la bajada de 1 min del horno
+        segs = det.segment(clean, 60, 40)
+        self.assertEqual(len(segs), 2)
+        fridge, oven = segs
+        self.assertEqual((fridge['duration_min'], fridge['plateau_w']), (20.0, 150))
+        self.assertEqual(oven['duration_min'], 40.0)
+        self.assertEqual(oven['plateau_w'], 2000)
+        self.assertEqual(oven['n_steps'], 0)
+        # sin quitar picos, la bajada aparece como 2 escalones internos
+        self.assertEqual(det.segment(series, 60, 40)[-1]['n_steps'], 2)
+        self.assertAlmostEqual(det.integrate_kwh(series, t0, t0 + dt.timedelta(minutes=10)), 0.01)

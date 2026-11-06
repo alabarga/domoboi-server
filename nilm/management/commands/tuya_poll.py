@@ -324,7 +324,11 @@ class Command(BaseCommand):
             device = devices.get(reading.device_id)
             if device is None:
                 continue
-            rows.append(self._build_measurement(device, reading.timestamp, reading.metrics))
+            # The live snapshot repeats the last add_ele increment on every poll,
+            # and history already stores it at its real instant: keeping it here
+            # would count the same energy 2-4 times. `raw` still has it.
+            metrics = {k: v for k, v in (reading.metrics or {}).items() if k != "energy_added_kwh"}
+            rows.append(self._build_measurement(device, reading.timestamp, metrics))
 
         stored = self._store(rows, dry_run)
         for device_id, err in errors:

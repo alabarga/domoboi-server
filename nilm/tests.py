@@ -213,3 +213,67 @@ class DetectionTests(TestCase):
         # sin quitar picos, la bajada aparece como 2 escalones internos
         self.assertEqual(det.segment(series, 60, 40)[-1]['n_steps'], 2)
         self.assertAlmostEqual(det.integrate_kwh(series, t0, t0 + dt.timedelta(minutes=10)), 0.01)
+
+
+class TuyaEnergyDedupTests(TestCase):
+    def test_live_snapshot_add_ele_not_double_counted(self):
+        import datetime as dt
+        from nilm.models import Device, Measurement
+        from reconstruction.signal import build_tuya_energy, _day_bounds
+        dev = Device.objects.create(device_id='tuya1', model='m', device_type='TUYA')
+        day = dt.date(2026, 10, 1)
+        t0, _ = _day_bounds(day)
+        at = lambda m: t0 + dt.timedelta(minutes=m)
+        rows = [
+            (at(10), {'energy_added_kwh': 0.05}),                    # histórico
+            (at(40), {'energy_added_kwh': 0.04}),                    # histórico
+            (at(45), {'power_w': 80, 'energy_added_kwh': 0.04}),    # sondeo en vivo: repetición
+            (at(60), {'power_w': 80, 'energy_added_kwh': 0.04}),    # sondeo en vivo: repetición
+        ]
+        for ts, tel in rows:
+            Measurement.objects.create(device=dev, start_time=ts, end_time=ts, timestamp=ts, telemetry=tel)
+        points, total, n = build_tuya_energy(dev, day)
+        self.assertEqual((round(total, 3), n), (0.09, 2))
+        self.assertEqual(len(points), 1)  # intervalo 10→40 min
+
+
+class EventPowerFactorTests(TestCase):
+    def test_pf_of_added_load(self):
+        import datetime as dt
+        from nilm import detection as det
+        t0 = dt.datetime(2026, 10, 1, 12, 0)
+        at = lambda m: t0 + dt.timedelta(minutes=m)
+        # (minuto, W, VA): base 150 W / 180 VA; horno 2 kW resistivo; lavadora 600 W con motor
+        pts = [(0, 150, 180), (10, 2150, 2200), (20, 2150, 2200), (30, 150, 180),
+               (40, 750, 1037), (50, 750, 1037), (60, 150, 180)]
+        series = [(at(m), float(p)) for m, p, _ in pts]
+        va = {at(m): float(s) for m, _, s in pts}
+        oven, washer = det.segment(series, 150, 40, va=va)
+        self.assertEqual(oven['pf'], 0.99)
+        self.assertEqual(washer['pf'], 0.7)
+        # sin V·I no hay FP
+        self.assertIsNone(det.segment(series, 150, 40)[0]['pf'])
+
+
+class PairStepsTests(TestCase):
+    def test_overlapping_heater_and_fridge(self):
+        import datetime as dt
+        from nilm import detection as det
+        t0 = dt.datetime(2026, 10, 1, 7, 0)
+        at = lambda m: t0 + dt.timedelta(minutes=m)
+        # (minuto, W, VA): estufa 1600 W resistiva (2 ciclos) y nevera 100 W (FP 0,71) solapadas
+        pts = [(0, 60, 75), (5, 1660, 1675), (10, 1760, 1815), (15, 160, 215),
+               (25, 1760, 1815), (30, 1660, 1675), (35, 60, 75)]
+        series = [(at(m), float(p)) for m, p, _ in pts]
+        va = {at(m): float(s) for m, _, s in pts}
+        pairs, lost_on, lost_off = det.pair_steps(series, 40, va=va)
+        self.assertEqual((lost_on, lost_off), (0, 0))
+        got = [(p['start'], p['end'], p['delta_w'], p['pf']) for p in pairs]
+        self.assertEqual(got, [
+            (at(5), at(15), 1600, 1.0),    # estufa, ciclo 1
+            (at(10), at(30), 100, 0.71),   # nevera, solapada con los dos ciclos
+            (at(25), at(35), 1600, 1.0),   # estufa, ciclo 2
+        ])
+        sessions = det.group_cycles(pairs)
+        heater = next(s for s in sessions if s['delta_w'] == 1600)
+        self.assertEqual((heater['n_cycles'], heater['span_min'], heater['duty']), (2, 30.0, 0.67))

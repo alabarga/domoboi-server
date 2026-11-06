@@ -34,6 +34,52 @@ def load_series(device, since, until):
     return out
 
 
+def load_va(device, since, until):
+    """{ts: VA} (S = V·I) de las filas que traen power_w, current_a y voltage_v."""
+    rows = (Measurement.objects
+            .filter(device=device, timestamp__gte=since, timestamp__lt=until,
+                    telemetry__has_key='power_w')
+            .filter(telemetry__has_key='current_a')
+            .filter(telemetry__has_key='voltage_v')
+            .values_list('timestamp', 'telemetry'))
+    out = {}
+    for ts, tel in rows:
+        try:
+            out[ts] = float(tel['voltage_v']) * float(tel['current_a'])
+        except (TypeError, ValueError):
+            continue
+    return out
+
+
+# Por debajo de este aumento de potencia el cociente ΔP/ΔS es ruido.
+PF_MIN_DELTA_W = 100
+
+
+def event_pf(series, va, prev_i, idxs):
+    """
+    Factor de potencia del aparato que entra (no de toda la casa):
+    mediana de (P − P_antes) / (S − S_antes) en las muestras del evento, con
+    "antes" = la muestra previa al inicio. Restar S es una aproximación
+    (las potencias aparentes no se suman en rigor), suficiente para separar
+    resistivo (≈ 1) de motor/electrónica (0,5–0,9). None si faltan V·I o el
+    aumento es < PF_MIN_DELTA_W.
+    """
+    if not va or prev_i is None or series[prev_i][0] not in va:
+        return None
+    p0, s0 = series[prev_i][1], va[series[prev_i][0]]
+    ratios = []
+    for i in idxs:
+        ts, p = series[i]
+        if ts in va and p - p0 >= PF_MIN_DELTA_W and va[ts] - s0 > 0:
+            r = (p - p0) / (va[ts] - s0)
+            if 0 < r <= 1.3:  # fuera de esto, V/I y P son de instantes distintos
+                ratios.append(r)
+    if not ratios:
+        return None
+    ratios.sort()
+    return round(ratios[len(ratios) // 2], 2)
+
+
 def load_energy(device, since, until):
     """
     [(ts, kWh)] de las lecturas add_ele (energía desde la lectura anterior).
@@ -84,15 +130,17 @@ def steps(series, min_delta_w):
             if abs(p1 - p0) >= min_delta_w and (t1 - t0).total_seconds() <= MAX_HOLD_S]
 
 
-def segment(series, base_w, min_delta_w, merge_gap_s=240, min_duration_s=0):
+def segment(series, base_w, min_delta_w, merge_gap_s=240, min_duration_s=0, va=None):
     """
     Tramos con P - base ≥ min_delta_w. Dos tramos separados por menos de
     merge_gap_s se unen (un aparato que baja un momento sigue siendo el
     mismo uso). Cada tramo incluye rasgos para clasificar:
       start, end, duration_min, peak_w, plateau_w (mediana ponderada por
       tiempo, sobre la base), energy_wh (sobre la base), n_samples,
-      n_steps (saltos internos ≥ min_delta_w), on_delta_w, off_delta_w.
+      n_steps (saltos internos ≥ min_delta_w), on_delta_w, off_delta_w,
+      pf (factor de potencia del aparato, ver event_pf; None sin va).
     base_w: número o función ts -> W (base por día).
+    va: {ts: VA} de load_va(), opcional.
     """
     base = base_w if callable(base_w) else (lambda ts: base_w)
     raw, cur = [], None
@@ -103,7 +151,7 @@ def segment(series, base_w, min_delta_w, merge_gap_s=240, min_duration_s=0):
         if above:
             if cur is None:
                 prev_p = series[i - 1][1] if i else p
-                cur = {'start': ts, 'idx': [], 'on_delta_w': p - prev_p}
+                cur = {'start': ts, 'idx': [], 'on_delta_w': p - prev_p, 'prev_i': i - 1 if i else None}
             cur['idx'].append((i, hold))
             if nxt and (nxt - ts).total_seconds() > MAX_HOLD_S:  # hueco: cierra
                 cur['end'] = ts + timedelta(seconds=hold)
@@ -154,6 +202,7 @@ def segment(series, base_w, min_delta_w, merge_gap_s=240, min_duration_s=0):
             'merged': s.get('merged', 0),
             'on_delta_w': round(s['on_delta_w']),
             'off_delta_w': None if s['off_delta_w'] is None else round(s['off_delta_w']),
+            'pf': event_pf(series, va, s['prev_i'], idxs),
         })
     return out
 
@@ -195,3 +244,116 @@ def pct(values, q):
     s = sorted(values)
     return s[min(len(s) - 1, int(q * len(s)))]
 
+
+
+def _step_pf(series, va, i):
+    """FP del salto entre las muestras i-1 e i: ΔP / ΔS (None si falta V·I o ΔP < PF_MIN_DELTA_W)."""
+    if not va or i < 1:
+        return None
+    (t0, p0), (t1, p1) = series[i - 1], series[i]
+    if t0 not in va or t1 not in va or abs(p1 - p0) < PF_MIN_DELTA_W:
+        return None
+    ds = va[t1] - va[t0]
+    if ds == 0 or (ds > 0) != (p1 > p0):
+        return None
+    r = (p1 - p0) / ds
+    return round(r, 2) if 0 < r <= 1.3 else None
+
+
+def pair_steps(series, min_delta_w, tol=0.3, max_on_s=4 * 3600, va=None):
+    """
+    Descompone la serie en usos de un solo aparato: empareja cada salto de
+    subida (ON) con el primer salto de bajada (OFF) posterior de magnitud
+    parecida (|ΔON − ΔOFF| ≤ tol · máx). Entre varios ON abiertos que encajan
+    se elige el más reciente.
+    Un ON sin pareja tras max_on_s se descarta.
+
+    Devuelve (pares, n_on_sin_pareja, n_off_sin_pareja). Cada par:
+      start, end, duration_min, delta_w (media de |ON| y |OFF|), on_w, off_w,
+      energy_wh (delta · duración), pf (del salto ON, o del OFF si falta).
+    """
+    # ponytail: un OFF que apaga dos aparatos a la vez (misma muestra) no se
+    # reparte entre dos ON; quedan sin pareja. Resolver como subset-sum si pesa.
+    open_on, pairs, lost_on, lost_off = [], [], 0, 0
+    for i in range(1, len(series)):
+        (t0, p0), (t1, p1) = series[i - 1], series[i]
+        if (t1 - t0).total_seconds() > MAX_HOLD_S:
+            lost_on += len(open_on); open_on = []  # hueco: no sabemos qué pasó
+            continue
+        d = p1 - p0
+        if abs(d) < min_delta_w:
+            continue
+        expired = [s for s in open_on if (t1 - s['ts']).total_seconds() > max_on_s]
+        lost_on += len(expired)
+        open_on = [s for s in open_on if s not in expired]
+        if d > 0:
+            open_on.append({'ts': t1, 'w': d, 'i': i})
+            continue
+        off = -d
+        # El ON compatible más reciente: con un termostato (estufa, horno) hay
+        # varios ON iguales abiertos y elegir uno antiguo crea pares falsos largos.
+        k = next((k for k in range(len(open_on) - 1, -1, -1)
+                  if abs(open_on[k]['w'] - off) / max(open_on[k]['w'], off) <= tol), None)
+        if k is None:
+            lost_off += 1
+            continue
+        on = open_on.pop(k)
+        dur = (t1 - on['ts']).total_seconds()
+        delta = (on['w'] + off) / 2
+        pf = _step_pf(series, va, on['i'])
+        pairs.append({
+            'start': on['ts'], 'end': t1,
+            'duration_min': round(dur / 60, 1),
+            'delta_w': round(delta), 'on_w': round(on['w']), 'off_w': round(off),
+            'energy_wh': round(delta * dur / 3600, 1),
+            'pf': pf if pf is not None else _step_pf(series, va, i),
+        })
+    lost_on += len(open_on)
+    pairs.sort(key=lambda p: p['start'])
+    return pairs, lost_on, lost_off
+
+
+def group_cycles(pairs, tol=0.2, max_gap_s=1800):
+    """
+    Agrupa en sesiones los pares de la misma magnitud (±tol) que se repiten con
+    menos de max_gap_s entre el fin de uno y el inicio del siguiente: el
+    termostato de una estufa u horno, o el compresor de la nevera.
+    Devuelve sesiones con start, end, n_cycles, delta_w (mediana), on_min
+    (mediana por ciclo), duty (fracción encendida), energy_wh, pf (mediana).
+    """
+    sessions = []
+    for p in pairs:
+        target = None
+        for s in reversed(sessions):
+            if (p['start'] - s['end']).total_seconds() > max_gap_s:
+                continue
+            if abs(p['delta_w'] - s['ref_w']) <= tol * max(p['delta_w'], s['ref_w']):
+                target = s
+                break
+        if target is None:
+            sessions.append({'ref_w': p['delta_w'], 'pairs': [p], 'end': p['end']})
+        else:
+            target['pairs'].append(p)
+            target['end'] = max(target['end'], p['end'])
+    out = []
+    for s in sessions:
+        ps = s['pairs']
+        span = (s['end'] - ps[0]['start']).total_seconds()
+        # Tiempo encendido = unión de intervalos (dos pares pueden solaparse)
+        on_s, cur_end = 0.0, None
+        for p in ps:
+            a = p['start'] if cur_end is None else max(p['start'], cur_end)
+            if p['end'] > a:
+                on_s += (p['end'] - a).total_seconds()
+            cur_end = p['end'] if cur_end is None else max(cur_end, p['end'])
+        pfs = sorted(p['pf'] for p in ps if p['pf'] is not None)
+        out.append({
+            'start': ps[0]['start'], 'end': s['end'], 'n_cycles': len(ps),
+            'delta_w': sorted(p['delta_w'] for p in ps)[len(ps) // 2],
+            'on_min': sorted(p['duration_min'] for p in ps)[len(ps) // 2],
+            'span_min': round(span / 60, 1),
+            'duty': round(on_s / span, 2) if span else 1.0,
+            'energy_wh': round(sum(p['energy_wh'] for p in ps), 1),
+            'pf': pfs[len(pfs) // 2] if pfs else None,
+        })
+    return out

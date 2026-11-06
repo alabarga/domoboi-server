@@ -94,6 +94,8 @@ class Command(BaseCommand):
         parser.add_argument('--min-delta', type=float, default=40, help='W sobre la base para considerar carga (40)')
         parser.add_argument('--merge-gap', type=int, default=240, help='s: une tramos separados por menos (240)')
         parser.add_argument('--csv', help='Ruta para exportar los eventos candidatos')
+        parser.add_argument('--csv-pairs', help='Ruta para exportar los usos de un solo aparato (pares ON/OFF)')
+        parser.add_argument('--tol', type=float, default=0.3, help='Tolerancia relativa ON/OFF al emparejar (0.3)')
 
     def out(self, s=''):
         self.stdout.write(s)
@@ -278,13 +280,18 @@ class Command(BaseCommand):
 
         # ── 5. Eventos candidatos ────────────────────────────────────
         self.h('5. Eventos candidatos (tramos sobre la base)')
-        segs = det.segment(clean, base, min_d, merge_gap_s=o['merge_gap'])
+        va = det.load_va(dev, since, until)
+        segs = det.segment(clean, base, min_d, merge_gap_s=o['merge_gap'], va=va)
+        with_pf = [s['pf'] for s in segs if s['pf'] is not None]
         self.out(f'Tramos: {len(segs)} ({len(segs) / max(1, len(days)):.1f}/día); '
                  f'1 sola muestra: {sum(1 for s in segs if s["n_samples"] == 1)}; '
                  f'unidos por hueco < {o["merge_gap"]} s: {sum(1 for s in segs if s["merged"])}')
         if segs:
             durs = [s['duration_min'] for s in segs]
             self.out(f'Duración (min): p10={det.pct(durs, .1)} p50={det.pct(durs, .5)} p90={det.pct(durs, .9)} máx={max(durs)}')
+            self.out(f'Con factor de potencia (ΔP ≥ {det.PF_MIN_DELTA_W} W y V·I disponible): {len(with_pf)}'
+                     + (f'; FP p10={det.pct(with_pf, .1)} p50={det.pct(with_pf, .5)} p90={det.pct(with_pf, .9)}, '
+                        f'≥ 0,95 (resistivo): {sum(1 for x in with_pf if x >= 0.95)}' if with_pf else ''))
             tot_e = sum(s['energy_wh'] for s in segs) / 1000
             self.out(f'Energía en eventos: {tot_e:.1f} kWh ({tot_e / max(1, len(days)):.2f} kWh/día sobre la base)')
 
@@ -301,6 +308,7 @@ class Command(BaseCommand):
                          f'meseta~{median(s["plateau_w"] for s in ss):.0f}W pico~{median(s["peak_w"] for s in ss):.0f}W '
                          f'{median(s["energy_wh"] for s in ss):.0f}Wh '
                          f'escalones~{median(s["n_steps"] for s in ss):.0f} '
+                         f'FP~{(median(pfs) if (pfs := [s["pf"] for s in ss if s["pf"] is not None]) else "—")} '
                          f'h:{",".join(f"{h}({c})" for h, c in hours)}')
 
             self.out('\nRecurrencia (intervalo entre inicios dentro del mismo cluster):')
@@ -321,7 +329,41 @@ class Command(BaseCommand):
             for s in sorted(segs, key=lambda s: -s['energy_wh'])[:10]:
                 self.out(f'  {_local(s["start"]):%a %Y-%m-%d %H:%M} {s["duration_min"]:>6} min '
                          f'meseta {s["plateau_w"]:>5} W pico {s["peak_w"]:>5} W {s["energy_wh"]:>6} Wh '
-                         f'muestras {s["n_samples"]:>3} escalones {s["n_steps"]:>2}')
+                         f'muestras {s["n_samples"]:>3} escalones {s["n_steps"]:>2} FP {s["pf"] if s["pf"] is not None else "—"}')
+
+        # ── 5b. Aparatos individuales ────────────────────────────────
+        self.h('5b. Usos de un solo aparato (pares ON/OFF)')
+        pairs, lost_on, lost_off = det.pair_steps(clean, min_d, tol=o['tol'], va=va)
+        n_on = sum(1 for _, d in st if d > 0)
+        self.out(f'Pares: {len(pairs)} ({len(pairs) / max(1, len(days)):.1f}/día); '
+                 f'ON sin pareja: {lost_on}, OFF sin pareja: {lost_off} '
+                 f'({100 * len(pairs) / max(1, n_on):.0f}% de los ON emparejados)')
+        if pairs:
+            e_pairs = sum(p['energy_wh'] for p in pairs) / 1000
+            e_segs = sum(s['energy_wh'] for s in segs) / 1000 if segs else 0
+            self.out(f'Energía explicada por los pares: {e_pairs:.1f} kWh de {e_segs:.1f} kWh sobre la base')
+            self.out('\nPor magnitud × duración (n · FP mediano · horas más comunes):')
+            cl = defaultdict(list)
+            for p in pairs:
+                cl[(_band(p['delta_w'], POWER_BANDS), _band(p['duration_min'], DURATION_BANDS))].append(p)
+            for (pb, db), ps in sorted(cl.items(), key=lambda x: -len(x[1])):
+                if len(ps) < 3:
+                    continue
+                pfs = [p['pf'] for p in ps if p['pf'] is not None]
+                hours = Counter(_local(p['start']).hour for p in ps).most_common(4)
+                self.out(f'  {_label(POWER_BANDS, pb, "W"):>11} × {_label(DURATION_BANDS, db, "min"):>10}: '
+                         f'n={len(ps):>4} ({len(ps) / max(1, len(days)):.1f}/día) '
+                         f'ΔP~{median(p["delta_w"] for p in ps):.0f}W {median(p["duration_min"] for p in ps):.0f}min '
+                         f'FP~{f"{median(pfs):.2f} ({len(pfs)})" if pfs else "—"} '
+                         f'h:{",".join(f"{h}({c})" for h, c in hours)}')
+
+            sessions = det.group_cycles(pairs)
+            cyc = [x for x in sessions if x['n_cycles'] >= 3]
+            self.out(f'\nSesiones cíclicas (≥ 3 ciclos de la misma magnitud, huecos < 30 min): {len(cyc)}')
+            for x in sorted(cyc, key=lambda x: -x['energy_wh'])[:12]:
+                self.out(f'  {_local(x["start"]):%a %m-%d %H:%M}-{_local(x["end"]):%H:%M} '
+                         f'{x["n_cycles"]:>3} ciclos de {x["delta_w"]:>5} W × {x["on_min"]:>5} min, '
+                         f'ciclo de trabajo {x["duty"]:.2f}, {x["energy_wh"]:>6.0f} Wh, FP {x["pf"] if x["pf"] is not None else "—"}')
 
         # ── 6. Contraste con la energía reportada ────────────────────
         self.h('6. Contraste ∫power_w vs energy_added_kwh')
@@ -423,11 +465,22 @@ class Command(BaseCommand):
                 if _local(s['start']).date() == d:
                     self.out(f'  EVENTO {_local(s["start"]):%H:%M}-{_local(s["end"]):%H:%M} {s}')
 
+        if o['csv_pairs']:
+            with open(o['csv_pairs'], 'w', newline='') as f:
+                w = csv.writer(f)
+                cols = ['start', 'end', 'duration_min', 'delta_w', 'on_w', 'off_w', 'energy_wh', 'pf']
+                w.writerow(['device'] + cols + ['hour', 'weekday'])
+                for p in pairs:
+                    lt = _local(p['start'])
+                    w.writerow([dev.device_id] + [_local(p[c]).isoformat() if c in ('start', 'end') else p[c] for c in cols]
+                               + [lt.hour, lt.weekday()])
+            self.out(f'CSV pares: {o["csv_pairs"]} ({len(pairs)} usos)')
+
         if o['csv']:
             with open(o['csv'], 'w', newline='') as f:
                 w = csv.writer(f)
                 cols = ['start', 'end', 'duration_min', 'plateau_w', 'peak_w', 'energy_wh', 'n_samples',
-                        'n_steps', 'merged', 'on_delta_w', 'off_delta_w']
+                        'n_steps', 'merged', 'on_delta_w', 'off_delta_w', 'pf']
                 w.writerow(['device'] + cols + ['hour', 'weekday', 'base_w'])
                 for s in segs:
                     lt = _local(s['start'])

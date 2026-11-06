@@ -54,3 +54,5 @@ notebooks/
 # Database dumps
 *.dump
 test_tuya.py
+# clasificador: datos y modelos generados
+classifier/out/

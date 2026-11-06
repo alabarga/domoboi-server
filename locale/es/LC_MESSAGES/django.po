@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-22 18:14+0200\n"
+"POT-Creation-Date: 2026-11-05 23:42+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -76,59 +76,59 @@ msgstr ""
 msgid "API Docs"
 msgstr ""
 
-#: domoboi/settings.py:258
+#: domoboi/settings.py:259
 msgid "Spanish"
 msgstr "Español"
 
-#: domoboi/settings.py:259
+#: domoboi/settings.py:260
 msgid "Catalan"
 msgstr "Catalán"
 
-#: nilm/models.py:189
+#: nilm/models.py:196
 msgid "Fridge"
 msgstr "Nevera"
 
-#: nilm/models.py:190
+#: nilm/models.py:197
 msgid "Oven"
 msgstr "Horno"
 
-#: nilm/models.py:191
+#: nilm/models.py:198
 msgid "Kettle"
 msgstr "Hervidor"
 
-#: nilm/models.py:192
+#: nilm/models.py:199
 msgid "Microwave"
 msgstr "Microondas"
 
-#: nilm/models.py:193
+#: nilm/models.py:200
 msgid "Washing Machine"
 msgstr "Lavadora"
 
-#: nilm/models.py:194
+#: nilm/models.py:201
 msgid "Iron"
 msgstr "Plancha"
 
-#: nilm/models.py:195
+#: nilm/models.py:202
 msgid "Lights"
 msgstr "Luces"
 
-#: nilm/models.py:196
+#: nilm/models.py:203
 msgid "TV"
 msgstr "TV"
 
-#: nilm/models.py:199
+#: nilm/models.py:206
 msgid "Normal"
 msgstr "Normal"
 
-#: nilm/models.py:200
+#: nilm/models.py:207
 msgid "Unexpected"
 msgstr "Inesperado"
 
-#: nilm/models.py:201
+#: nilm/models.py:208
 msgid "Anormal"
 msgstr "Anómalo"
 
-#: nilm/models.py:202
+#: nilm/models.py:209
 msgid "Alert"
 msgstr "Alerta"
 
@@ -167,7 +167,7 @@ msgid "Last seen"
 msgstr ""
 
 #: nilm/templates/nilm/dashboard.html:4 nilm/templates/vertical.html:23
-#: nilm/templates/vertical.html:91
+#: nilm/templates/vertical.html:102
 msgid "Inicio"
 msgstr ""
 
@@ -175,7 +175,7 @@ msgstr ""
 #: nilm/templates/nilm/location_list.html:4
 #: nilm/templates/partials/main-nav.html:42
 #: nilm/templates/partials/topbar.html:186 nilm/templates/vertical.html:27
-#: nilm/templates/vertical.html:95
+#: nilm/templates/vertical.html:106
 msgid "Ubicaciones"
 msgstr "Ubicaciones"
 
@@ -201,43 +201,66 @@ msgstr "Ubicaciones"
 msgid "Explorar"
 msgstr "Explorar"
 
+#: nilm/templates/nilm/location_appliances.html:4
+#: nilm/templates/nilm/location_appliances.html:33
 #: nilm/templates/nilm/location_detail.html:28
+msgid "Electrodomésticos"
+msgstr ""
+
+#: nilm/templates/nilm/location_appliances.html:38
+msgid "Marca los electrodomésticos que hay en este domicilio."
+msgstr ""
+
+#: nilm/templates/nilm/location_appliances.html:55
+msgid "Guardar"
+msgstr ""
+
+#: nilm/templates/nilm/location_detail.html:33
 msgid "Editar"
 msgstr ""
 
-#: nilm/templates/nilm/location_detail.html:47
+#: nilm/templates/nilm/location_detail.html:64
 #, fuzzy
 #| msgid "residentes"
 msgid "Residentes"
 msgstr "residentes"
 
-#: nilm/templates/nilm/location_detail.html:58
+#: nilm/templates/nilm/location_detail.html:75
 msgid "años"
 msgstr "años"
 
-#: nilm/templates/nilm/location_detail.html:76
-#: nilm/templates/nilm/partials/events_column.html:10
+#: nilm/templates/nilm/location_detail.html:94
+#: nilm/templates/nilm/partials/events_column.html:11
+#, python-format
+msgid "Dispositivo no conectado desde %(date)s"
+msgstr ""
+
+#: nilm/templates/nilm/location_detail.html:96
+#: nilm/templates/nilm/partials/events_column.html:13
+msgid "Dispositivo no conectado"
+msgstr ""
+
+#: nilm/templates/nilm/location_detail.html:105
+#: nilm/templates/nilm/partials/events_column.html:22
 msgid "Domoboi está aprendiendo"
 msgstr "Domoboi está aprendiendo"
 
-#: nilm/templates/nilm/location_detail.html:78
-#: nilm/templates/nilm/partials/events_column.html:12
+#: nilm/templates/nilm/location_detail.html:107
+#: nilm/templates/nilm/partials/events_column.html:24
 msgid ""
-"Estamos aprendiendo las rutinas de tu hogar. Por ahora, los eventos que ves "
-"son ejemplos. Te avisaremos cuando empecemos a mostrar eventos reales."
+"Los eventos que ves son reales, aunque la clasificación puede no ser "
+"correcta."
 msgstr ""
-"Estamos aprendiendo las rutinas de tu hogar. Por ahora, los eventos que ves "
-"son ejemplos. Te avisaremos cuando empecemos a mostrar eventos reales."
 
-#: nilm/templates/nilm/location_detail.html:89
-#: nilm/templates/nilm/partials/events_column.html:23
+#: nilm/templates/nilm/location_detail.html:118
+#: nilm/templates/nilm/partials/events_column.html:35
 #, fuzzy
 #| msgid "Eventos"
 msgid "Eventos del"
 msgstr "Eventos"
 
-#: nilm/templates/nilm/location_detail.html:135
-#: nilm/templates/nilm/partials/events_column.html:65
+#: nilm/templates/nilm/location_detail.html:164
+#: nilm/templates/nilm/partials/events_column.html:77
 #, fuzzy
 #| msgid "No hay mediciones registradas."
 msgid "No hay eventos para este día."
@@ -266,7 +289,7 @@ msgid "Contacta con el administrador para acceder a un domicilio."
 msgstr ""
 
 #: nilm/templates/nilm/location_map.html:4 nilm/templates/vertical.html:31
-#: nilm/templates/vertical.html:99
+#: nilm/templates/vertical.html:110
 #, fuzzy
 #| msgid "Ver Mapa"
 msgid "Mapa"
@@ -339,13 +362,36 @@ msgstr ""
 msgid "Entrar"
 msgstr ""
 
-#: nilm/templates/vertical.html:36 nilm/templates/vertical.html:104
+#: nilm/templates/vertical.html:36 nilm/templates/vertical.html:115
 msgid "Admin"
 msgstr ""
 
-#: nilm/templates/vertical.html:56 nilm/templates/vertical.html:114
+#: nilm/templates/vertical.html:40 nilm/templates/vertical.html:119
+msgid "Detalle"
+msgstr ""
+
+#: nilm/templates/vertical.html:50
+msgid "Cambiar tema claro/oscuro"
+msgstr ""
+
+#: nilm/templates/vertical.html:67 nilm/templates/vertical.html:129
 msgid "Salir"
 msgstr ""
+
+#: nilm/templates/vertical.html:163
+msgid "Tema oscuro"
+msgstr ""
+
+#: nilm/templates/vertical.html:163
+msgid "Tema claro"
+msgstr ""
+
+#~ msgid ""
+#~ "Estamos aprendiendo las rutinas de tu hogar. Por ahora, los eventos que "
+#~ "ves son ejemplos. Te avisaremos cuando empecemos a mostrar eventos reales."
+#~ msgstr ""
+#~ "Estamos aprendiendo las rutinas de tu hogar. Por ahora, los eventos que "
+#~ "ves son ejemplos. Te avisaremos cuando empecemos a mostrar eventos reales."
 
 #~ msgid "Total Devices"
 #~ msgstr "Total de dispositivos"

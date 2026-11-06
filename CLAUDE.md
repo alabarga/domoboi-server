@@ -63,7 +63,7 @@ Access control pattern: every view checks `user.is_superuser` first; regular use
 All app URLs are under `/nilm/` (namespace `nilm`). The root `/` redirects to `/admin/`.
 
 Key view groups:
-- **Dashboard** (`nilm:dashboard`) — seeds demo data for new users automatically via `ensure_user_has_data_and_events()`.
+- **Dashboard** (`nilm:dashboard`).
 - **Location views** — list, map, detail, update.
 - **Person views** — list (admin only), detail.
 - **Event views** — list, detail, by-location, AJAX load-more (`nilm:event_load_more`, returns `X-Has-Next` header).
@@ -95,7 +95,7 @@ Templates live in `nilm/templates/nilm/`. Partials (used for AJAX responses) are
 
 ### Seed / fixture data
 
-`data/` directory contains JSON fixtures for locations, persons, and events used by the `load_setup_data` management command. The `DashboardView` also auto-seeds random events for new users at login time.
+`data/` directory contains JSON fixtures for locations, persons, and events used by the `load_setup_data` management command.
 
 ### Notebooks
 

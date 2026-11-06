@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "vertical.html" %}
 {% load i18n %}
 {% block title %}Medida {{ measurement.id }} · {{ device.device_id }}{% endblock %}
 
@@ -8,8 +8,8 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 {% endblock %}
 
-{% block content %}
-<div class="max-w-3xl mx-auto px-4 py-6">
+{% block page_content %}
+<div class="max-w-3xl mx-auto">
   <div class="mb-4 flex items-start justify-between gap-3">
     <div>
       {% if day %}
@@ -25,7 +25,6 @@
         {% if duration is not None %}· {{ duration|floatformat:1 }} s{% endif %}
       </p>
     </div>
-    {% include "reconstruction/partials/theme_toggle.html" %}
   </div>
 
   <div class="bg-gray-50 border rounded-xl p-4 mb-4">

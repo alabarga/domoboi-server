@@ -27,6 +27,14 @@
   <!-- Tailwind (compiled) -->
   <link rel="stylesheet" href="{% static 'css/tailwind.css' %}"/>
 
+  <!-- Theme: apply saved light/dark BEFORE paint to avoid flicker -->
+  <script>
+    try {
+      document.documentElement.setAttribute(
+        'data-theme', localStorage.getItem('domoboi-theme') === 'light' ? 'light' : 'dark');
+    } catch (e) { document.documentElement.setAttribute('data-theme', 'dark'); }
+  </script>
+
   <style>
     /* ─── Hearth palette ─────────────────────────────────────── */
     :root {
@@ -140,6 +148,44 @@
     /* ─── Leaflet tile fix (Tailwind preflight conflict) ─────── */
     .leaflet-container img { max-width: none !important; max-height: none !important; }
     .leaflet-container { position: relative; }
+
+    /* ─── Light theme: overrides the palette vars + hardcoded !important colors ── */
+    html[data-theme="light"] {
+      --bg:             #F7F3EC;
+      --surface:        #FFFFFF;
+      --surface-raised: #EFE8DC;
+      --border:         rgba(60,40,20,0.14);
+      --accent:         #B7791F;
+      --accent-warm:    #C2410C;
+      --danger:         #C62828;
+      --text-primary:   #2A2118;
+      --text-muted:     #7A6A5A;
+      --brand:          #B7791F;
+      --accent-flash:   rgba(183,121,31,0.28);
+      color-scheme: light;
+    }
+    html:not([data-theme="light"]) { --accent-flash: rgba(240,168,48,0.28); }
+
+    html[data-theme="light"] .border-gray-300 { border-color: rgba(60,40,20,0.22) !important; }
+    html[data-theme="light"] .bg-violet-100  { background: rgba(183,121,31,0.12) !important; }
+    html[data-theme="light"] .bg-violet-600,
+    html[data-theme="light"] .bg-violet-700  { color: #fff !important; }
+    html[data-theme="light"] .hover\:bg-violet-700:hover { background: #8f5d14 !important; }
+    html[data-theme="light"] .hover\:bg-violet-100:hover,
+    html[data-theme="light"] .hover\:bg-violet-50:hover  { background: rgba(183,121,31,0.10) !important; }
+    html[data-theme="light"] .bg-green-100  { background: rgba(183,121,31,0.14) !important; }
+    html[data-theme="light"] .bg-amber-100,
+    html[data-theme="light"] .bg-orange-100 { background: rgba(194,65,12,0.12) !important; }
+    html[data-theme="light"] .bg-red-100    { background: rgba(198,40,40,0.12) !important; }
+    html[data-theme="light"] .event-card-gray { border-left-color: rgba(60,40,20,0.25) !important; }
+    html[data-theme="light"] .shadow-sm { box-shadow: 0 1px 3px rgba(60,40,20,0.15) !important; }
+    html[data-theme="light"] .hover\:shadow-md:hover { box-shadow: 0 4px 16px rgba(60,40,20,0.15) !important; }
+    html[data-theme="light"] input[type="date"], html[data-theme="light"] input[type="text"],
+    html[data-theme="light"] input[type="email"], html[data-theme="light"] input[type="password"],
+    html[data-theme="light"] select, html[data-theme="light"] textarea {
+      color-scheme: light;
+      border-color: rgba(60,40,20,0.22) !important;
+    }
   </style>
 
   {% if WEBPUSH_SETTINGS.VAPID_PUBLIC_KEY %}

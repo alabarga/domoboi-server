@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "vertical.html" %}
 {% load i18n %}
 {% block title %}{{ device.device_id }} · Reconstrucción de señal{% endblock %}
 
@@ -15,8 +15,10 @@
 </script>
 {% endblock %}
 
-{% block content %}
-<div class="mx-auto px-4 py-6" style="max-width:1800px">
+{% block main_width %}max-w-none{% endblock %}
+
+{% block page_content %}
+<div class="mx-auto">
   <div class="mb-4 flex items-start justify-between gap-3">
    <div>
     <a href="{% url 'reconstruction:device_list' %}" class="text-xs text-gray-500 hover:text-violet-700">
@@ -27,7 +29,6 @@
       {{ device.model }} · {{ device.location.description|default:"Sin ubicación" }}
     </p>
    </div>
-   {% include "reconstruction/partials/theme_toggle.html" %}
   </div>
 
   <div id="day-panel">

@@ -1,5 +1,5 @@
 {% extends "vertical.html" %}
-{% load static i18n humanize %}
+{% load static i18n humanize event_utils %}
 
 {% block title %}{{ location.description }} | DOMOBOI{% endblock %}
 
@@ -22,6 +22,11 @@
         <span class="truncate">{{ location.address }}</span>
       </p>
     </div>
+    <a href="{% url 'nilm:location_appliances' location.pk %}"
+       class="flex-shrink-0 text-sm px-3 py-1.5 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-1">
+      <span class="material-symbols-rounded" style="font-size:1.1rem;">kitchen</span>
+      <span class="hidden sm:inline">{% trans "Electrodomésticos" %}</span>
+    </a>
     {% if request.user.is_superuser %}
       <a href="/admin/nilm/location/{{ location.pk }}/change/"
          class="flex-shrink-0 text-sm px-3 py-1.5 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-1">
@@ -29,6 +34,18 @@
       </a>
     {% endif %}
   </div>
+
+  {% if appliances %}
+  <!-- Appliances at this location -->
+  <a href="{% url 'nilm:location_appliances' location.pk %}" class="flex flex-wrap gap-2 mb-5">
+    {% for a in appliances %}
+    <span class="w-9 h-9 rounded-lg flex items-center justify-center"
+          style="background:rgba(240,168,48,0.12);color:var(--accent);" title="{{ a.get_type_display }}">
+      <span class="material-symbols-rounded" style="font-size:1.25rem;">{{ a.type|get_event_icon }}</span>
+    </span>
+    {% endfor %}
+  </a>
+  {% endif %}
 
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
@@ -68,14 +85,26 @@
     <!-- Right column: events (full width on mobile, 2/3 on lg) -->
     <div id="events-column" class="col-span-1 lg:col-span-2 space-y-4">
 
-      {% if is_placeholder and recent_events %}
+      {% if not device_active %}
+      <div class="rounded-xl border p-4 flex items-start gap-3"
+           style="background:#fee2e2; border-color:#f3a3a3;">
+        <i class="ri-plug-line text-xl flex-shrink-0" style="color:#991b1b;"></i>
+        <p class="text-sm font-semibold" style="color:#991b1b;">
+          {% if device_last_active %}
+            {% blocktrans with date=device_last_active|date:"j N Y" %}Dispositivo no conectado desde {{ date }}{% endblocktrans %}
+          {% else %}
+            {% trans "Dispositivo no conectado" %}
+          {% endif %}
+        </p>
+      </div>
+      {% else %}
       <div class="rounded-xl border p-4 flex items-start gap-3"
            style="background:#F0A830; border-color:#d9951f;">
         <i class="ri-lightbulb-flash-line text-xl flex-shrink-0" style="color:#5c3a00;"></i>
         <div class="space-y-1">
           <p class="text-sm font-semibold" style="color:#5c3a00;">{% trans "Domoboi está aprendiendo" %}</p>
           <p class="text-xs leading-relaxed" style="color:#5c3a00;">
-            {% trans "Estamos aprendiendo las rutinas de tu hogar. Por ahora, los eventos que ves son ejemplos. Te avisaremos cuando empecemos a mostrar eventos reales." %}
+            {% trans "Los eventos que ves son reales, aunque la clasificación puede no ser correcta." %}
           </p>
         </div>
       </div>

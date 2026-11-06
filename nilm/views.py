@@ -12,7 +12,7 @@ from django.db.models import Q
 from django.core.paginator import Paginator
 from django.contrib.auth.models import User
 from django.utils import timezone
-from .models import Location, Person, Event, Comment, UserProfile, Device
+from .models import Location, Person, Event, Comment, UserProfile, Device, Appliance
 from .forms import CommentForm, LocationUpdateForm, UserProfileUpdateForm, UserLocationAssignmentForm
 
 class LocationListView(LoginRequiredMixin, ListView):
@@ -78,6 +78,7 @@ class LocationDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['persons'] = self.object.persons.all()
+        context['appliances'] = self.object.appliances.all()
 
         # Date filter — default to today
         date_str = self.request.GET.get('date')
@@ -87,16 +88,15 @@ class LocationDetailView(LoginRequiredMixin, DetailView):
             selected_date = timezone.localdate()
 
         events_qs = self.object.events.filter(start_time__date=selected_date).order_by('-start_time')
-        if events_qs.exists():
-            paginator = Paginator(events_qs, 10)
-            context['recent_events'] = paginator.get_page(1)
-            context['has_next_events'] = paginator.num_pages > 1
-            context['is_placeholder'] = False
-        else:
-            context['recent_events'] = get_placeholder_events(self.object, selected_date)
-            context['has_next_events'] = False
-            context['is_placeholder'] = True
+        paginator = Paginator(events_qs, 10)
+        context['recent_events'] = paginator.get_page(1)
+        context['has_next_events'] = paginator.num_pages > 1
         context['selected_date'] = selected_date
+
+        devices = self.object.devices.all()
+        context['device_active'] = any(d.is_active for d in devices)
+        last_actives = [d.last_active for d in devices if d.last_active]
+        context['device_last_active'] = max(last_actives) if last_actives else None
 
         # Most recent previous date that has real events (for cross-date scroll)
         context['prev_date'] = (
@@ -137,6 +137,38 @@ class LocationUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     
     def get_success_url(self):
         return reverse('nilm:location_detail', kwargs={'pk': self.object.pk})
+
+class LocationAppliancesView(LoginRequiredMixin, View):
+    """Mobile-first picker for the appliance types present at a location"""
+    template_name = 'nilm/location_appliances.html'
+
+    def get_location(self, request, pk):
+        if request.user.is_superuser:
+            qs = Location.objects.all()
+        else:
+            try:
+                qs = request.user.profile.locations.all()
+            except UserProfile.DoesNotExist:
+                qs = Location.objects.none()
+        return get_object_or_404(qs, pk=pk)
+
+    def get(self, request, pk):
+        location = self.get_location(request, pk)
+        selected = set(location.appliances.values_list('type', flat=True))
+        return render(request, self.template_name, {
+            'location': location,
+            'choices': [(code, label, code in selected) for code, label in Event.APPLIANCE_TYPES],
+        })
+
+    def post(self, request, pk):
+        location = self.get_location(request, pk)
+        valid = {code for code, _ in Event.APPLIANCE_TYPES}
+        chosen = set(request.POST.getlist('type')) & valid
+        location.appliances.exclude(type__in=chosen).delete()
+        Appliance.objects.bulk_create(
+            [Appliance(location=location, type=t) for t in chosen], ignore_conflicts=True)
+        return redirect('nilm:location_detail', pk=location.pk)
+
 
 def service_worker(request):
     """Serve the service worker JS with no-cache headers so updates are always picked up."""
@@ -270,54 +302,6 @@ def add_comment(request, person_id):
     
     return redirect('nilm:person_detail', pk=person_id)
 
-# Plausible daily household schedule used as placeholder when no real events exist.
-_DAILY_SCHEDULE = [
-    {'hour':  6, 'minute': 30, 'type': 'LIGHTS',          'duration':  8, 'class_name': 'NORMAL'},
-    {'hour':  7, 'minute':  0, 'type': 'KETTLE',           'duration':  5, 'class_name': 'NORMAL'},
-    {'hour':  7, 'minute': 10, 'type': 'MICROWAVE',        'duration':  3, 'class_name': 'NORMAL'},
-    {'hour':  7, 'minute': 30, 'type': 'FRIDGE',           'duration':  2, 'class_name': 'NORMAL'},
-    {'hour':  9, 'minute':  0, 'type': 'WASHING MACHINE',  'duration': 92, 'class_name': 'NORMAL'},
-    {'hour': 10, 'minute': 45, 'type': 'IRON',             'duration': 22, 'class_name': 'NORMAL'},
-    {'hour': 12, 'minute':  0, 'type': 'MICROWAVE',        'duration':  4, 'class_name': 'NORMAL'},
-    {'hour': 12, 'minute': 15, 'type': 'KETTLE',           'duration':  4, 'class_name': 'NORMAL'},
-    {'hour': 14, 'minute': 30, 'type': 'TV',               'duration': 90, 'class_name': 'NORMAL'},
-    {'hour': 16, 'minute': 30, 'type': 'KETTLE',           'duration':  5, 'class_name': 'NORMAL'},
-    {'hour': 18, 'minute': 30, 'type': 'OVEN',             'duration': 52, 'class_name': 'NORMAL'},
-    {'hour': 18, 'minute': 35, 'type': 'FRIDGE',           'duration':  3, 'class_name': 'NORMAL'},
-    {'hour': 19, 'minute': 30, 'type': 'LIGHTS',           'duration':180, 'class_name': 'NORMAL'},
-    {'hour': 20, 'minute': 30, 'type': 'TV',               'duration':120, 'class_name': 'NORMAL'},
-    {'hour': 23, 'minute':  0, 'type': 'LIGHTS',           'duration': 25, 'class_name': 'NORMAL'},
-]
-
-
-def get_placeholder_events(location, date):
-    """Return a plausible timed sequence of demo Event objects (unsaved) for `date`.
-
-    If `date` is today, truncates to events whose start_time <= now.
-    If a past date, returns the complete daily sequence.
-    """
-    now = timezone.localtime()
-    today = now.date()
-    events = []
-    for item in _DAILY_SCHEDULE:
-        # Build the wall-clock time in the active timezone, not the server's.
-        start = timezone.make_aware(
-            datetime.datetime.combine(date, datetime.time(item['hour'], item['minute']))
-        )
-        if date == today and start > now:
-            continue  # future — not shown yet
-        end = start + datetime.timedelta(minutes=item['duration'])
-        events.append(Event(
-            location=location,
-            start_time=start,
-            end_time=end,
-            type=item['type'],
-            class_name=item['class_name'],
-            description='',
-        ))
-    return list(reversed(events))  # latest first
-
-
 def _build_location_map_json(locations_qs):
     """Build JSON list of {pk, description, lat, lon} for a queryset of Locations."""
     data = []
@@ -330,54 +314,6 @@ def _build_location_map_json(locations_qs):
         except ValueError:
             pass
     return json.dumps(data)
-
-
-def ensure_user_has_data_and_events(user):
-    import random
-    from .models import Location, Event, UserProfile
-    
-    # 1. If not superuser, assign random locations if they have none
-    if not user.is_superuser:
-        try:
-            profile = user.profile
-            if profile.locations.count() == 0:
-                all_locs = list(Location.objects.all())
-                if all_locs:
-                    profile.locations.add(*random.sample(all_locs, min(3, len(all_locs))))
-        except UserProfile.DoesNotExist:
-            pass
-
-    # 2. Get user locations
-    if user.is_superuser:
-        user_locs = list(Location.objects.all())
-    else:
-        try:
-            user_locs = list(user.profile.locations.all())
-        except UserProfile.DoesNotExist:
-            user_locs = []
-
-    # 3. Seed events if the user's locations have none
-    if user_locs and Event.objects.filter(location__in=user_locs).count() == 0:
-        types = ['FRIDGE', 'OVEN', 'KETTLE', 'MICROWAVE', 'WASHING MACHINE', 'IRON', 'LIGHTS', 'TV']
-        classes = ['NORMAL', 'UNEXPECTED', 'ANORMAL', 'ALERT']
-        now = timezone.now()
-        
-        for i in range(24):
-            loc = random.choice(user_locs)
-            etype = random.choice(types)
-            eclass = random.choice(classes)
-            duration = random.randint(5, 120)
-            start = now - timezone.timedelta(hours=random.randint(0, 48), minutes=random.randint(0, 59))
-            end = start + timezone.timedelta(minutes=duration)
-            
-            Event.objects.create(
-                location=loc,
-                start_time=start,
-                end_time=end,
-                type=etype,
-                class_name=eclass,
-                description=f"Funcionamiento detectado de {etype}."
-            )
 
 
 class DashboardView(LoginRequiredMixin, ListView):
@@ -397,7 +333,6 @@ class DashboardView(LoginRequiredMixin, ListView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
-        ensure_user_has_data_and_events(self.request.user)
         if self.request.user.is_superuser:
             return Location.objects.all()
         else:
@@ -515,7 +450,6 @@ class EventLoadMoreView(LoginRequiredMixin, ListView):
     paginate_by = 10
 
     def get_queryset(self):
-        ensure_user_has_data_and_events(self.request.user)
         location_id = self.request.GET.get('location_id')
         if not location_id:
             self._base_qs = Event.objects.none()

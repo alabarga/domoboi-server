@@ -138,6 +138,13 @@ class Measurement(models.Model):
     def location(self):
         return self.device.location if self.device else None
 
+    @property
+    def measurement_type(self):
+        """'current' (Tuya instantaneous), 'energy_added' (Tuya add_ele tick), or 'current_3s' (DOMOBOI window)."""
+        if self.telemetry:
+            return 'energy_added' if 'current_a' not in self.telemetry else 'current'
+        return 'current_3s'
+
     def save(self, *args, **kwargs):
         if not self.timestamp:
             self.timestamp = self.start_time
@@ -219,6 +226,21 @@ class Event(models.Model):
     class Meta:
         ordering = ['-start_time']
         
+class Appliance(models.Model):
+    """An appliance type present at a location (one row per type)."""
+    location = models.ForeignKey(Location, on_delete=models.CASCADE, related_name='appliances')
+    type = models.CharField(max_length=20, choices=Event.APPLIANCE_TYPES)
+
+    def __str__(self):
+        return f"{self.location.description} - {self.get_type_display()}"
+
+    class Meta:
+        ordering = ['type']
+        constraints = [
+            models.UniqueConstraint(fields=['location', 'type'], name='uniq_appliance_location_type'),
+        ]
+
+
 class Comment(models.Model):
     """Model for storing user comments about persons"""
     person = models.ForeignKey(Person, on_delete=models.CASCADE, related_name='comments')

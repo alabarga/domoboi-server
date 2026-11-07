@@ -25,7 +25,7 @@ from django.utils import timezone
 
 from nilm import classification as cls
 from nilm import detection as det
-from nilm.models import Device, Event
+from nilm.models import ClassifiedSession, Device, Event
 
 MIN_DELTA_W = 40
 # Margen antes de la ventana: un ON puede quedar abierto hasta 4 h (pair_steps).
@@ -37,6 +37,8 @@ DEFAULT_LOOKBACK = timedelta(hours=8)
 # y se pierde; reprocesar con --since/--until si hiciera falta.
 METER_WINDOW = timedelta(days=30)
 GENERAL_METER_W = 2000  # por debajo de esto el medidor solo ve un circuito
+BACKGROUND_MAX_W = 150
+BACKGROUND_MAX_MIN = 15
 
 
 def _day(s):
@@ -44,6 +46,12 @@ def _day(s):
         return timezone.make_aware(datetime.combine(date.fromisoformat(s), time.min))
     except ValueError:
         raise CommandError(f'Fecha inválida: {s} (usa YYYY-MM-DD)')
+
+
+def is_background(session):
+    """Un solo ciclo de < BACKGROUND_MAX_W que dura ≤ BACKGROUND_MAX_MIN."""
+    return (session['n_cycles'] == 1 and session['delta_w'] < BACKGROUND_MAX_W
+            and session['span_min'] <= BACKGROUND_MAX_MIN)
 
 
 def event_class(label, session):
@@ -77,6 +85,7 @@ class Command(BaseCommand):
         parser.add_argument('--limit', type=int, help='Máximo de sesiones a enviar en total')
 
     def handle(self, *args, **o):
+        self.verbosity = o['verbosity']
         now = timezone.now()
         accept_from = _day(o['since']) if o['since'] else now - DEFAULT_LOOKBACK
         accept_to = min(_day(o['until']), now) if o['until'] else now
@@ -114,8 +123,16 @@ class Command(BaseCommand):
         stats['sesiones'] = len(sessions)
         sessions = [s for s in sessions if not (s['n_cycles'] < 3 and s['max_on_min'] < 1)]
         stats['transitorios'] = stats['sesiones'] - len(sessions)
-        done = set(Event.objects.filter(source='AUTO', device=dev, start_time__in=[s['start'] for s in sessions])
+        n = len(sessions)
+        # ponytail: ciclo suelto pequeño y corto = carga de fondo (compresor de
+        # nevera, standby); no dice nada de la rutina y costaría créditos.
+        sessions = [s for s in sessions if not is_background(s)]
+        stats['fondo'] = n - len(sessions)
+        starts = [s['start'] for s in sessions]
+        done = set(Event.objects.filter(source='AUTO', device=dev, start_time__in=starts)
                    .values_list('start_time', flat=True))
+        done |= set(ClassifiedSession.objects.filter(device=dev, start_time__in=starts)
+                    .values_list('start_time', flat=True))
         sessions = [s for s in sessions if s['start'] not in done]
         stats['ya_guardadas'] = len(done)
         if not sessions:
@@ -149,7 +166,7 @@ class Command(BaseCommand):
             items = items[:budget]
             budget -= len(items)
 
-        to_create = []
+        to_create, seen = [], []
         for b in range(0, len(items), cls.BATCH_SIZE):
             batch = items[b:b + cls.BATCH_SIZE]
             qitems = [(f'E{i + 1}', cls.describe(s, f'E{i + 1}'), c) for i, (s, c) in enumerate(batch)]
@@ -161,7 +178,7 @@ class Command(BaseCommand):
             try:
                 resp = cls.call_freejev(body, api_key, settings.FREEJEV_BASE_URL)
             except cls.FreeJevError as e:
-                Event.objects.bulk_create(to_create, ignore_conflicts=True)
+                self.save(to_create, seen)
                 raise CommandError(f'{e} (guardados {len(to_create)} eventos antes del error)')
             if b == 0 and o['limit']:
                 self.stdout.write('Respuesta FreeJev: ' + json.dumps(resp, ensure_ascii=False)[:2000])
@@ -170,11 +187,15 @@ class Command(BaseCommand):
                 if isinstance(usage.get(k), (int, float)):
                     stats['creditos'] += usage[k]
             answers = cls.parse_answers(resp, body)
-            for (qid, desc, _), (s, _) in zip(qitems, batch):
+            for (qid, desc, _), (s, _c) in zip(qitems, batch):
                 label, conf = answers.get(qid, (None, None))
+                if self.verbosity >= 2:
+                    self.stdout.write(f"  {timezone.localtime(s['start']):%a %m-%d %H:%M} {summary(s):<40} "
+                                      f"→ {label} ({conf})  candidatos: {','.join(_c)}")
                 if label is None:
                     stats['sin_respuesta'] += 1
                     continue
+                seen.append(ClassifiedSession(device=dev, start_time=s['start'], label=label, confidence=conf))
                 if label in cls.EXTRA:
                     stats[label] += 1
                     continue
@@ -185,8 +206,12 @@ class Command(BaseCommand):
                     class_name=event_class(label, s), description=summary(s),
                     confidence=conf, features=desc,
                 ))
-        if to_create:
-            # bulk_create no lanza post_save: nunca hay push (además no se generan ALERT)
-            Event.objects.bulk_create(to_create, ignore_conflicts=True)
+        self.save(to_create, seen)
         stats['guardadas'] = len(to_create)
         return stats, budget
+
+    @staticmethod
+    def save(events, seen):
+        # bulk_create no lanza post_save: nunca hay push (además no se generan ALERT)
+        Event.objects.bulk_create(events, ignore_conflicts=True)
+        ClassifiedSession.objects.bulk_create(seen, ignore_conflicts=True)

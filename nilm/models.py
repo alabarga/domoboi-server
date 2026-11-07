@@ -246,6 +246,22 @@ class Event(models.Model):
         ]
 
 
+class ClassifiedSession(models.Model):
+    """
+    Toda sesión ya enviada a FreeJev por detect_events, también las OTHER/NOISE
+    que no se guardan como Event: evita volver a pagar por ellas en la
+    siguiente ejecución horaria.
+    """
+    device = models.ForeignKey('Device', on_delete=models.CASCADE, related_name='classified_sessions')
+    start_time = models.DateTimeField()
+    label = models.CharField(max_length=20)
+    confidence = models.FloatField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['device', 'start_time'], name='uniq_classified_session')]
+
+
 class Appliance(models.Model):
     """An appliance type present at a location (one row per type)."""
     location = models.ForeignKey(Location, on_delete=models.CASCADE, related_name='appliances')

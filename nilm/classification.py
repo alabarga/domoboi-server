@@ -42,6 +42,12 @@ SIGNATURES = {
     'LIGHTS': dict(min_w=10, max_w=300, pf=None,
                    desc='Luces: 10–300 W, encendidas al anochecer o en momentos puntuales de noche.'),
 }
+NAMES = {
+    'FRIDGE': 'Nevera o congelador', 'COOKTOP': 'Vitrocerámica o inducción', 'HEATER': 'Estufa o radiador',
+    'OVEN': 'Horno', 'KETTLE': 'Hervidor o cafetera', 'WATER_HEATER': 'Termo eléctrico',
+    'WASHING MACHINE': 'Lavadora', 'MICROWAVE': 'Microondas', 'IRON': 'Plancha', 'TV': 'Televisión',
+    'LIGHTS': 'Luces',
+}
 EXTRA = {
     'OTHER': 'Otro aparato, varios a la vez, o ninguno de los anteriores encaja.',
     'NOISE': 'No es un uso real: ruido o transitorio del medidor.',
@@ -56,6 +62,14 @@ ROUTINE = (
     '(lavadora, plancha) o salir; 13–15 h comida principal; 15–17 h siesta o TV; '
     '17–21 h TV y luces al anochecer, estufa en invierno; 20–22 h cena ligera; '
     '22–24 h acostarse.'
+)
+
+
+GUIDE = (
+    'Cada evento es un uso de un solo aparato: delta_w = potencia que añade, dur_min = duración '
+    'de la sesión, ciclos = encendidos repetidos (termostato), on_min = duración típica de cada '
+    'ciclo, duty = fracción del tiempo encendido, fp_tipo = tipo de carga (si fp_aprox es true, '
+    'solo orientativo). Compara con state.firmas, la hora local (inicio) y la rutina esperada.'
 )
 
 
@@ -104,16 +118,18 @@ def build_request(context, items):
     items: [(qid, descriptor, [tipos candidatos])], como mucho BATCH_SIZE.
     """
     assert len(items) <= BATCH_SIZE
-    state = dict(context, rutina_esperada=ROUTINE, eventos=[d for _, d, _ in items])
+    # Las firmas van una sola vez en state (se cobra por token de entrada);
+    # cada criterio lleva solo el nombre.
+    used = sorted({t for _, _, cands in items for t in cands})
+    state = dict(context, rutina_esperada=ROUTINE, como_decidir=GUIDE,
+                 firmas={t: SIGNATURES[t]['desc'] for t in used}, eventos=[d for _, d, _ in items])
     questions = {}
     for qid, _, cands in items:
-        criteria = {t: SIGNATURES[t]['desc'] for t in cands}
+        criteria = {t: f'{NAMES[t]} (firma en state.firmas.{t})' for t in cands}
         criteria.update(EXTRA)
         questions[qid] = {
             'type': 'choice',
-            'instructions': (f'¿Qué electrodoméstico produjo el evento {qid} de state.eventos? '
-                             'Ten en cuenta potencia (delta_w), duración, ciclos, factor de potencia '
-                             '(fp_tipo; si fp_aprox es true es solo orientativo), la hora y la rutina esperada.'),
+            'instructions': f'¿Qué electrodoméstico produjo el evento {qid} de state.eventos? (ver state.como_decidir)',
             'criteria': criteria,
         }
     return {'state': state, 'questions': questions}
@@ -133,12 +149,12 @@ def _label_conf(answer, allowed):
                   if isinstance(answer.get(k), str)), None)
     if label is None and probs:
         label = max(probs, key=probs.get)
-    conf = None
-    if probs and label in probs:
+    # Formato real (nov-2026): {"type": "choice", "choice": "FRIDGE", "confidence": 0.42,
+    # "probabilities": {"FRIDGE": 0.54, "OTHER": 0.41, ...}}. Se prefiere la confianza de la API.
+    conf = next((float(answer[k]) for k in ('confidence', 'probability', 'p')
+                 if isinstance(answer.get(k), (int, float))), None)
+    if conf is None and probs and label in probs:
         conf = float(probs[label])
-    else:
-        conf = next((float(answer[k]) for k in ('confidence', 'probability', 'p')
-                     if isinstance(answer.get(k), (int, float))), None)
     return (label, conf) if label in allowed else (None, None)
 
 

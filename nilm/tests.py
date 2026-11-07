@@ -341,6 +341,7 @@ class ClassificationTests(TestCase):
         body = cls.build_request({'vivienda': 'persona mayor que vive sola'},
                                  [('E1', cls.describe(s, 'E1'), ['COOKTOP', 'OVEN'])])
         self.assertEqual(set(body['questions']['E1']['criteria']), {'COOKTOP', 'OVEN', 'OTHER', 'NOISE'})
+        self.assertEqual(set(body['state']['firmas']), {'COOKTOP', 'OVEN'})  # descripciones una sola vez
         self.assertEqual(body['state']['eventos'][0]['inicio'], 'jue 20:00')
         with self.assertRaises(AssertionError):
             cls.build_request({}, [('E%d' % i, {}, ['OVEN']) for i in range(17)])
@@ -349,6 +350,8 @@ class ClassificationTests(TestCase):
             ({'answer': 'OVEN', 'probabilities': {'OVEN': 0.7, 'COOKTOP': 0.3}}, ('OVEN', 0.7)),
             ({'COOKTOP': 0.8, 'OVEN': 0.2}, ('COOKTOP', 0.8)),
             ('FRIDGE', (None, None)),  # no estaba entre los criterios
+            ({'type': 'choice', 'choice': 'OVEN', 'confidence': 0.42,  # formato real de FreeJev
+              'probabilities': {'OVEN': 0.54, 'OTHER': 0.41, 'NOISE': 0.05}}, ('OVEN', 0.42)),
         ]:
             self.assertEqual(cls.parse_answers({'answers': {'E1': answer}}, body)['E1'], expected)
 
@@ -390,7 +393,8 @@ class DetectEventsCommandTests(TestCase):
         self.assertEqual(api.call_count, 0)
         self.assertEqual(Event.objects.count(), 1)
 
-    def test_noise_is_not_stored(self):
+    def test_noise_is_not_stored_nor_resent(self):
         from nilm.models import Event
         self.run_cmd('NOISE')
         self.assertEqual(Event.objects.count(), 0)
+        self.assertEqual(self.run_cmd('NOISE').call_count, 0)  # ya clasificada: no se paga otra vez

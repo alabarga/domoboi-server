@@ -315,14 +315,35 @@ class Command(BaseCommand):
 
     # ------------------------------------------------------------------ modes
 
+    # A live poll returns the cloud's last known values even when the meter is
+    # offline, stamped with the poll time. Stored as-is, a dead meter keeps
+    # writing identical rows and Device.is_active stays true for weeks.
+    FROZEN_KEYS = ("power_w", "current_a", "voltage_v")
+
+    def _is_stale(self, device, metrics):
+        """True if P, I and V equal the device's last stored sample exactly (live voltage moves by tenths)."""
+        if any(metrics.get(k) is None for k in self.FROZEN_KEYS):
+            return False
+        last = (Measurement.objects.filter(device=device, telemetry__has_key="power_w")
+                .order_by("-timestamp").values_list("telemetry", flat=True).first())
+        if not isinstance(last, dict):
+            return False
+        try:
+            return all(float(last.get(k)) == float(metrics[k]) for k in self.FROZEN_KEYS)
+        except (TypeError, ValueError):
+            return False
+
     def _poll_once(self, client, devices, dry_run):
         errors = []
         readings = client.read_many(list(devices), errors=errors)
 
-        rows = []
+        rows, stale = [], []
         for reading in readings:
             device = devices.get(reading.device_id)
             if device is None:
+                continue
+            if self._is_stale(device, reading.metrics or {}):
+                stale.append(device.device_id)
                 continue
             # The live snapshot repeats the last add_ele increment on every poll,
             # and history already stores it at its real instant: keeping it here
@@ -333,6 +354,9 @@ class Command(BaseCommand):
         stored = self._store(rows, dry_run)
         for device_id, err in errors:
             self.stderr.write(self.style.WARNING(f"  read failed for {device_id}: {err}"))
+        if stale:
+            self.stderr.write(self.style.WARNING(
+                f"  {len(stale)} frozen reading(s) skipped (device probably offline): {', '.join(stale)}"))
 
         verb = "would store" if dry_run else "stored"
         style = self.style.WARNING if errors else self.style.SUCCESS

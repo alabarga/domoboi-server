@@ -398,3 +398,28 @@ class DetectEventsCommandTests(TestCase):
         self.run_cmd('NOISE')
         self.assertEqual(Event.objects.count(), 0)
         self.assertEqual(self.run_cmd('NOISE').call_count, 0)  # ya clasificada: no se paga otra vez
+
+
+class TuyaPollFrozenTests(TestCase):
+    def test_frozen_live_reading_is_skipped(self):
+        import datetime as dt
+        from types import SimpleNamespace
+        from django.utils import timezone
+        from nilm.management.commands.tuya_poll import Command
+        from nilm.models import Device, Measurement
+        dev = Device.objects.create(device_id='tuya-f', model='m', device_type='TUYA')
+        t0 = timezone.now() - dt.timedelta(minutes=15)
+        frozen = {'power_w': 119.0, 'current_a': 0.752, 'voltage_v': 237.6}
+        Measurement.objects.create(device=dev, start_time=t0, end_time=t0, timestamp=t0, telemetry=frozen)
+
+        class Client:
+            def __init__(self, metrics):
+                self.metrics = metrics
+
+            def read_many(self, ids, errors=None):
+                return [SimpleNamespace(device_id='tuya-f', timestamp=timezone.now(), metrics=self.metrics)]
+
+        cmd = Command(stdout=open('/dev/null', 'w'), stderr=open('/dev/null', 'w'))
+        self.assertEqual(cmd._poll_once(Client(dict(frozen)), {'tuya-f': dev}, False), (0, 0))
+        self.assertEqual(cmd._poll_once(Client(dict(frozen, voltage_v=237.8)), {'tuya-f': dev}, False), (1, 0))
+        self.assertEqual(Measurement.objects.filter(device=dev).count(), 2)

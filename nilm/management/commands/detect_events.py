@@ -39,6 +39,12 @@ METER_WINDOW = timedelta(days=30)
 GENERAL_METER_W = 2000  # por debajo de esto el medidor solo ve un circuito
 BACKGROUND_MAX_W = 150
 BACKGROUND_MAX_MIN = 15
+# Dos eventos del mismo tipo separados por menos de esto son un solo uso
+# (p. ej. dos fuegos de la vitro a potencias distintas = dos sesiones).
+MERGE_GAP = timedelta(minutes=15)
+# Por debajo de esta confianza de FreeJev no se guarda el evento (cuenta como OTHER):
+# "microondas de 12 min a las 05:00" salía con 0,19–0,27.
+MIN_CONFIDENCE = 0.35
 
 
 def _day(s):
@@ -74,6 +80,49 @@ def summary(session):
     return ' · '.join(parts)
 
 
+def absorb(a, b):
+    """Une el evento b en a (mismo tipo, contiguos o solapados)."""
+    a.end_time = max(a.end_time, b.end_time)
+    fa, fb = dict(a.features or {}), b.features or {}
+    n = fa.get('sesiones', 1) + fb.get('sesiones', 1)
+    d = max(fa.get('delta_w_max', fa.get('delta_w', 0)), fb.get('delta_w_max', fb.get('delta_w', 0)))
+    fa.update(sesiones=n, delta_w_max=d)
+    a.features = fa
+    confs = [c for c in (a.confidence, b.confidence) if c is not None]
+    a.confidence = min(confs) if confs else None
+    dur = (a.end_time - a.start_time).total_seconds() / 60
+    a.description = f"{n} sesiones · {dur:.0f} min · hasta {f'{d / 1000:.1f} kW' if d >= 1000 else f'{d} W'}"
+    a.class_name = event_class(a.type, {'start': a.start_time, 'span_min': dur})
+
+
+MERGED_FIELDS = ['end_time', 'features', 'confidence', 'description', 'class_name']
+
+
+def merge_events(dev, events):
+    """
+    Une los eventos nuevos del mismo tipo separados por < MERGE_GAP, entre sí
+    o con uno ya guardado (otra ejecución horaria). Devuelve (a_crear, n_unidos).
+    """
+    out, merged = [], 0
+    for ev in sorted(events, key=lambda e: e.start_time):
+        prev = next((e for e in reversed(out)
+                     if e.type == ev.type and ev.start_time - e.end_time <= MERGE_GAP), None)
+        if prev is None:
+            prev = (Event.objects.filter(source='AUTO', device=dev, type=ev.type, start_time__lt=ev.start_time,
+                                         end_time__gte=ev.start_time - MERGE_GAP)
+                    .order_by('-end_time').first())
+            if prev is not None:
+                absorb(prev, ev)
+                prev.save(update_fields=MERGED_FIELDS)
+                merged += 1
+                continue
+            out.append(ev)
+        else:
+            absorb(prev, ev)
+            merged += 1
+    return out, merged
+
+
 class Command(BaseCommand):
     help = 'Detecta y clasifica (FreeJev) los usos de electrodomésticos de los medidores Tuya.'
 
@@ -83,6 +132,9 @@ class Command(BaseCommand):
         parser.add_argument('--until', help='YYYY-MM-DD, exclusivo (por defecto: ahora)')
         parser.add_argument('--dry-run', action='store_true', help='Muestra la petición; no llama a FreeJev ni escribe')
         parser.add_argument('--limit', type=int, help='Máximo de sesiones a enviar en total')
+        parser.add_argument('--fix-existing', action='store_true',
+                            help='Revisa los eventos AUTO ya guardados (duración implausible, contiguos '
+                                 'del mismo tipo) sin llamar a FreeJev; con --dry-run solo lista')
 
     def handle(self, *args, **o):
         self.verbosity = o['verbosity']
@@ -91,6 +143,8 @@ class Command(BaseCommand):
         accept_to = min(_day(o['until']), now) if o['until'] else now
         if accept_from >= accept_to:
             raise CommandError('--since debe ser anterior a --until')
+        if o['fix_existing']:
+            return self.fix_existing(accept_from, accept_to, o)
         api_key = getattr(settings, 'FREEJEV_API_KEY', '')
         if not api_key and not o['dry_run']:
             raise CommandError('Falta FREEJEV_API_KEY (local_settings.py o .env)')
@@ -178,8 +232,12 @@ class Command(BaseCommand):
             try:
                 resp = cls.call_freejev(body, api_key, settings.FREEJEV_BASE_URL)
             except cls.FreeJevError as e:
-                self.save(to_create, seen)
-                raise CommandError(f'{e} (guardados {len(to_create)} eventos antes del error)')
+                self.save(dev, to_create, seen)
+                if e.fatal:
+                    raise CommandError(f'{e} (guardados {len(to_create)} eventos antes del error)')
+                self.stderr.write(self.style.WARNING(f'  loc {dev.location_id}: {e}; se sigue con la siguiente'))
+                stats['error_api'] += 1
+                break
             if b == 0 and o['limit']:
                 self.stdout.write('Respuesta FreeJev: ' + json.dumps(resp, ensure_ascii=False)[:2000])
             usage = resp.get('usage') or {}
@@ -199,6 +257,9 @@ class Command(BaseCommand):
                 if label in cls.EXTRA:
                     stats[label] += 1
                     continue
+                if conf is not None and conf < MIN_CONFIDENCE:
+                    stats['baja_confianza'] += 1
+                    continue
                 stats[label] += 1
                 to_create.append(Event(
                     location=dev.location, device=dev, source='AUTO',
@@ -206,12 +267,61 @@ class Command(BaseCommand):
                     class_name=event_class(label, s), description=summary(s),
                     confidence=conf, features=desc,
                 ))
-        self.save(to_create, seen)
-        stats['guardadas'] = len(to_create)
+        stats['guardadas'], stats['unidas'] = self.save(dev, to_create, seen)
         return stats, budget
 
     @staticmethod
-    def save(events, seen):
+    def save(dev, events, seen):
+        events, merged = merge_events(dev, events)
         # bulk_create no lanza post_save: nunca hay push (además no se generan ALERT)
         Event.objects.bulk_create(events, ignore_conflicts=True)
         ClassifiedSession.objects.bulk_create(seen, ignore_conflicts=True)
+        return len(events), merged
+
+    def fix_existing(self, since, until, o):
+        """Quita eventos AUTO incompatibles con su firma y une los contiguos del mismo tipo."""
+        qs = Event.objects.filter(source='AUTO', start_time__gte=since, start_time__lt=until)
+        if o['location']:
+            qs = qs.filter(location_id__in=o['location'])
+        dry = o['dry_run']
+        removed, merged, kept = Counter(), Counter(), 0
+        by_device = {}
+        for ev in qs.order_by('device_id', 'start_time'):
+            f = ev.features or {}
+            if ev.confidence is not None and ev.confidence < MIN_CONFIDENCE and 'sesiones' not in f:
+                removed['baja_confianza'] += 1
+                self.stdout.write(f"  quitar  loc {ev.location_id} {timezone.localtime(ev.start_time):%a %m-%d %H:%M} "
+                                  f"{ev.type:<16} confianza {ev.confidence:.2f}")
+                if not dry:
+                    ev.delete()  # su ClassifiedSession se queda: no se vuelve a pagar
+                continue
+            if 'sesiones' not in f and f.get('delta_w') is not None:
+                fp = f.get('fp_tipo')
+                sess = {'delta_w': f['delta_w'], 'span_min': f.get('dur_min'), 'pf_approx': f.get('fp_aprox'),
+                        'pf_class': None if fp in (None, 'desconocido') else fp}
+                if ev.type not in cls.candidates(sess, set(), 0):
+                    removed[ev.type] += 1
+                    self.stdout.write(f"  quitar  loc {ev.location_id} {timezone.localtime(ev.start_time):%a %m-%d %H:%M} "
+                                      f"{ev.type:<16} {ev.description}")
+                    if not dry:
+                        # sin su registro, la próxima ejecución con --since la reclasifica
+                        ClassifiedSession.objects.filter(device_id=ev.device_id, start_time=ev.start_time).delete()
+                        ev.delete()
+                    continue
+            prev = next((e for e in reversed(by_device.setdefault(ev.device_id, []))
+                         if e.type == ev.type and ev.start_time - e.end_time <= MERGE_GAP), None)
+            if prev is None:
+                by_device[ev.device_id].append(ev)
+                kept += 1
+                continue
+            merged[ev.type] += 1
+            self.stdout.write(f"  unir    loc {ev.location_id} {timezone.localtime(ev.start_time):%a %m-%d %H:%M} "
+                              f"{ev.type:<16} con el de las {timezone.localtime(prev.start_time):%H:%M}")
+            absorb(prev, ev)
+            if not dry:
+                prev.save(update_fields=MERGED_FIELDS)
+                ev.delete()
+        verb = 'se quitarían' if dry else 'quitados'
+        self.stdout.write(self.style.SUCCESS(
+            f"{verb}: {sum(removed.values())} ({dict(removed)}); unidos: {sum(merged.values())} ({dict(merged)}); "
+            f"quedan {kept} eventos"))

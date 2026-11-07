@@ -12,6 +12,7 @@ Ver docs/clasificacion_eventos.md.
 import hashlib
 import json
 import time
+import uuid
 
 import requests
 from django.utils import timezone
@@ -30,7 +31,8 @@ SIGNATURES = {
     'KETTLE': dict(min_w=1500, max_w=3000, pf={'resistivo'},
                    desc='Hervidor o cafetera: 1,5–3 kW durante 1–5 min, sobre todo en el desayuno.'),
     'WATER_HEATER': dict(min_w=1200, max_w=2500, pf={'resistivo'},
-                         desc='Termo eléctrico: 1,2–2,5 kW durante 30–180 min, a menudo de madrugada o tras la ducha.'),
+                         desc='Termo eléctrico: 1,2–2,5 kW; calentamiento largo de 30–180 min tras la ducha o de madrugada, '
+                              'y ciclos cortos de mantenimiento de 8–15 min que se repiten a cualquier hora, también de noche.'),
     'WASHING MACHINE': dict(min_w=200, max_w=2200, pf=None,
                             desc='Lavadora: calentamiento de 1,8–2,2 kW y motor de 200–500 W, ciclo de 45–150 min, normalmente por la mañana.'),
     'MICROWAVE': dict(min_w=800, max_w=1500, pf=None,
@@ -51,6 +53,14 @@ NAMES = {
 EXTRA = {
     'OTHER': 'Otro aparato, varios a la vez, o ninguno de los anteriores encaja.',
     'NOISE': 'No es un uso real: ruido o transitorio del medidor.',
+}
+
+# Duración plausible de una sesión (min); None = sin límite. candidates()
+# aplica margen ×0,5 / ×1,5: un "hervidor" de 11 min queda fuera.
+DURATIONS = {
+    'FRIDGE': (3, None), 'COOKTOP': (3, 120), 'HEATER': (10, None), 'OVEN': (15, 150),
+    'KETTLE': (1, 6), 'WATER_HEATER': (8, 240), 'WASHING MACHINE': (30, 180),
+    'MICROWAVE': (1, 15), 'IRON': (5, 90), 'TV': (20, None), 'LIGHTS': (5, None),
 }
 
 BATCH_SIZE = 16  # máximo de preguntas por petición en FreeJev
@@ -89,6 +99,10 @@ def candidates(session, declared, meter_max_w):
         if not (sig['min_w'] * 0.5 <= delta <= sig['max_w'] * 1.5):
             continue
         if trust_pf and sig['pf'] and session['pf_class'] not in sig['pf']:
+            continue
+        lo, hi = DURATIONS[t]
+        dur = session.get('span_min')
+        if dur is not None and (dur < lo * 0.5 or (hi is not None and dur > hi * 1.5)):
             continue
         out.append(t)
     return out
@@ -170,7 +184,9 @@ def parse_answers(resp, body):
 
 
 class FreeJevError(Exception):
-    pass
+    def __init__(self, msg, fatal=False):
+        super().__init__(msg)
+        self.fatal = fatal  # clave inválida o sin saldo: no tiene sentido seguir con otras ubicaciones
 
 
 def call_freejev(body, api_key, base_url, http=requests, max_retries=3):
@@ -179,14 +195,22 @@ def call_freejev(body, api_key, base_url, http=requests, max_retries=3):
     headers = {
         'Authorization': f'Bearer {api_key}',
         'Content-Type': 'application/json',
-        'Idempotency-Key': hashlib.sha256(raw.encode()).hexdigest()[:40],
+        # Única por llamada (los reintentos de esta misma llamada la repiten): con
+        # un hash del contenido, relanzar el mismo lote tras un timeout daba 409.
+        'Idempotency-Key': f'{hashlib.sha256(raw.encode()).hexdigest()[:24]}-{uuid.uuid4().hex[:12]}',
     }
     for attempt in range(max_retries + 1):
-        r = http.post(f'{base_url.rstrip("/")}/api/v1/decisions', data=raw.encode(), headers=headers, timeout=120)
+        try:
+            r = http.post(f'{base_url.rstrip("/")}/api/v1/decisions', data=raw.encode(), headers=headers, timeout=120)
+        except requests.RequestException as e:  # timeout, conexión cortada: como un 503
+            if attempt < max_retries:
+                time.sleep(15 * (attempt + 1))
+                continue
+            raise FreeJevError(f'FreeJev sin respuesta: {e}')
         if r.status_code in (409, 429, 502, 503, 504) and attempt < max_retries:  # 409: otra llamada en curso
             time.sleep(min(float(r.headers.get('Retry-After') or 10), 120))
             continue
         if r.status_code >= 400:
-            raise FreeJevError(f'FreeJev {r.status_code}: {r.text[:300]}')
+            raise FreeJevError(f'FreeJev {r.status_code}: {r.text[:300]}', fatal=r.status_code in (401, 402, 403))
         return r.json()
     raise FreeJevError('FreeJev: demasiados reintentos')

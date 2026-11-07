@@ -323,8 +323,12 @@ class ClassificationTests(TestCase):
 
     def test_candidates_by_pf_power_declared_and_meter(self):
         from nilm.classification import candidates
-        hot = candidates(self.session(1700), set(), 0)
-        self.assertTrue({'COOKTOP', 'HEATER', 'OVEN', 'KETTLE'} <= set(hot))
+        hot = candidates(self.session(1700), set(), 0)  # 20 min
+        self.assertTrue({'COOKTOP', 'HEATER', 'OVEN'} <= set(hot))
+        self.assertNotIn('KETTLE', hot)  # un hervidor no dura 20 min
+        short = dict(self.session(1700), span_min=3.0)
+        self.assertIn('KETTLE', candidates(short, set(), 0))
+        self.assertNotIn('KETTLE', candidates(dict(short, span_min=11.0), set(), 0))
         self.assertFalse({'FRIDGE', 'TV', 'LIGHTS'} & set(hot))
         self.assertEqual(candidates(self.session(1700), {'TV', 'COOKTOP'}, 0), ['COOKTOP'])
         motor = candidates(self.session(600, 'motor/electrónica'), set(), 0)
@@ -393,6 +397,11 @@ class DetectEventsCommandTests(TestCase):
         self.assertEqual(api.call_count, 0)
         self.assertEqual(Event.objects.count(), 1)
 
+    def test_low_confidence_is_not_stored(self):
+        from nilm.models import Event
+        self.run_cmd({'choice': 'COOKTOP', 'confidence': 0.2, 'probabilities': {'COOKTOP': 0.3}})
+        self.assertEqual(Event.objects.count(), 0)
+
     def test_noise_is_not_stored_nor_resent(self):
         from nilm.models import Event
         self.run_cmd('NOISE')
@@ -423,3 +432,107 @@ class TuyaPollFrozenTests(TestCase):
         self.assertEqual(cmd._poll_once(Client(dict(frozen)), {'tuya-f': dev}, False), (0, 0))
         self.assertEqual(cmd._poll_once(Client(dict(frozen, voltage_v=237.8)), {'tuya-f': dev}, False), (1, 0))
         self.assertEqual(Measurement.objects.filter(device=dev).count(), 2)
+
+
+class AutoEventCardTests(TestCase):
+    def test_auto_event_shows_in_location_detail(self):
+        import datetime as dt
+        from django.utils import timezone
+        from nilm.models import Event
+        admin = User.objects.create_superuser('boss', 'b@b.b', 'pw12345!')
+        loc = Location.objects.create(description='Casa', address='x')
+        day = dt.date(2026, 11, 1)
+        start = timezone.make_aware(dt.datetime(2026, 11, 1, 20, 4))
+        Event.objects.create(location=loc, source='AUTO', type='COOKTOP', class_name='NORMAL',
+                             start_time=start, end_time=start + dt.timedelta(minutes=82),
+                             description='1.7 kW · 16 ciclos · 82 min · resistivo', confidence=0.62)
+        self.client.force_login(admin)
+        html = self.client.get(reverse('nilm:location_detail', args=[loc.pk]), {'date': day.isoformat()}).content.decode()
+        self.assertIn('>cooking<', html)
+        self.assertIn('16 ciclos', html)
+        self.assertIn('62%', html)
+
+
+class FreeJevRetryTests(TestCase):
+    def test_timeout_is_retried_then_succeeds(self):
+        from unittest import mock
+        import requests
+        from nilm import classification as cls
+        ok = mock.Mock(status_code=200, json=lambda: {'answers': {}})
+        http = mock.Mock(post=mock.Mock(side_effect=[requests.Timeout('slow'), ok]))
+        with mock.patch('nilm.classification.time.sleep'):
+            self.assertEqual(cls.call_freejev({'q': 1}, 'k', 'https://x', http=http), {'answers': {}})
+        self.assertEqual(http.post.call_count, 2)
+
+    def test_auth_error_is_fatal(self):
+        from unittest import mock
+        from nilm import classification as cls
+        http = mock.Mock(post=mock.Mock(return_value=mock.Mock(status_code=402, text='no credits')))
+        with self.assertRaises(cls.FreeJevError) as ctx:
+            cls.call_freejev({'q': 1}, 'k', 'https://x', http=http)
+        self.assertTrue(ctx.exception.fatal)
+
+
+class FreeJevIdempotencyTests(TestCase):
+    def test_key_stable_within_call_unique_across_calls(self):
+        from unittest import mock
+        import requests
+        from nilm import classification as cls
+        ok = mock.Mock(status_code=200, json=lambda: {})
+        http = mock.Mock(post=mock.Mock(side_effect=[requests.Timeout('slow'), ok, ok]))
+        with mock.patch('nilm.classification.time.sleep'):
+            cls.call_freejev({'q': 1}, 'k', 'https://x', http=http)  # timeout + reintento
+            cls.call_freejev({'q': 1}, 'k', 'https://x', http=http)  # mismo lote, otra ejecución
+        keys = [c.kwargs['headers']['Idempotency-Key'] for c in http.post.call_args_list]
+        self.assertEqual(keys[0], keys[1])
+        self.assertNotEqual(keys[1], keys[2])
+
+
+class MergeEventsTests(TestCase):
+    def setUp(self):
+        import datetime as dt
+        from django.utils import timezone
+        from nilm.models import Device
+        self.loc = Location.objects.create(description='Casa', address='x')
+        self.dev = Device.objects.create(device_id='tuya-m', model='m', device_type='TUYA', location=self.loc)
+        self.at = lambda h, m: timezone.make_aware(dt.datetime(2026, 11, 7, h, m))
+
+    def ev(self, type, start, end, **features):
+        from nilm.models import Event
+        return Event(location=self.loc, device=self.dev, source='AUTO', type=type, class_name='NORMAL',
+                     start_time=start, end_time=end, description='x', confidence=0.6,
+                     features=dict({'delta_w': 1700, 'dur_min': (end - start).total_seconds() / 60,
+                                    'fp_tipo': 'resistivo', 'fp_aprox': False}, **features))
+
+    def test_adjacent_cooktop_sessions_become_one_event(self):
+        from nilm.management.commands.detect_events import merge_events
+        # el caso de la captura: 09:03-09:51 y 09:55-10:22, más un hervidor aparte
+        new = [self.ev('COOKTOP', self.at(9, 3), self.at(9, 51)), self.ev('COOKTOP', self.at(9, 55), self.at(10, 22)),
+               self.ev('KETTLE', self.at(9, 40), self.at(9, 43))]
+        out, merged = merge_events(self.dev, new)
+        self.assertEqual(merged, 1)
+        cook = next(e for e in out if e.type == 'COOKTOP')
+        self.assertEqual((cook.start_time, cook.end_time), (self.at(9, 3), self.at(10, 22)))
+        self.assertIn('2 sesiones', cook.description)
+
+    def test_merges_with_event_stored_by_previous_run(self):
+        from nilm.management.commands.detect_events import merge_events
+        stored = self.ev('COOKTOP', self.at(9, 3), self.at(9, 51))
+        stored.save()
+        out, merged = merge_events(self.dev, [self.ev('COOKTOP', self.at(9, 55), self.at(10, 22))])
+        self.assertEqual((out, merged), ([], 1))
+        stored.refresh_from_db()
+        self.assertEqual(stored.end_time, self.at(10, 22))
+
+    def test_fix_existing(self):
+        from django.core.management import call_command
+        from nilm.models import Event
+        for e in [self.ev('COOKTOP', self.at(9, 3), self.at(9, 51)), self.ev('COOKTOP', self.at(9, 55), self.at(10, 22)),
+                  self.ev('KETTLE', self.at(0, 31), self.at(0, 42))]:  # hervidor de 11 min: implausible
+            e.save()
+        args = ['detect_events', '--fix-existing', '--since', '2026-11-07', '--until', '2026-11-08']
+        call_command(*args, '--dry-run', stdout=open('/dev/null', 'w'))
+        self.assertEqual(Event.objects.count(), 3)  # dry-run no toca nada
+        call_command(*args, stdout=open('/dev/null', 'w'))
+        ev = Event.objects.get()
+        self.assertEqual((ev.type, ev.start_time, ev.end_time), ('COOKTOP', self.at(9, 3), self.at(10, 22)))

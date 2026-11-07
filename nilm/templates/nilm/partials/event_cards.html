@@ -16,9 +16,17 @@
 
   <!-- Name + status -->
   <div class="flex-1 min-w-0">
-    <p class="font-semibold text-base leading-tight" style="color:var(--text-primary);">
-      {{ event.get_type_display }}
+    <p class="font-semibold text-base leading-tight flex items-center gap-1" style="color:var(--text-primary);">
+      <span class="truncate">{{ event.get_type_display }}</span>
+      {% if event.source == 'AUTO' %}
+      <i class="ri-sparkling-2-line text-sm flex-shrink-0" style="color:var(--text-muted);"
+         title="{% trans 'Detección automática' %}{% if event.confidence is not None %} · {% trans 'confianza' %} {% widthratio event.confidence 1 100 %}%{% endif %}"
+         aria-label="{% trans 'Detección automática' %}"></i>
+      {% endif %}
     </p>
+    {% if event.source == 'AUTO' and event.description %}
+    <p class="text-xs truncate mt-0.5" style="color:var(--text-muted);">{{ event.description }}</p>
+    {% endif %}
     {% if cn != 'normal' %}
     <span class="inline-block mt-0.5 text-xs font-medium px-2 py-0.5 rounded-full"
           style="{% if cn == 'alert' %}background:rgba(224,59,59,0.15);color:var(--danger);

@@ -303,6 +303,10 @@ LOCATION_FIELD = {
     'provider.openstreetmap.max_zoom': 18,
 }
 
+# FreeJev (clasificación de eventos, detect_events). local_settings.py lo sobrescribe.
+FREEJEV_API_KEY = os.getenv('FREEJEV_API_KEY', '')
+FREEJEV_BASE_URL = os.getenv('FREEJEV_BASE_URL', 'https://freejev.org')
+
 # Import local settings overrides if they exist (allows overriding database, DEBUG, etc.)
 try:
     from .local_settings import *

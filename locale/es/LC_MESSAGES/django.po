@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-05 23:42+0100\n"
+"POT-Creation-Date: 2026-11-07 00:51+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -116,21 +116,41 @@ msgstr "Luces"
 msgid "TV"
 msgstr "TV"
 
+#: nilm/models.py:204
+msgid "Heater"
+msgstr "Estufa"
+
+#: nilm/models.py:205
+msgid "Cooktop"
+msgstr "Vitrocerámica"
+
 #: nilm/models.py:206
+msgid "Water heater"
+msgstr "Termo"
+
+#: nilm/models.py:209
 msgid "Normal"
 msgstr "Normal"
 
-#: nilm/models.py:207
+#: nilm/models.py:210
 msgid "Unexpected"
 msgstr "Inesperado"
 
-#: nilm/models.py:208
+#: nilm/models.py:211
 msgid "Anormal"
 msgstr "Anómalo"
 
-#: nilm/models.py:209
+#: nilm/models.py:212
 msgid "Alert"
 msgstr "Alerta"
+
+#: nilm/models.py:215
+msgid "Edge device"
+msgstr "Dispositivo edge"
+
+#: nilm/models.py:216
+msgid "Automatic detection"
+msgstr "Detección automática"
 
 #: nilm/templates/admin/index.html:6
 msgid "Django site admin"

@@ -201,6 +201,9 @@ class Event(models.Model):
         ('IRON', _('Iron')),
         ('LIGHTS', _('Lights')),
         ('TV', _('TV')),
+        ('HEATER', _('Heater')),
+        ('COOKTOP', _('Cooktop')),
+        ('WATER_HEATER', _('Water heater')),
     ]
     EVENT_CLASSES = [
         ('NORMAL', _('Normal')),
@@ -208,13 +211,23 @@ class Event(models.Model):
         ('ANORMAL', _('Anormal')),
         ('ALERT', _('Alert')),
     ]
+    SOURCES = [
+        ('EDGE', _('Edge device')),
+        ('AUTO', _('Automatic detection')),
+    ]
     location = models.ForeignKey(Location, on_delete=models.CASCADE, related_name='events')
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
     type = models.CharField(max_length=20, choices=APPLIANCE_TYPES)
     class_name = models.CharField(max_length=20, choices=EVENT_CLASSES)
     description = models.TextField(blank=True)
-    
+    # Detección automática (detect_events): de dónde sale, con qué dispositivo,
+    # la confianza del clasificador y el descriptor que se le envió.
+    source = models.CharField(max_length=10, choices=SOURCES, default='EDGE')
+    device = models.ForeignKey('Device', null=True, blank=True, on_delete=models.SET_NULL, related_name='events')
+    confidence = models.FloatField(null=True, blank=True)
+    features = models.JSONField(null=True, blank=True)
+
     def __str__(self):
         return f"{self.location.description} - {self.type}: {self.class_name}"
 
@@ -225,7 +238,14 @@ class Event(models.Model):
     
     class Meta:
         ordering = ['-start_time']
-        
+        constraints = [
+            # detect_events corre cada hora sobre ventanas solapadas: la misma
+            # sesión no se guarda dos veces.
+            models.UniqueConstraint(fields=['device', 'start_time'], condition=models.Q(source='AUTO'),
+                                    name='uniq_auto_event_device_start'),
+        ]
+
+
 class Appliance(models.Model):
     """An appliance type present at a location (one row per type)."""
     location = models.ForeignKey(Location, on_delete=models.CASCADE, related_name='appliances')

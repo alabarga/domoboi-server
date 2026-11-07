@@ -42,6 +42,7 @@ block instead of duplicating it, and other crontab lines are never touched):
 |---|---|---|
 | `17 3 * * *` | `tuya_poll --history --since <2 days ago>` | Real device history, daily; the 2-day lookback self-heals a missed run |
 | `*/15 * * * *` | `tuya_poll --once` | Live reading, keeps `is_active` meaningful in the admin |
+| `25 * * * *` | `tuya_poll --history --since <yesterday>` then `detect_events` | Full-resolution history, then appliance-event detection + FreeJev classification into `Event` (`source=AUTO`); log in `logs/detect_events.log` |
 | `0 4 * * 0` | `mv logs/tuya_poll.log logs/tuya_poll.log.1` | Weekly log rotation |
 
 Cron uses the **server's** timezone. Check it with `date`: if it prints UTC,

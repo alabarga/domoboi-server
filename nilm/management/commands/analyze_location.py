@@ -215,7 +215,7 @@ class Command(BaseCommand):
         for thr in (5, 10, 20, 40, 80):
             self.out(f'   saltos ≥ {thr:>3} W: {sum(1 for d in absd if d >= thr):>6} ({100 * sum(1 for d in absd if d >= thr) / len(absd):.1f}%)')
         clean, n_spikes = det.remove_spikes(raw, min_d)
-        self.out(f'Picos aislados (1 muestra, ≥{min_d:.0f} W, <3 min) eliminados: {n_spikes}')
+        self.out(f'Picos aislados (1 muestra, ≥{min_d:.0f} W, <30 s) eliminados: {n_spikes}')
         bad = Counter()
         for tel in qs.filter(telemetry__has_key='power_w').values_list('telemetry', flat=True).iterator():
             try:
@@ -308,7 +308,7 @@ class Command(BaseCommand):
                          f'meseta~{median(s["plateau_w"] for s in ss):.0f}W pico~{median(s["peak_w"] for s in ss):.0f}W '
                          f'{median(s["energy_wh"] for s in ss):.0f}Wh '
                          f'escalones~{median(s["n_steps"] for s in ss):.0f} '
-                         f'FP~{(median(pfs) if (pfs := [s["pf"] for s in ss if s["pf"] is not None]) else "—")} '
+                         f'FP~{(f"{median(pfs):.2f}" if (pfs := [s["pf"] for s in ss if s["pf"] is not None]) else "—")} '
                          f'h:{",".join(f"{h}({c})" for h, c in hours)}')
 
             self.out('\nRecurrencia (intervalo entre inicios dentro del mismo cluster):')
@@ -354,7 +354,7 @@ class Command(BaseCommand):
                 self.out(f'  {_label(POWER_BANDS, pb, "W"):>11} × {_label(DURATION_BANDS, db, "min"):>10}: '
                          f'n={len(ps):>4} ({len(ps) / max(1, len(days)):.1f}/día) '
                          f'ΔP~{median(p["delta_w"] for p in ps):.0f}W {median(p["duration_min"] for p in ps):.0f}min '
-                         f'FP~{f"{median(pfs):.2f} ({len(pfs)})" if pfs else "—"} '
+                         f'FP~{f"{median(pfs):.2f} ({len(pfs)}) {det.pf_class(median(pfs))}" if pfs else "—"} '
                          f'h:{",".join(f"{h}({c})" for h, c in hours)}')
 
             sessions = det.group_cycles(pairs)
@@ -468,7 +468,7 @@ class Command(BaseCommand):
         if o['csv_pairs']:
             with open(o['csv_pairs'], 'w', newline='') as f:
                 w = csv.writer(f)
-                cols = ['start', 'end', 'duration_min', 'delta_w', 'on_w', 'off_w', 'energy_wh', 'pf']
+                cols = ['start', 'end', 'duration_min', 'delta_w', 'on_w', 'off_w', 'energy_wh', 'pf', 'pf_class', 'pf_approx']
                 w.writerow(['device'] + cols + ['hour', 'weekday'])
                 for p in pairs:
                     lt = _local(p['start'])
@@ -480,7 +480,7 @@ class Command(BaseCommand):
             with open(o['csv'], 'w', newline='') as f:
                 w = csv.writer(f)
                 cols = ['start', 'end', 'duration_min', 'plateau_w', 'peak_w', 'energy_wh', 'n_samples',
-                        'n_steps', 'merged', 'on_delta_w', 'off_delta_w', 'pf']
+                        'n_steps', 'merged', 'on_delta_w', 'off_delta_w', 'pf', 'pf_class']
                 w.writerow(['device'] + cols + ['hour', 'weekday', 'base_w'])
                 for s in segs:
                     lt = _local(s['start'])

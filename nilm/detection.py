@@ -51,18 +51,42 @@ def load_va(device, since, until):
     return out
 
 
-# Por debajo de este aumento de potencia el cociente ΔP/ΔS es ruido.
-PF_MIN_DELTA_W = 100
+# Por debajo de este cambio de potencia el FP del salto es ruido.
+PF_MIN_DELTA_W = 60
+# Por debajo de esto el FP es aproximado (P e I no son exactamente del mismo
+# instante y S tiene ruido): sirve como categoría, no como valor exacto.
+PF_RELIABLE_W = 300
+
+
+def added_pf(p0, s0, p1, s1):
+    """
+    FP de la carga que se suma (o se quita) entre dos muestras de toda la casa.
+    Lo que se suma entre aparatos es P y la reactiva Q = √(S² − P²), no S:
+    restar S daría ≈ 1 para cualquier aparato pequeño sobre una base grande.
+    Si el medidor da S < P (sesgo), esa muestra cuenta como Q = 0.
+    """
+    dp = abs(p1 - p0)
+    if dp < PF_MIN_DELTA_W:
+        return None
+    q0 = max(s0 * s0 - p0 * p0, 0) ** 0.5
+    q1 = max(s1 * s1 - p1 * p1, 0) ** 0.5
+    return dp / ((dp * dp + (q1 - q0) ** 2) ** 0.5)
+
+
+def pf_class(pf):
+    """Categoría robusta al sesgo del medidor: 'resistivo' (≥ 0,9), 'motor/electrónica' (< 0,8) o 'dudoso'."""
+    if pf is None:
+        return None
+    if pf >= 0.9:
+        return 'resistivo'
+    return 'motor/electrónica' if pf < 0.8 else 'dudoso'
 
 
 def event_pf(series, va, prev_i, idxs):
     """
-    Factor de potencia del aparato que entra (no de toda la casa):
-    mediana de (P − P_antes) / (S − S_antes) en las muestras del evento, con
-    "antes" = la muestra previa al inicio. Restar S es una aproximación
-    (las potencias aparentes no se suman en rigor), suficiente para separar
-    resistivo (≈ 1) de motor/electrónica (0,5–0,9). None si faltan V·I o el
-    aumento es < PF_MIN_DELTA_W.
+    Factor de potencia del aparato que entra (no de toda la casa): mediana de
+    added_pf() entre la muestra previa al inicio y cada muestra del evento.
+    None si faltan V·I o el aumento es < PF_MIN_DELTA_W.
     """
     if not va or prev_i is None or series[prev_i][0] not in va:
         return None
@@ -70,9 +94,9 @@ def event_pf(series, va, prev_i, idxs):
     ratios = []
     for i in idxs:
         ts, p = series[i]
-        if ts in va and p - p0 >= PF_MIN_DELTA_W and va[ts] - s0 > 0:
-            r = (p - p0) / (va[ts] - s0)
-            if 0 < r <= 1.3:  # fuera de esto, V/I y P son de instantes distintos
+        if ts in va and p > p0:
+            r = added_pf(p0, s0, p, va[ts])
+            if r is not None:
                 ratios.append(r)
     if not ratios:
         return None
@@ -103,11 +127,14 @@ def load_energy(device, since, until):
     return out
 
 
-def remove_spikes(series, min_delta_w, max_spike_s=180):
+def remove_spikes(series, min_delta_w, max_spike_s=30):
     """
     Quita picos aislados: una sola muestra que sube (o baja) ≥ min_delta_w
     respecto a las dos vecinas, dura < max_spike_s, y las vecinas están a
     menos de min_delta_w entre sí. Devuelve (serie_limpia, n_picos).
+    El medidor reporta al cambiar (cada ~5 s durante un transitorio): una
+    muestra que se mantiene minutos es un consumo real (p. ej. un ciclo de
+    vitro de 1–2 min), no un pico.
     """
     if len(series) < 3:
         return list(series), 0
@@ -204,6 +231,7 @@ def segment(series, base_w, min_delta_w, merge_gap_s=240, min_duration_s=0, va=N
             'off_delta_w': None if s['off_delta_w'] is None else round(s['off_delta_w']),
             'pf': event_pf(series, va, s['prev_i'], idxs),
         })
+        out[-1]['pf_class'] = pf_class(out[-1]['pf'])
     return out
 
 
@@ -247,17 +275,14 @@ def pct(values, q):
 
 
 def _step_pf(series, va, i):
-    """FP del salto entre las muestras i-1 e i: ΔP / ΔS (None si falta V·I o ΔP < PF_MIN_DELTA_W)."""
+    """FP del aparato que entra o sale entre las muestras i-1 e i (added_pf); None si falta V·I."""
     if not va or i < 1:
         return None
     (t0, p0), (t1, p1) = series[i - 1], series[i]
-    if t0 not in va or t1 not in va or abs(p1 - p0) < PF_MIN_DELTA_W:
+    if t0 not in va or t1 not in va:
         return None
-    ds = va[t1] - va[t0]
-    if ds == 0 or (ds > 0) != (p1 > p0):
-        return None
-    r = (p1 - p0) / ds
-    return round(r, 2) if 0 < r <= 1.3 else None
+    r = added_pf(p0, va[t0], p1, va[t1])
+    return None if r is None else round(r, 2)
 
 
 def pair_steps(series, min_delta_w, tol=0.3, max_on_s=4 * 3600, va=None):
@@ -270,7 +295,8 @@ def pair_steps(series, min_delta_w, tol=0.3, max_on_s=4 * 3600, va=None):
 
     Devuelve (pares, n_on_sin_pareja, n_off_sin_pareja). Cada par:
       start, end, duration_min, delta_w (media de |ON| y |OFF|), on_w, off_w,
-      energy_wh (delta · duración), pf (del salto ON, o del OFF si falta).
+      energy_wh (delta · duración), pf (del salto ON, o del OFF si falta;
+      ver added_pf), pf_class (ver pf_class) y pf_approx (ΔP < PF_RELIABLE_W).
     """
     # ponytail: un OFF que apaga dos aparatos a la vez (misma muestra) no se
     # reparte entre dos ON; quedan sin pareja. Resolver como subset-sum si pesa.
@@ -300,13 +326,18 @@ def pair_steps(series, min_delta_w, tol=0.3, max_on_s=4 * 3600, va=None):
         on = open_on.pop(k)
         dur = (t1 - on['ts']).total_seconds()
         delta = (on['w'] + off) / 2
-        pf = _step_pf(series, va, on['i'])
+        pf = None
+        if dur >= 60:  # en un transitorio de segundos P e I llegan de instantes distintos
+            pf = _step_pf(series, va, on['i'])
+            if pf is None:
+                pf = _step_pf(series, va, i)
         pairs.append({
             'start': on['ts'], 'end': t1,
             'duration_min': round(dur / 60, 1),
             'delta_w': round(delta), 'on_w': round(on['w']), 'off_w': round(off),
             'energy_wh': round(delta * dur / 3600, 1),
-            'pf': pf if pf is not None else _step_pf(series, va, i),
+            'pf': pf, 'pf_class': pf_class(pf),
+            'pf_approx': pf is not None and delta < PF_RELIABLE_W,
         })
     lost_on += len(open_on)
     pairs.sort(key=lambda p: p['start'])
@@ -355,5 +386,8 @@ def group_cycles(pairs, tol=0.2, max_gap_s=1800):
             'duty': round(on_s / span, 2) if span else 1.0,
             'energy_wh': round(sum(p['energy_wh'] for p in ps), 1),
             'pf': pfs[len(pfs) // 2] if pfs else None,
+            'pf_class': pf_class(pfs[len(pfs) // 2] if pfs else None),
+            'pf_approx': sorted(p['delta_w'] for p in ps)[len(ps) // 2] < PF_RELIABLE_W,
+            'max_on_min': max(p['duration_min'] for p in ps),
         })
     return out

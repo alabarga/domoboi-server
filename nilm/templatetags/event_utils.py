@@ -14,6 +14,9 @@ def get_event_icon(event_type):
         'IRON': 'iron',
         'LIGHTS': 'lightbulb',
         'TV': 'tv',
+        'HEATER': 'heat',
+        'COOKTOP': 'cooking',
+        'WATER_HEATER': 'water_heater',
     }
     return icon_mapping.get(event_type, 'electrical_services')
 

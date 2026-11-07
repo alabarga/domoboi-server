@@ -64,8 +64,8 @@ class MeasurementAdmin(ModelAdmin):
 
 @admin.register(Event)
 class EventAdmin(ModelAdmin):
-    list_display = ['location', 'type', 'class_name', 'start_time', 'end_time']
-    list_filter = ['type', 'location', 'start_time']
+    list_display = ['location', 'type', 'class_name', 'start_time', 'end_time', 'source', 'confidence']
+    list_filter = ['source', 'type', 'location', 'start_time']
     search_fields = ['location__description', 'class_name', 'description']
     ordering = ['-start_time']
     raw_id_fields = ['location']

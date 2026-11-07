@@ -186,6 +186,15 @@ class LocationAppliancesTests(TestCase):
         self.assertRedirects(r, reverse('nilm:location_detail', args=[self.loc.pk]))
         self.assertEqual(set(self.loc.appliances.values_list('type', flat=True)), {'FRIDGE', 'OVEN'})
 
+    def test_new_types_in_selector(self):
+        url = reverse('nilm:location_appliances', args=[self.loc.pk])
+        html = self.client.get(url).content.decode()
+        for code, icon in [('HEATER', 'heat'), ('COOKTOP', 'cooking'), ('WATER_HEATER', 'water_heater')]:
+            self.assertIn(f'value="{code}"', html)
+            self.assertIn(f'>{icon}<', html)
+        self.client.post(url, {'type': ['COOKTOP', 'WATER_HEATER']})
+        self.assertEqual(set(self.loc.appliances.values_list('type', flat=True)), {'COOKTOP', 'WATER_HEATER'})
+
     def test_no_access_404(self):
         url = reverse('nilm:location_appliances', args=[self.other.pk])
         self.assertEqual(self.client.get(url).status_code, 404)
@@ -197,12 +206,12 @@ class DetectionTests(TestCase):
         import datetime as dt
         from nilm import detection as det
         t0 = dt.datetime(2026, 10, 1, 12, 0)
-        # (minuto, W): base 60 W, nevera 150 W 20 min, pico aislado, horno 2 kW con 1 bajada de 1 min
-        pts = [(0, 60), (10, 210), (30, 60), (40, 900), (42, 60),
-               (60, 2060), (80, 1400), (81, 2060), (100, 60), (120, 60)]
+        # (minuto, W): base 60 W, nevera 150 W 20 min, pico aislado de 10 s, horno 2 kW con 1 bajada de 10 s
+        pts = [(0, 60), (10, 210), (30, 60), (40, 900), (40 + 1 / 6, 60),
+               (60, 2060), (80, 1400), (80 + 1 / 6, 2060), (100, 60), (120, 60)]
         series = [(t0 + dt.timedelta(minutes=m), float(p)) for m, p in pts]
         clean, spikes = det.remove_spikes(series, 40)
-        self.assertEqual(spikes, 2)  # el pico de 900 W y la bajada de 1 min del horno
+        self.assertEqual(spikes, 2)  # el pico de 900 W y la bajada de 10 s del horno
         segs = det.segment(clean, 60, 40)
         self.assertEqual(len(segs), 2)
         fridge, oven = segs
@@ -240,32 +249,57 @@ class TuyaEnergyDedupTests(TestCase):
 class EventPowerFactorTests(TestCase):
     def test_pf_of_added_load(self):
         import datetime as dt
+        import math
         from nilm import detection as det
         t0 = dt.datetime(2026, 10, 1, 12, 0)
         at = lambda m: t0 + dt.timedelta(minutes=m)
-        # (minuto, W, VA): base 150 W / 180 VA; horno 2 kW resistivo; lavadora 600 W con motor
-        pts = [(0, 150, 180), (10, 2150, 2200), (20, 2150, 2200), (30, 150, 180),
-               (40, 750, 1037), (50, 750, 1037), (60, 150, 180)]
+        # (minuto, P, Q): base 150 W / 100 var; horno +2000 W resistivo; lavadora +600 W con FP 0,7
+        pts = [(0, 150, 100), (10, 2150, 100), (20, 2150, 100), (30, 150, 100),
+               (40, 750, 712), (50, 750, 712), (60, 150, 100)]
         series = [(at(m), float(p)) for m, p, _ in pts]
-        va = {at(m): float(s) for m, _, s in pts}
+        va = {at(m): math.hypot(p, q) for m, p, q in pts}
         oven, washer = det.segment(series, 150, 40, va=va)
-        self.assertEqual(oven['pf'], 0.99)
+        self.assertEqual(oven['pf'], 1.0)
         self.assertEqual(washer['pf'], 0.7)
+        self.assertEqual((oven['pf_class'], washer['pf_class']), ('resistivo', 'motor/electrónica'))
         # sin V·I no hay FP
         self.assertIsNone(det.segment(series, 150, 40)[0]['pf'])
+
+    def test_small_motor_on_big_base(self):
+        import math
+        from nilm import detection as det
+        # base 2000 W resistiva + nevera 67 W con FP 0,7 (Q = 68 var)
+        pf = det.added_pf(2000, 2000, 2067, math.hypot(2067, 68))
+        self.assertAlmostEqual(pf, 0.70, places=2)
+        # el método antiguo (ΔP/ΔS) habría dado ≈ 1
+        self.assertGreater(67 / (math.hypot(2067, 68) - 2000), 0.95)
+
+    def test_pf_bias_clamped_and_classified(self):
+        import datetime as dt
+        from nilm import detection as det
+        t0 = dt.datetime(2026, 10, 1, 20, 0)
+        at = lambda m: t0 + dt.timedelta(minutes=m)
+        # lámpara de 110 W; el medidor da S < P en el encendido (sesgo) → Q = 0
+        series = [(at(0), 60.0), (at(5), 170.0), (at(30), 60.0)]
+        va = {at(0): 60.0, at(5): 165.0, at(30): 60.0}
+        (lamp,), _, _ = det.pair_steps(series, 40, va=va)
+        self.assertEqual((lamp['pf'], lamp['pf_class'], lamp['pf_approx']), (1.0, 'resistivo', True))
+        self.assertEqual([det.pf_class(x) for x in (0.95, 0.85, 0.6, None)],
+                         ['resistivo', 'dudoso', 'motor/electrónica', None])
 
 
 class PairStepsTests(TestCase):
     def test_overlapping_heater_and_fridge(self):
         import datetime as dt
+        import math
         from nilm import detection as det
         t0 = dt.datetime(2026, 10, 1, 7, 0)
         at = lambda m: t0 + dt.timedelta(minutes=m)
-        # (minuto, W, VA): estufa 1600 W resistiva (2 ciclos) y nevera 100 W (FP 0,71) solapadas
-        pts = [(0, 60, 75), (5, 1660, 1675), (10, 1760, 1815), (15, 160, 215),
-               (25, 1760, 1815), (30, 1660, 1675), (35, 60, 75)]
+        # (minuto, P, Q): estufa +1600 W resistiva (2 ciclos) y nevera +100 W / 100 var (FP 0,71) solapadas
+        pts = [(0, 60, 20), (5, 1660, 20), (10, 1760, 120), (15, 160, 120),
+               (25, 1760, 120), (30, 1660, 20), (35, 60, 20)]
         series = [(at(m), float(p)) for m, p, _ in pts]
-        va = {at(m): float(s) for m, _, s in pts}
+        va = {at(m): math.hypot(p, q) for m, p, q in pts}
         pairs, lost_on, lost_off = det.pair_steps(series, 40, va=va)
         self.assertEqual((lost_on, lost_off), (0, 0))
         got = [(p['start'], p['end'], p['delta_w'], p['pf']) for p in pairs]
@@ -277,3 +311,86 @@ class PairStepsTests(TestCase):
         sessions = det.group_cycles(pairs)
         heater = next(s for s in sessions if s['delta_w'] == 1600)
         self.assertEqual((heater['n_cycles'], heater['span_min'], heater['duty']), (2, 30.0, 0.67))
+
+
+class ClassificationTests(TestCase):
+    def session(self, delta, pf_class='resistivo', approx=False):
+        import datetime as dt
+        from django.utils import timezone
+        return {'start': timezone.make_aware(dt.datetime(2026, 10, 1, 20, 0)), 'delta_w': delta,
+                'pf_class': pf_class, 'pf_approx': approx, 'pf': 1.0, 'span_min': 20.0, 'n_cycles': 3,
+                'on_min': 2.0, 'duty': 0.5, 'energy_wh': 300.0}
+
+    def test_candidates_by_pf_power_declared_and_meter(self):
+        from nilm.classification import candidates
+        hot = candidates(self.session(1700), set(), 0)
+        self.assertTrue({'COOKTOP', 'HEATER', 'OVEN', 'KETTLE'} <= set(hot))
+        self.assertFalse({'FRIDGE', 'TV', 'LIGHTS'} & set(hot))
+        self.assertEqual(candidates(self.session(1700), {'TV', 'COOKTOP'}, 0), ['COOKTOP'])
+        motor = candidates(self.session(600, 'motor/electrónica'), set(), 0)
+        self.assertIn('WASHING MACHINE', motor)
+        self.assertNotIn('HEATER', motor)
+        # FP aproximado (ΔP pequeño): no se filtra por FP; circuito parcial de 285 W: sin cocina
+        small = candidates(self.session(90, 'resistivo', approx=True), set(), 285)
+        self.assertIn('FRIDGE', small)
+        self.assertFalse({'OVEN', 'COOKTOP', 'HEATER'} & set(small))
+
+    def test_build_request_and_parse_answers(self):
+        from nilm import classification as cls
+        s = self.session(1700)
+        body = cls.build_request({'vivienda': 'persona mayor que vive sola'},
+                                 [('E1', cls.describe(s, 'E1'), ['COOKTOP', 'OVEN'])])
+        self.assertEqual(set(body['questions']['E1']['criteria']), {'COOKTOP', 'OVEN', 'OTHER', 'NOISE'})
+        self.assertEqual(body['state']['eventos'][0]['inicio'], 'jue 20:00')
+        with self.assertRaises(AssertionError):
+            cls.build_request({}, [('E%d' % i, {}, ['OVEN']) for i in range(17)])
+        for answer, expected in [
+            ('COOKTOP', ('COOKTOP', None)),
+            ({'answer': 'OVEN', 'probabilities': {'OVEN': 0.7, 'COOKTOP': 0.3}}, ('OVEN', 0.7)),
+            ({'COOKTOP': 0.8, 'OVEN': 0.2}, ('COOKTOP', 0.8)),
+            ('FRIDGE', (None, None)),  # no estaba entre los criterios
+        ]:
+            self.assertEqual(cls.parse_answers({'answers': {'E1': answer}}, body)['E1'], expected)
+
+
+class DetectEventsCommandTests(TestCase):
+    def setUp(self):
+        import datetime as dt
+        from django.utils import timezone
+        from nilm.models import Device, Measurement
+        self.loc = Location.objects.create(description='Casa', address='Calle Secreta 1')
+        self.dev = Device.objects.create(device_id='tuya-x', model='m', device_type='TUYA', location=self.loc)
+        t0 = timezone.make_aware(dt.datetime(2026, 10, 1, 3, 0))
+        # vitro de madrugada: 3 ciclos de 1700 W × 2 min (resistiva: S = P)
+        for m, p in [(0, 60), (5, 1760), (7, 60), (10, 1760), (12, 60), (15, 1760), (17, 60), (40, 60)]:
+            ts = t0 + dt.timedelta(minutes=m)
+            Measurement.objects.create(device=self.dev, start_time=ts, end_time=ts, timestamp=ts,
+                                       telemetry={'power_w': p, 'current_a': p / 230, 'voltage_v': 230})
+
+    def run_cmd(self, answer):
+        from unittest import mock
+        from django.core.management import call_command
+        from django.test import override_settings
+        resp = {'answers': {'E1': answer}, 'usage': {}}
+        with override_settings(FREEJEV_API_KEY='test'), \
+                mock.patch('nilm.classification.call_freejev', return_value=resp) as api:
+            call_command('detect_events', '--location', str(self.loc.pk),
+                         '--since', '2026-10-01', '--until', '2026-10-02', stdout=open('/dev/null', 'w'))
+        return api
+
+    def test_stores_once_and_flags_night_cooking(self):
+        from nilm.models import Event
+        api = self.run_cmd('COOKTOP')
+        self.assertEqual(api.call_count, 1)
+        body = api.call_args[0][0]
+        self.assertNotIn('Calle Secreta', str(body))
+        ev = Event.objects.get()
+        self.assertEqual((ev.source, ev.type, ev.class_name, ev.device_id), ('AUTO', 'COOKTOP', 'UNEXPECTED', self.dev.pk))
+        api = self.run_cmd('COOKTOP')  # segunda ejecución: ya guardada, no se vuelve a enviar
+        self.assertEqual(api.call_count, 0)
+        self.assertEqual(Event.objects.count(), 1)
+
+    def test_noise_is_not_stored(self):
+        from nilm.models import Event
+        self.run_cmd('NOISE')
+        self.assertEqual(Event.objects.count(), 0)

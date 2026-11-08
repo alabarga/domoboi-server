@@ -266,6 +266,9 @@ class Appliance(models.Model):
     """An appliance type present at a location (one row per type)."""
     location = models.ForeignKey(Location, on_delete=models.CASCADE, related_name='appliances')
     type = models.CharField(max_length=20, choices=Event.APPLIANCE_TYPES)
+    # Potencia conocida (W). Para LIGHTS activa la regla de luz de detect_events:
+    # los usos de ~power_w (±25 %) se guardan como LIGHTS sin pasar por FreeJev.
+    power_w = models.PositiveIntegerField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.location.description} - {self.get_type_display()}"

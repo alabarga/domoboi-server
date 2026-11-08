@@ -25,7 +25,7 @@ from django.utils import timezone
 
 from nilm import classification as cls
 from nilm import detection as det
-from nilm.models import ClassifiedSession, Device, Event
+from nilm.models import Appliance, ClassifiedSession, Device, Event
 
 MIN_DELTA_W = 40
 # Margen antes de la ventana: un ON puede quedar abierto hasta 4 h (pair_steps).
@@ -45,6 +45,12 @@ MERGE_GAP = timedelta(minutes=15)
 # Por debajo de esta confianza de FreeJev no se guarda el evento (cuenta como OTHER):
 # "microondas de 12 min a las 05:00" salía con 0,19–0,27.
 MIN_CONFIDENCE = 0.35
+# Regla manual de luz conocida (--light-w): las luces LED/fluorescentes de una
+# habitación (25–40 W) quedan por debajo de MIN_DELTA_W, el ruido en reposo es σ ≈ 4–6 W.
+# La potencia de la luz de cada ubicación vive en Appliance(type='LIGHTS').power_w.
+LIGHT_MIN_DELTA_W = 20
+LIGHT_TOL = 0.25
+LIGHT_DUR_MIN = (2, 240)
 
 
 def _day(s):
@@ -92,7 +98,8 @@ def absorb(a, b):
     a.confidence = min(confs) if confs else None
     dur = (a.end_time - a.start_time).total_seconds() / 60
     a.description = f"{n} sesiones · {dur:.0f} min · hasta {f'{d / 1000:.1f} kW' if d >= 1000 else f'{d} W'}"
-    a.class_name = event_class(a.type, {'start': a.start_time, 'span_min': dur})
+    unexpected = 'UNEXPECTED' in (a.class_name, b.class_name)  # p. ej. luz de madrugada
+    a.class_name = 'UNEXPECTED' if unexpected else event_class(a.type, {'start': a.start_time, 'span_min': dur})
 
 
 MERGED_FIELDS = ['end_time', 'features', 'confidence', 'description', 'class_name']
@@ -105,6 +112,10 @@ def merge_events(dev, events):
     """
     out, merged = [], 0
     for ev in sorted(events, key=lambda e: e.start_time):
+        # ya cubierto por un evento guardado (recarga de un rango ya procesado)
+        if Event.objects.filter(source='AUTO', device=dev, type=ev.type, start_time__lte=ev.start_time,
+                                end_time__gte=ev.end_time).exists():
+            continue
         prev = next((e for e in reversed(out)
                      if e.type == ev.type and ev.start_time - e.end_time <= MERGE_GAP), None)
         if prev is None:
@@ -123,6 +134,30 @@ def merge_events(dev, events):
     return out, merged
 
 
+def light_events(dev, watts, since, until, now):
+    """Usos de la luz conocida (~watts) cerrados en [since, until), como Event LIGHTS sin guardar."""
+    load_to = min(now, until + MARGIN)
+    series, _ = det.remove_spikes(det.load_series(dev, since - MARGIN, load_to), LIGHT_MIN_DELTA_W)
+    pairs, _, _ = det.pair_steps(series, LIGHT_MIN_DELTA_W, va=det.load_va(dev, since - MARGIN, load_to))
+    events = []
+    for p in pairs:
+        if not (since <= p['start'] < until and p['end'] <= now - SETTLE):
+            continue
+        if abs(p['delta_w'] - watts) > watts * LIGHT_TOL:
+            continue
+        if not (LIGHT_DUR_MIN[0] <= p['duration_min'] <= LIGHT_DUR_MIN[1]):
+            continue
+        night = 1 <= timezone.localtime(p['start']).hour < 5 and p['duration_min'] > 30  # despierta de madrugada
+        events.append(Event(
+            location=dev.location, device=dev, source='AUTO', type='LIGHTS',
+            start_time=p['start'], end_time=p['end'], class_name='UNEXPECTED' if night else 'NORMAL',
+            description=f"Luz · {p['delta_w']} W · {p['duration_min']:.0f} min", confidence=None,
+            features={'regla': f'luz {watts:.0f} W', 'delta_w': p['delta_w'],
+                      'dur_min': p['duration_min'], 'fp': p['pf']},
+        ))
+    return events
+
+
 class Command(BaseCommand):
     help = 'Detecta y clasifica (FreeJev) los usos de electrodomésticos de los medidores Tuya.'
 
@@ -132,6 +167,10 @@ class Command(BaseCommand):
         parser.add_argument('--until', help='YYYY-MM-DD, exclusivo (por defecto: ahora)')
         parser.add_argument('--dry-run', action='store_true', help='Muestra la petición; no llama a FreeJev ni escribe')
         parser.add_argument('--limit', type=int, help='Máximo de sesiones a enviar en total')
+        parser.add_argument('--light-w', type=float,
+                            help='Luz conocida de --location: guarda W en su Appliance LIGHTS (la ejecución horaria '
+                                 'aplicará la regla desde entonces) y recarga el rango: usos de ~W (±25 %%, 2–240 min, '
+                                 'saltos ≥ 20 W) como LIGHTS sin FreeJev')
         parser.add_argument('--fix-existing', action='store_true',
                             help='Revisa los eventos AUTO ya guardados (duración implausible, contiguos '
                                  'del mismo tipo) sin llamar a FreeJev; con --dry-run solo lista')
@@ -145,6 +184,8 @@ class Command(BaseCommand):
             raise CommandError('--since debe ser anterior a --until')
         if o['fix_existing']:
             return self.fix_existing(accept_from, accept_to, o)
+        if o['light_w']:
+            return self.add_lights(accept_from, accept_to, now, o)
         api_key = getattr(settings, 'FREEJEV_API_KEY', '')
         if not api_key and not o['dry_run']:
             raise CommandError('Falta FREEJEV_API_KEY (local_settings.py o .env)')
@@ -165,6 +206,13 @@ class Command(BaseCommand):
 
     def process(self, dev, now, accept_from, accept_to, api_key, o, budget):
         stats = Counter()
+        light = dev.location.appliances.filter(type='LIGHTS', power_w__isnull=False).first()
+        if light:  # regla de luz conocida (Appliance.power_w), sin FreeJev
+            lights = light_events(dev, light.power_w, accept_from, accept_to, now)
+            if o['dry_run']:
+                stats['luces'] = len(lights)
+            else:
+                stats['luces'], _ = self.save(dev, lights, [])
         load_to = min(now, accept_to + MARGIN)
         series, _ = det.remove_spikes(det.load_series(dev, accept_from - MARGIN, load_to), MIN_DELTA_W)
         if len(series) < 3:
@@ -325,3 +373,25 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(
             f"{verb}: {sum(removed.values())} ({dict(removed)}); unidos: {sum(merged.values())} ({dict(merged)}); "
             f"quedan {kept} eventos"))
+
+    def add_lights(self, since, until, now, o):
+        """--light-w: recarga las luces de --location y guarda la potencia en su Appliance LIGHTS."""
+        if not o['location']:
+            raise CommandError('--light-w requiere --location')
+        watts, dry, total = o['light_w'], o['dry_run'], 0
+        devices = Device.objects.filter(device_type='TUYA', location_id__in=o['location']).select_related('location')
+        for dev in devices:
+            events = light_events(dev, watts, since, until, now)
+            for ev in events:
+                self.stdout.write(f"  loc {dev.location_id} {timezone.localtime(ev.start_time):%a %m-%d %H:%M}-"
+                                  f"{timezone.localtime(ev.end_time):%H:%M} {ev.class_name:<10} {ev.description}")
+            if dry:
+                total += len(events)
+                continue
+            # La ejecución horaria aplicará la regla a partir de ahora
+            Appliance.objects.update_or_create(location=dev.location, type='LIGHTS',
+                                               defaults={'power_w': round(watts)})
+            created, merged = self.save(dev, events, [])
+            total += created
+            self.stdout.write(f"loc {dev.location_id}: guardadas={created}, unidas={merged}, luz={round(watts)} W")
+        self.stdout.write(self.style.SUCCESS(f"{'se guardarían' if dry else 'guardadas'}: {total} luces"))

@@ -536,3 +536,64 @@ class MergeEventsTests(TestCase):
         call_command(*args, stdout=open('/dev/null', 'w'))
         ev = Event.objects.get()
         self.assertEqual((ev.type, ev.start_time, ev.end_time), ('COOKTOP', self.at(9, 3), self.at(10, 22)))
+
+
+class LocationDetailScrollTests(TestCase):
+    def test_empty_day_with_previous_events(self):
+        import datetime as dt
+        from django.utils import timezone
+        from nilm.models import Event
+        admin = User.objects.create_superuser('boss2', 'b@b.b', 'pw12345!')
+        loc = Location.objects.create(description='Casa', address='x')
+        start = timezone.make_aware(dt.datetime(2026, 11, 6, 21, 38))
+        Event.objects.create(location=loc, source='AUTO', type='TV', class_name='NORMAL', start_time=start,
+                             end_time=start + dt.timedelta(minutes=160), description='55 W · 161 min')
+        self.client.force_login(admin)
+        html = self.client.get(reverse('nilm:location_detail', args=[loc.pk]), {'date': '2026-11-08'}).content.decode()
+        self.assertEqual(html.count('id="events-column"'), 1)  # sin la copia duplicada
+        self.assertEqual(html.count('new IntersectionObserver'), 1)
+        self.assertIn('data-next-date="2026-11-06"', html)
+        self.assertIn('observer.unobserve(spinner);', html)  # re-observa tras cargar: no se queda girando
+        self.assertLess(html.index('No hay eventos para este día'), html.index('id="events-scroll-container"'))
+
+
+class LightRuleTests(TestCase):
+    def test_known_light_saved_as_lights(self):
+        import datetime as dt
+        from django.core.management import call_command
+        from django.utils import timezone
+        from nilm.models import Device, Event, Measurement
+        loc = Location.objects.create(description='Casa', address='x')
+        dev = Device.objects.create(device_id='tuya-l', model='m', device_type='TUYA', location=loc)
+        t0 = timezone.make_aware(dt.datetime(2026, 11, 3, 4, 0))
+        # luz de 36 W a las 04:37 durante 3 h (madrugada) y otra de 36 W a las 08:00 durante 1 min (demasiado corta)
+        pts = ([(0, 68)] + [(m, 104) for m in range(37, 217, 15)]  # con el sondeo de cada 15 min
+               + [(217, 68), (240, 68), (241, 104), (242, 68), (250, 68)])
+        # otro encendido de 36 W dentro del de madrugada (06:00-06:10): se une y sigue UNEXPECTED
+        pts += [(120, 140), (130, 104)]
+        pts.sort()
+        for m, p in pts:
+            ts = t0 + dt.timedelta(minutes=m)
+            Measurement.objects.create(device=dev, start_time=ts, end_time=ts, timestamp=ts,
+                                       telemetry={'power_w': p, 'current_a': p / 230, 'voltage_v': 230})
+        args = ['detect_events', '--location', str(loc.pk), '--since', '2026-11-03', '--until', '2026-11-04',
+                '--light-w', '36']
+        call_command(*args, '--dry-run', stdout=open('/dev/null', 'w'))
+        self.assertEqual(Event.objects.count(), 0)
+        call_command(*args, stdout=open('/dev/null', 'w'))
+        call_command(*args, stdout=open('/dev/null', 'w'))  # repetir no duplica ni vuelve a unir
+        ev = Event.objects.get()
+        self.assertEqual(ev.features['sesiones'], 2)
+        self.assertEqual((ev.type, ev.class_name, ev.source), ('LIGHTS', 'UNEXPECTED', 'AUTO'))
+        self.assertEqual(timezone.localtime(ev.start_time).strftime('%H:%M'), '04:37')
+        self.assertEqual(loc.appliances.get(type='LIGHTS').power_w, 36)  # recordada para la ejecución horaria
+
+        # la ejecución normal (sin --light-w) aplica la regla por sí sola
+        from unittest import mock
+        from django.test import override_settings
+        Event.objects.all().delete()
+        with override_settings(FREEJEV_API_KEY='test'), \
+                mock.patch('nilm.classification.call_freejev', return_value={'answers': {}}):
+            call_command('detect_events', '--location', str(loc.pk), '--since', '2026-11-03',
+                         '--until', '2026-11-04', stdout=open('/dev/null', 'w'))
+        self.assertEqual(list(Event.objects.values_list('type', flat=True)), ['LIGHTS'])

@@ -173,6 +173,7 @@ def build_tuya_energy(device, day):
             start_time__gte=day_start - timedelta(seconds=ENERGY_MAX_INTERVAL_S),
             telemetry__has_key='energy_added_kwh',
         )
+        .exclude(telemetry__has_key='power_w')
         .order_by('-start_time')
         .values_list('start_time', flat=True)
         .first()
@@ -196,7 +197,10 @@ def build_tuya_energy(device, day):
             continue
 
         kwh, interval_start = None, None
-        added = tel.get('energy_added_kwh')
+        # Solo add_ele de histórico: las filas con power_w son instantáneas del
+        # sondeo en vivo que repiten el último incremento (tuya_poll --once,
+        # antes de corregirlo); sumarlas contaría la misma energía 2-4 veces.
+        added = tel.get('energy_added_kwh') if tel.get('power_w') is None else None
         if added is not None:
             try:
                 kwh = float(added)

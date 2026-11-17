@@ -67,6 +67,7 @@ fi
 
 mkdir -p "$PROJECT_DIR/logs"
 LOG="$PROJECT_DIR/logs/tuya_poll.log"
+DLOG="$PROJECT_DIR/logs/detect_events.log"
 FLOCK="$(command -v flock || true)"
 LOCK_PREFIX=""
 [ -n "$FLOCK" ] && LOCK_PREFIX="$FLOCK -n /tmp/tuya_poll.lock "
@@ -77,8 +78,11 @@ block="$MARK_BEGIN
 17 3 * * * cd $PROJECT_DIR && ${LOCK_PREFIX}$PY manage.py tuya_poll --history --since \"\$(date -d '2 days ago' +\\%F)\" >> $LOG 2>&1
 # Lectura en vivo cada 15 minutos (mantiene el estado is_active del admin).
 */15 * * * * cd $PROJECT_DIR && $PY manage.py tuya_poll --once >> $LOG 2>&1
-# Rotación semanal del log.
-0 4 * * 0 cd $PROJECT_DIR && mv $LOG $LOG.1 2>/dev/null
+# Cada hora: histórico de ayer y hoy (resolución completa para emparejar ON/OFF) y
+# después detección + clasificación de eventos (detect_events, FreeJev).
+25 * * * * cd $PROJECT_DIR && ${LOCK_PREFIX}sh -c \"$PY manage.py tuya_poll --history --since \\\"\$(date -d '1 day ago' +\%F)\\\" >> $LOG 2>&1; $PY manage.py detect_events\" >> $DLOG 2>&1
+# Rotación semanal de los logs.
+0 4 * * 0 cd $PROJECT_DIR && mv $LOG $LOG.1 2>/dev/null; mv $DLOG $DLOG.1 2>/dev/null
 $MARK_END"
 
 echo "Se instalarán estas líneas en el crontab de $(id -un):"

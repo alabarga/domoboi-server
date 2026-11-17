@@ -54,6 +54,13 @@
     </div>{% endfor %}
   </div>
 
+  {% if not recent_events %}
+  <div class="rounded-xl border p-8 text-center" style="background:var(--surface); border-color:var(--border);">
+    <i class="ri-calendar-2-line text-3xl mb-2 block" style="color:var(--text-muted); opacity:.4;"></i>
+    <p class="text-sm" style="color:var(--text-muted);">{% trans "No hay eventos para este día." %}</p>
+  </div>
+  {% endif %}
+
   <div id="events-scroll-container" class="space-y-3">
     {% include 'nilm/partials/event_cards.html' %}
   </div>
@@ -68,13 +75,6 @@
        class="flex justify-center py-4">
     <div class="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin"
          style="border-color:var(--accent); border-top-color:transparent;"></div>
-  </div>
-  {% endif %}
-
-  {% if not recent_events %}
-  <div class="rounded-xl border p-8 text-center" style="background:var(--surface); border-color:var(--border);">
-    <i class="ri-calendar-2-line text-3xl mb-2 block" style="color:var(--text-muted); opacity:.4;"></i>
-    <p class="text-sm" style="color:var(--text-muted);">{% trans "No hay eventos para este día." %}</p>
   </div>
   {% endif %}
 
@@ -120,7 +120,12 @@
       .then(function (html) {
         container.insertAdjacentHTML('beforeend', html);
         loading = false;
-        if (!hasMore) { spinner.remove(); observer.disconnect(); }
+        if (!hasMore) { spinner.remove(); observer.disconnect(); return; }
+        // El observer solo avisa al cambiar la visibilidad: si la página sigue siendo
+        // corta, el spinner nunca deja de verse y se quedaría girando. Re-observar
+        // fuerza una comprobación inmediata.
+        observer.unobserve(spinner);
+        observer.observe(spinner);
       })
       .catch(function (err) {
         console.error('Event load failed:', err);

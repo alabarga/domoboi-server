@@ -84,7 +84,7 @@ class Command(BaseCommand):
                 kinds[kind] += 1
                 if not has_p:
                     no_power_values[_num(value)] += 1
-                if has_e:
+                if has_e and not has_p:  # con power_w es una repetición del sondeo en vivo
                     energy.append((ts, _num(tel["energy_added_kwh"])))
                 if has_t:
                     energy_total.append((ts, _num(tel["energy_kwh"])))

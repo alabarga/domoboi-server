@@ -46,7 +46,31 @@ UNFOLD = {
     "SITE_SUBHEADER": _("Administration platform"),
     "STYLES": [
         lambda request: static("css/dashboard.css"),
+        lambda request: static("css/admin_theme.css"),
     ],
+    "SCRIPTS": [
+        lambda request: static("js/admin_theme.js"),
+    ],
+    # Paleta Hearth (la misma de nilm/templates/base.html), en formato "R, G, B"
+    "COLORS": {
+        "base": {
+            "50": "247, 243, 236", "100": "239, 232, 220", "200": "226, 216, 200",
+            "300": "200, 186, 168", "400": "155, 136, 120", "500": "122, 106, 90",
+            "600": "96, 82, 68", "700": "53, 41, 32", "800": "37, 29, 24",
+            "900": "26, 20, 16", "950": "18, 14, 11",
+        },
+        "primary": {
+            "50": "254, 249, 236", "100": "252, 238, 207", "200": "249, 219, 154",
+            "300": "245, 196, 103", "400": "240, 168, 48", "500": "217, 144, 28",
+            "600": "183, 121, 31", "700": "146, 94, 26", "800": "119, 77, 24",
+            "900": "99, 65, 22", "950": "56, 34, 8",
+        },
+        "font": {
+            "subtle-light": "122, 106, 90", "subtle-dark": "155, 136, 120",
+            "default-light": "90, 74, 58", "default-dark": "214, 200, 182",
+            "important-light": "42, 33, 24", "important-dark": "245, 237, 224",
+        },
+    },
 
     "SIDEBAR": {
         "show_search": True,

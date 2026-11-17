@@ -1,0 +1,53 @@
+/* DOMOBOI admin: misma estética "Hearth" que Inicio y Detalle (nilm/templates/base.html) */
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+
+:root {
+  --dm-bg: #F7F3EC; --dm-surface: #FFFFFF; --dm-raised: #EFE8DC;
+  --dm-border: rgba(60,40,20,0.14);
+  --dm-accent: #B7791F; --dm-warm: #C2410C; --dm-danger: #C62828; --dm-ok: #2E7D4F;
+  --dm-text: #2A2118; --dm-muted: #7A6A5A;
+  --font-sans: "Space Grotesk", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+html.dark {
+  --dm-bg: #1A1410; --dm-surface: #251D18; --dm-raised: #352920;
+  --dm-border: rgba(255,220,160,0.08);
+  --dm-accent: #F0A830; --dm-warm: #E05C3A; --dm-danger: #E03B3B; --dm-ok: #5CC28A;
+  --dm-text: #F5EDE0; --dm-muted: #9B8878;
+}
+
+body, #main, main { background-color: var(--dm-bg) !important; color: var(--dm-text); font-family: var(--font-sans); }
+#nav-sidebar, aside, header#header, #header { background-color: var(--dm-surface) !important; border-color: var(--dm-border) !important; }
+#site-name, #site-name a { font-family: var(--font-sans); font-weight: 700; letter-spacing: .02em; color: var(--dm-accent) !important; }
+h1, h2, h3, h4 { font-family: var(--font-sans); color: var(--dm-text); }
+code, kbd, pre, .font-mono { font-family: var(--font-mono); }
+
+/* tarjetas, módulos, tablas, formularios */
+
+.dm-card { background-color: var(--dm-surface) !important; border: 1px solid var(--dm-border) !important; border-radius: 12px; box-shadow: none !important; }
+thead th, table thead { background-color: var(--dm-raised) !important; color: var(--dm-muted); }
+tbody tr:hover { background-color: var(--dm-raised) !important; }
+input:not([type=checkbox]):not([type=radio]):not(#searchbar), select, textarea { background-color: var(--dm-bg) !important; border-color: var(--dm-border) !important; color: var(--dm-text) !important; border-radius: 8px; }
+input:not(#searchbar):focus, select:focus, textarea:focus { border-color: var(--dm-accent) !important; box-shadow: 0 0 0 2px color-mix(in srgb, var(--dm-accent) 30%, transparent) !important; outline: none; }
+a:hover { color: var(--dm-accent); }
+.button, button[type=submit], input[type=submit], .default { border-radius: 8px; }
+button[type=submit].default, input[type=submit].default { background-color: var(--dm-accent) !important; color: #1A1410 !important; border-color: var(--dm-accent) !important; font-weight: 600; }
+
+/* panel de inicio */
+.dm-stat { display: flex; align-items: center; gap: 1rem; padding: 1.25rem 1.5rem; }
+.dm-stat-icon { width: 2.25rem; height: 2.25rem; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--dm-accent) 16%, transparent); color: var(--dm-accent); }
+.dm-stat-icon.ok { background: color-mix(in srgb, var(--dm-ok) 16%, transparent); color: var(--dm-ok); }
+.dm-stat-icon.warm { background: color-mix(in srgb, var(--dm-warm) 16%, transparent); color: var(--dm-warm); }
+.dm-stat-icon svg { width: 1.25rem; height: 1.25rem; }
+.dm-stat-label { font-size: .8rem; color: var(--dm-muted); margin: 0; }
+.dm-stat-value { font-size: 1.75rem; font-weight: 600; color: var(--dm-text); margin: 0; font-family: var(--font-mono); line-height: 1.2; }
+.dm-card-title { font-size: 1rem; font-weight: 600; color: var(--dm-text); margin: 0 0 1rem; }
+.dm-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5rem; margin-top: 2rem; }
+@media (max-width: 768px) { .dm-grid { grid-template-columns: 1fr; } }
+
+/* mapa */
+#device-map { border: 1px solid var(--dm-border); }
+html.dark #device-map .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.85) contrast(.9) saturate(.7); }
+.leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--dm-surface); color: var(--dm-text); border: 1px solid var(--dm-border); }
+.leaflet-popup-content { font-family: var(--font-sans); }
+.leaflet-container a.leaflet-popup-close-button { color: var(--dm-muted); }

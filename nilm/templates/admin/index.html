@@ -14,59 +14,59 @@
     <link rel="stylesheet" href="{% static 'location_field/leaflet/leaflet.css' %}"/>
 
     <!-- Stat Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div class="flex items-center">
+    <div class="dm-grid">
+        <div class="dm-card dm-stat">
+            <div class="flex items-center" style="gap:1rem">
                 <div class="flex-shrink-0">
-                    <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="dm-stat-icon">
+                        <svg  fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path>
                         </svg>
                     </div>
                 </div>
-                <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-500">{% trans "Dispositivos" %}</p>
-                    <p class="text-2xl font-semibold text-gray-900">{{ assigned_devices }}</p>
+                <div>
+                    <p class="dm-stat-label">{% trans "Dispositivos" %}</p>
+                    <p class="dm-stat-value">{{ assigned_devices }}</p>
                 </div>
             </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div class="flex items-center">
+        <div class="dm-card dm-stat">
+            <div class="flex items-center" style="gap:1rem">
                 <div class="flex-shrink-0">
-                    <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="dm-stat-icon ok">
+                        <svg  fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                         </svg>
                     </div>
                 </div>
-                <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-500">{% trans "Activos últimas 24h" %}</p>
-                    <p class="text-2xl font-semibold text-gray-900">{{ active_devices_last_hour }}</p>
+                <div>
+                    <p class="dm-stat-label">{% trans "Activos últimas 24h" %}</p>
+                    <p class="dm-stat-value">{{ active_devices_last_hour }}</p>
                 </div>
             </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div class="flex items-center">
+        <div class="dm-card dm-stat">
+            <div class="flex items-center" style="gap:1rem">
                 <div class="flex-shrink-0">
-                    <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                        <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="dm-stat-icon warm">
+                        <svg  fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                         </svg>
                     </div>
                 </div>
-                <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-500">{% trans "Activos última semana" %}</p>
-                    <p class="text-2xl font-semibold text-gray-900">{{ devices_active_7days }}</p>
+                <div>
+                    <p class="dm-stat-label">{% trans "Activos última semana" %}</p>
+                    <p class="dm-stat-value">{{ devices_active_7days }}</p>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Device Map -->
-    <div class="mt-6 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h3 class="text-lg font-medium text-gray-900 mb-4">{% trans "Device Map" %}</h3>
+    <div class="dm-card" style="margin-top:1.5rem;padding:1.5rem">
+        <h3 class="dm-card-title">{% trans "Device Map" %}</h3>
         <div id="device-map" style="height:420px; z-index:1; border-radius:0.5rem;"></div>
     </div>
 
@@ -92,9 +92,9 @@
 
         var bounds = [];
         devices.forEach(function (d) {
-            var color = d.is_active ? '#10B981' : '#EF4444';
+            var color = d.is_active ? (document.documentElement.classList.contains('dark') ? '#5CC28A' : '#2E7D4F') : '#E03B3B';
             var label = d.is_active ? '{% trans "Active" %}' : '{% trans "Inactive" %}';
-            var typeColor = d.device_type === 'TUYA' ? '#F59E0B' : '#3B82F6';
+            var typeColor = d.device_type === 'TUYA' ? '#E05C3A' : '#F0A830';
             var marker = L.circleMarker([d.lat, d.lon], {
                 radius: 10,
                 fillColor: color,
@@ -105,7 +105,7 @@
             }).addTo(map);
             marker.bindPopup(
                 '<strong>' + d.model + '</strong> ' +
-                '<span style="background:' + typeColor + ';color:#fff;padding:1px 6px;border-radius:9999px;font-size:0.7em;">' + d.device_type + '</span><br>' +
+                '<span style="background:' + typeColor + ';color:#1A1410;padding:1px 6px;border-radius:9999px;font-size:0.7em;">' + d.device_type + '</span><br>' +
                 '<code style="font-size:0.75em;">' + d.device_id + '</code><br>' +
                 d.location + '<br>' +
                 '<em style="font-size:0.8em;">{% trans "Last seen" %}: ' + d.last_active + '</em><br>' +

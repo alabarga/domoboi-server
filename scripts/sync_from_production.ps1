@@ -26,6 +26,7 @@ $ProdUser = "domoboi"
 
 $DevicesCsv      = "dispositivos_export.csv"
 $MeasurementsCsv = "medidas_todos.csv"
+$LabelsCsv       = "etiquetas_export.csv"
 
 $ConnInfo = "host=$ProdHost port=$ProdPort dbname=$ProdDb user=$ProdUser"
 
@@ -42,6 +43,11 @@ if ($Since -ne "") {
 psql $ConnInfo -c "\copy ($MeasurementsQuery) TO '$MeasurementsCsv' WITH CSV HEADER"
 
 Write-Host "Importando a tu base de datos local..."
+Write-Host "Exportando etiquetas de eventos desde produccion..."
+psql $ConnInfo -c "\copy (SELECT d.device_id, m.start_time, l.appliance_type, l.notes FROM reconstruction_eventlabel l JOIN nilm_measurement m ON m.id = l.measurement_id JOIN nilm_device d ON d.id = m.device_id) TO '$LabelsCsv' WITH CSV HEADER"
+
+Write-Host "Importando a tu base de datos local..."
 python manage.py import_all_csv $DevicesCsv $MeasurementsCsv
+python manage.py import_labels_csv $LabelsCsv
 
 Write-Host "Listo. Tu base local ya refleja produccion."

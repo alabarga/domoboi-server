@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Instala las dos tareas cron que recogen los datos de los enchufes Tuya.
+# Instala las tareas cron que recogen los datos de los enchufes Tuya.
 #
 # Uso (desde cualquier carpeta, con el usuario del servidor que ejecuta Django):
 #     bash scripts/install_tuya_cron.sh            # muestra y pide confirmación
@@ -74,13 +74,13 @@ LOCK_PREFIX=""
 
 # cron trata % como salto de línea: hay que escaparlo.
 block="$MARK_BEGIN
-# Histórico real de Tuya, cada día a las 03:17. Mira 2 días atrás para que un fallo se recupere solo.
-17 3 * * * cd $PROJECT_DIR && ${LOCK_PREFIX}$PY manage.py tuya_poll --history --since \"\$(date -d '2 days ago' +\\%F)\" >> $LOG 2>&1
-# Lectura en vivo cada 15 minutos (mantiene el estado is_active del admin).
-*/15 * * * * cd $PROJECT_DIR && $PY manage.py tuya_poll --once >> $LOG 2>&1
-# Cada hora: histórico de ayer y hoy (resolución completa para emparejar ON/OFF) y
-# después detección + clasificación de eventos (detect_events, FreeJev).
-25 * * * * cd $PROJECT_DIR && ${LOCK_PREFIX}sh -c \"$PY manage.py tuya_poll --history --since \\\"\$(date -d '1 day ago' +\%F)\\\" >> $LOG 2>&1; $PY manage.py detect_events\" >> $DLOG 2>&1
+# Histórico real de Tuya, cada día a las 03:17: ayer completo + hoy, por si falló alguna hora.
+17 3 * * * cd $PROJECT_DIR && ${LOCK_PREFIX}$PY manage.py tuya_poll --history --since \"\$(date -d '1 day ago' +\\%F)\" >> $LOG 2>&1
+# Lectura en vivo (is_active): cada 15 min de día, cada hora de noche (horas UTC del servidor).
+*/15 6-21 * * * cd $PROJECT_DIR && $PY manage.py tuya_poll --once >> $LOG 2>&1
+5 22,23,0-5 * * * cd $PROJECT_DIR && $PY manage.py tuya_poll --once >> $LOG 2>&1
+# Cada hora: histórico de las últimas 2 h + detección y clasificación de eventos (FreeJev).
+25 * * * * cd $PROJECT_DIR && ${LOCK_PREFIX}sh -c \"$PY manage.py tuya_poll --history --since \\\"\$(date -u -d '2 hours ago' +\\%FT\\%H:\\%M)\\\" >> $LOG 2>&1; $PY manage.py detect_events\" >> $DLOG 2>&1
 # Rotación semanal de los logs.
 0 4 * * 0 cd $PROJECT_DIR && mv $LOG $LOG.1 2>/dev/null; mv $DLOG $DLOG.1 2>/dev/null
 $MARK_END"

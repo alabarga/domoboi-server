@@ -40,10 +40,14 @@ block instead of duplicating it, and other crontab lines are never touched):
 
 | Schedule | Command | Purpose |
 |---|---|---|
-| `17 3 * * *` | `tuya_poll --history --since <2 days ago>` | Real device history, daily; the 2-day lookback self-heals a missed run |
-| `*/15 * * * *` | `tuya_poll --once` | Live reading, keeps `is_active` meaningful in the admin |
-| `25 * * * *` | `tuya_poll --history --since <yesterday>` then `detect_events` | Full-resolution history, then appliance-event detection + FreeJev classification into `Event` (`source=AUTO`); log in `logs/detect_events.log` |
+| `17 3 * * *` | `tuya_poll --history --since <yesterday>` | Real device history, daily; refills any hour the hourly run missed |
+| `*/15 6-21 * * *`, `5 22,23,0-5 * * *` | `tuya_poll --once` | Live reading, keeps `is_active` meaningful in the admin; hourly at night |
+| `25 * * * *` | `tuya_poll --history --since <2 h ago, UTC>` then `detect_events` | Full-resolution history, then appliance-event detection + FreeJev classification into `Event` (`source=AUTO`); log in `logs/detect_events.log` |
 | `0 4 * * 0` | `mv logs/tuya_poll.log logs/tuya_poll.log.1` | Weekly log rotation |
+
+The Tuya IoT Core trial allows ~53,900 API calls a month (0.2 USD, refreshed
+monthly; paid editions are annual plans). This schedule uses ~1,400/day; the
+old hourly `--since <yesterday>` re-fetch used several thousand and exhausted it.
 
 Cron uses the **server's** timezone. Check it with `date`: if it prints UTC,
 03:17 is 05:17 in Madrid in summer (04:17 in winter). Either way it runs well

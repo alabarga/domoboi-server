@@ -488,6 +488,29 @@ class FreeJevIdempotencyTests(TestCase):
         self.assertNotEqual(keys[1], keys[2])
 
 
+class GeminiTests(TestCase):
+    def test_request_shape_answers_parse_and_bad_key_is_fatal(self):
+        from unittest import mock
+        from nilm import classification as cls
+        body = {'state': {'eventos': []}, 'questions': {'E1': {'type': 'choice', 'criteria': {'OVEN': '', 'OTHER': ''}}}}
+        answers = {'E1': {'type': 'choice', 'choice': 'OVEN', 'confidence': 0.8, 'probabilities': {'OVEN': 0.8}}}
+        ok = mock.Mock(status_code=200, json=lambda: {'answers': answers})
+        http = mock.Mock(post=mock.Mock(return_value=ok))
+        with mock.patch('nilm.classification.time.sleep') as sleep:
+            resp = cls.call_gemini(body, 'k', 'gemini-decision-1', http=http)
+            cls.call_gemini(body, 'k', 'gemini-decision-1', http=http)  # justo después: espera ≤ 0,3 s
+        self.assertEqual(sleep.call_count, 1)
+        self.assertLessEqual(sleep.call_args.args[0], cls.GEMINI_MIN_INTERVAL_S)
+        sent = http.post.call_args.kwargs['json']
+        self.assertEqual((sent['model'], sent['questions']), ('gemini-decision-1', body['questions']))
+        self.assertTrue(sent['input'].startswith('state = '))
+        self.assertEqual(cls.parse_answers(resp, body), {'E1': ('OVEN', 0.8)})
+        bad = mock.Mock(status_code=400, text='API key not valid')
+        with self.assertRaises(cls.FreeJevError) as ctx:
+            cls.call_gemini(body, 'k', 'm', http=mock.Mock(post=mock.Mock(return_value=bad)))
+        self.assertTrue(ctx.exception.fatal)
+
+
 class MergeEventsTests(TestCase):
     def setUp(self):
         import datetime as dt

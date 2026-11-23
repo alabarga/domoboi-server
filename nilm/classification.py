@@ -214,3 +214,46 @@ def call_freejev(body, api_key, base_url, http=requests, max_retries=3):
             raise FreeJevError(f'FreeJev {r.status_code}: {r.text[:300]}', fatal=r.status_code in (401, 402, 403))
         return r.json()
     raise FreeJevError('FreeJev: demasiados reintentos')
+
+
+GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/decisions'
+# Nivel gratuito de AI Studio: 200 peticiones/min (y 10.000/día). Las llamadas van en serie,
+# así que basta con espaciarlas. ponytail: límite por proceso; dos detect_events a la vez
+# (cron + backfill manual) podrían sumar el doble.
+GEMINI_MIN_INTERVAL_S = 60 / 200
+_gemini_last = 0.0
+
+
+def _gemini_throttle():
+    global _gemini_last
+    wait = _gemini_last + GEMINI_MIN_INTERVAL_S - time.monotonic()
+    if wait > 0:
+        time.sleep(wait)
+    _gemini_last = time.monotonic()
+
+
+def call_gemini(body, api_key, model, http=requests, max_retries=3):
+    """
+    Gemini Decisions API (POST /v1beta/decisions): mismas preguntas `choice` que FreeJev
+    y misma respuesta (answers con choice, probabilities y confidence calibrada).
+    El state va como texto en `input`; las instrucciones lo citan como state.*.
+    """
+    payload = {'model': model, 'questions': body['questions'],
+               'input': 'state = ' + json.dumps(body['state'], ensure_ascii=False)}
+    for attempt in range(max_retries + 1):
+        _gemini_throttle()
+        try:
+            r = http.post(GEMINI_URL, json=payload, headers={'x-goog-api-key': api_key}, timeout=120)
+        except requests.RequestException as e:
+            if attempt < max_retries:
+                time.sleep(15 * (attempt + 1))
+                continue
+            raise FreeJevError(f'Gemini sin respuesta: {e}')
+        if r.status_code in (429, 500, 502, 503, 504) and attempt < max_retries:
+            time.sleep(15 * (attempt + 1))
+            continue
+        if r.status_code >= 400:
+            # 400/404: clave, petición o modelo inválidos; se repetiría en todas las ubicaciones
+            raise FreeJevError(f'Gemini {r.status_code}: {r.text[:300]}', fatal=r.status_code in (400, 401, 403, 404))
+        return r.json()
+    raise FreeJevError('Gemini: demasiados reintentos')

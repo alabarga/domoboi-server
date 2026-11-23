@@ -187,8 +187,8 @@ class Command(BaseCommand):
         if o['light_w']:
             return self.add_lights(accept_from, accept_to, now, o)
         api_key = getattr(settings, 'FREEJEV_API_KEY', '')
-        if not api_key and not o['dry_run']:
-            raise CommandError('Falta FREEJEV_API_KEY (local_settings.py o .env)')
+        if not api_key and not settings.GEMINI_API_KEY and not o['dry_run']:
+            raise CommandError('Falta GEMINI_API_KEY o FREEJEV_API_KEY (local_settings.py o .env)')
 
         devices = Device.objects.filter(device_type='TUYA', location__isnull=False).select_related('location')
         if o['location']:
@@ -278,7 +278,10 @@ class Command(BaseCommand):
                 self.stdout.write(json.dumps(body, ensure_ascii=False, indent=1))
                 continue
             try:
-                resp = cls.call_freejev(body, api_key, settings.FREEJEV_BASE_URL)
+                if settings.GEMINI_API_KEY:
+                    resp = cls.call_gemini(body, settings.GEMINI_API_KEY, settings.GEMINI_MODEL)
+                else:
+                    resp = cls.call_freejev(body, api_key, settings.FREEJEV_BASE_URL)
             except cls.FreeJevError as e:
                 self.save(dev, to_create, seen)
                 if e.fatal:
@@ -287,7 +290,7 @@ class Command(BaseCommand):
                 stats['error_api'] += 1
                 break
             if b == 0 and o['limit']:
-                self.stdout.write('Respuesta FreeJev: ' + json.dumps(resp, ensure_ascii=False)[:2000])
+                self.stdout.write('Respuesta: ' + json.dumps(resp, ensure_ascii=False)[:2000])
             usage = resp.get('usage') or {}
             for k in ('credits_used', 'creditsUsed', 'credits'):
                 if isinstance(usage.get(k), (int, float)):

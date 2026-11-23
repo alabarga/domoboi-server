@@ -74,13 +74,17 @@ LOCK_PREFIX=""
 
 # cron trata % como salto de línea: hay que escaparlo.
 block="$MARK_BEGIN
-# Histórico real de Tuya, cada día a las 03:17. Mira 2 días atrás para que un fallo se recupere solo.
-17 3 * * * cd $PROJECT_DIR && ${LOCK_PREFIX}$PY manage.py tuya_poll --history --since \"\$(date -d '2 days ago' +\\%F)\" >> $LOG 2>&1
-# Lectura en vivo cada 15 minutos (mantiene el estado is_active del admin).
-*/15 * * * * cd $PROJECT_DIR && $PY manage.py tuya_poll --once >> $LOG 2>&1
-# Cada hora: histórico de ayer y hoy (resolución completa para emparejar ON/OFF) y
+# Cuota del trial de Tuya: ~53.900 llamadas/mes (0,2 USD); esto gasta ~1.400/día.
+# Histórico real de Tuya, cada día a las 03:17: ayer completo + hoy, por si falló alguna hora.
+17 3 * * * cd $PROJECT_DIR && ${LOCK_PREFIX}$PY manage.py tuya_poll --history --since \"\$(date -d '1 day ago' +\\%F)\" >> $LOG 2>&1
+# Lectura en vivo (mantiene el estado is_active del admin): cada 15 min de día, cada hora de
+# noche. Horas del servidor en UTC: 06–21 UTC ≈ 07–22 h en Madrid (invierno).
+*/15 6-21 * * * cd $PROJECT_DIR && $PY manage.py tuya_poll --once >> $LOG 2>&1
+5 22,23,0-5 * * * cd $PROJECT_DIR && $PY manage.py tuya_poll --once >> $LOG 2>&1
+# Cada hora: histórico de las últimas 2 h (resolución completa para emparejar ON/OFF;
+# pedir ayer+hoy cada hora agotó la cuota mensual de Tuya) y
 # después detección + clasificación de eventos (detect_events, FreeJev).
-25 * * * * cd $PROJECT_DIR && ${LOCK_PREFIX}sh -c \"$PY manage.py tuya_poll --history --since \\\"\$(date -d '1 day ago' +\%F)\\\" >> $LOG 2>&1; $PY manage.py detect_events\" >> $DLOG 2>&1
+25 * * * * cd $PROJECT_DIR && ${LOCK_PREFIX}sh -c \"$PY manage.py tuya_poll --history --since \\\"\$(date -u -d '2 hours ago' +\%FT\%H:\%M)\\\" >> $LOG 2>&1; $PY manage.py detect_events\" >> $DLOG 2>&1
 # Rotación semanal de los logs.
 0 4 * * 0 cd $PROJECT_DIR && mv $LOG $LOG.1 2>/dev/null; mv $DLOG $DLOG.1 2>/dev/null
 $MARK_END"

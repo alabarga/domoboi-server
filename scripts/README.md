@@ -40,11 +40,14 @@ block instead of duplicating it, and other crontab lines are never touched):
 
 | Schedule | Command | Purpose |
 |---|---|---|
-| `17 3 * * *` | `tuya_poll --history --since <yesterday>` | Real device history, daily: yesterday in full plus today, so a failed hour is recovered |
-| `*/15 6-21 * * *` | `tuya_poll --once` | Live reading by day (server hours, UTC), keeps `is_active` meaningful in the admin |
-| `5 22,23,0-5 * * *` | `tuya_poll --once` | Same live reading, once an hour at night |
-| `25 * * * *` | `tuya_poll --history --since <2 hours ago, UTC>` then `detect_events` | Full-resolution history, then appliance-event detection + FreeJev classification into `Event` (`source=AUTO`); log in `logs/detect_events.log` |
+| `17 3 * * *` | `tuya_poll --history --since <yesterday>` | Real device history, daily; refills any hour the hourly run missed |
+| `*/15 6-21 * * *`, `5 22,23,0-5 * * *` | `tuya_poll --once` | Live reading, keeps `is_active` meaningful in the admin; hourly at night |
+| `25 * * * *` | `tuya_poll --history --since <2 h ago, UTC>` then `detect_events` | Full-resolution history, then appliance-event detection + FreeJev classification into `Event` (`source=AUTO`); log in `logs/detect_events.log` |
 | `0 4 * * 0` | `mv logs/tuya_poll.log logs/tuya_poll.log.1` | Weekly log rotation |
+
+The Tuya IoT Core trial allows ~53,900 API calls a month (0.2 USD, refreshed
+monthly; paid editions are annual plans). This schedule uses ~1,400/day; the
+old hourly `--since <yesterday>` re-fetch used several thousand and exhausted it.
 
 Cron uses the **server's** timezone. Check it with `date`: if it prints UTC,
 03:17 is 05:17 in Madrid in summer (04:17 in winter). Either way it runs well
@@ -56,7 +59,7 @@ Options: `--yes` installs without asking, `--remove` deletes the block, and
 then `venv/bin/python`).
 
 **Run the first backfill by hand** before relying on the cron: the nightly job
-only looks 2 days back, and Tuya keeps about 7 days of history. Start from the
+only looks 1 day back, and Tuya keeps about 7 days of history. Start from the
 last date that has data:
 
 ```bash
@@ -74,7 +77,7 @@ crontab by hand):
 # Domoboi — pull yesterday's Tuya datapoint history, once a day at 03:17.
 # 48h lookback so a single missed run self-heals; re-ingesting is free because
 # of the (device, timestamp) unique constraint.
-17 3 * * * cd /path/to/domoboi_django && /usr/bin/flock -n /tmp/tuya_poll.lock .venv/bin/python manage.py tuya_poll --history --since "$(date -d '2 days ago' +\%F)" >> logs/tuya_poll.log 2>&1
+17 3 * * * cd /path/to/domoboi_django && /usr/bin/flock -n /tmp/tuya_poll.lock .venv/bin/python manage.py tuya_poll --history --since "$(date -d '1 day ago' +\%F)" >> logs/tuya_poll.log 2>&1
 ```
 
 Note `\%` — cron treats an unescaped `%` as a newline. On a BSD/macOS host use

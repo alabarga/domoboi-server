@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from features import FEATURE_NAMES, event_features  # noqa: E402
+from features import FEATURE_NAMES, SESSION_FEATURE_NAMES, event_features, session_features  # noqa: E402
 
 # carpeta de TraceBase -> clase de la app (EventLabel.APPLIANCE_CHOICES)
 FOLDER_TO_CLASS = {
@@ -27,6 +27,9 @@ FOLDER_TO_CLASS = {
     "Washingmachine": "WASHING MACHINE",
     "Iron": "IRON",
     "Lamp": "LIGHTS",
+    "Coffeemaker": "COFFEE_MAKER", "BeanToCupCoffeemaker": "COFFEE_MAKER",
+    "Dishwasher": "DISHWASHER",
+    "LaundryDryer": "DRYER",
     "TV-LCD": "TV", "TV-CRT": "TV",
 }
 # todo lo demás de TraceBase se agrupa como OTHER (se limita su peso, ver --max-other)
@@ -73,12 +76,14 @@ def process(args):
         return []
     p = grid.to_numpy(dtype=float)
     rows = []
-    for t, d in detect(p, thr):
+    events = detect(p, thr)
+    sess = session_features(events)           # t en segundos: la rejilla es de 1 s
+    for (t, d), s in zip(events, sess):
         w = p[t - WIN_BEFORE: t + WIN_AFTER + 1]
         f = event_features(w, d)
         if f is None:
             continue
-        rows.append([cls, appliance, device, os.path.basename(path), str(grid.index[t]), d] + list(f))
+        rows.append([cls, appliance, device, os.path.basename(path), str(grid.index[t]), d] + list(f) + list(s))
     return rows
 
 
@@ -110,7 +115,7 @@ def main():
             if i % 200 == 0:
                 print(f"  {i}/{len(jobs)} ficheros, {len(rows)} eventos", flush=True)
 
-    cols = ["cls", "appliance", "device", "file", "t", "delta_p"] + FEATURE_NAMES
+    cols = ["cls", "appliance", "device", "file", "t", "delta_p"] + FEATURE_NAMES + SESSION_FEATURE_NAMES
     os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
     out = pd.DataFrame(rows, columns=cols)
     out.to_csv(a.out, index=False)

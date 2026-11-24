@@ -1,7 +1,7 @@
 # Prototipo de clasificador de eventos (TFM · DOMOBOI)
 
 Clasifica un **evento** (salto de potencia ΔP + forma de la ventana de ~3 s) en un tipo de
-aparato: `FRIDGE, OVEN, KETTLE, MICROWAVE, WASHING MACHINE, IRON, LIGHTS, TV, OTHER`
+aparato: `FRIDGE, OVEN, KETTLE, MICROWAVE, WASHING MACHINE, IRON, LIGHTS, TV, COOKTOP, HEATER, WATER_HEATER, OTHER`
 (las mismas clases que el desplegable de etiquetas de la app `reconstruction`).
 
 Es un prototipo para **montar y validar el pipeline mientras no hay etiquetas propias**.
@@ -12,9 +12,32 @@ predicen el rendimiento sobre datos de DOMOBOI.
 
 | Archivo | Qué hace |
 |---|---|
-| `features.py` | `event_features(readings, delta_p)`: características que **valen igual** para datos públicos y de DOMOBOI (solo forma de la ventana y ΔP; sin nivel absoluto en W, porque en una acometida incluye todas las demás cargas). Independientes de la frecuencia de muestreo. |
+| `features.py` | `event_features(readings, delta_p)`: características que **valen igual** para datos públicos y de DOMOBOI (sin nivel absoluto en W, porque en una acometida incluye todas las demás cargas). Dos grupos: **escalón** (ΔP y forma de la ventana; `rng_rel` y `std_rel` dependen de cuántas muestras previas y posteriores tiene la ventana, por eso la ventana de DOMOBOI se lleva a 1 Hz con `domoboi_window`) y **sesión** (ver abajo). |
 | `build_tracebase_events.py` | Detecta escalones en las trazas de TraceBase, corta la ventana y calcula las características. |
 | `train_baseline.py` | RandomForest y HistGradientBoosting, validados **por dispositivo físico** (el aparato de prueba no se ha visto al entrenar). |
+
+## Características de sesión
+
+Con solo el escalón, aparatos de potencia parecida (hervidor, microondas, cafetera, ~1 kW) se confunden:
+en la prueba entre datasets, la forma de la ventana mejoraba la F1 macro solo +0,04/+0,08 sobre usar
+únicamente ΔP. Lo que los separa es el comportamiento en el tiempo, que `features.py` calcula
+emparejando cada ON con su OFF (misma lógica que `nilm.detection.pair_steps` de producción) y
+agrupando ciclos repetidos en sesiones (`session_features`):
+
+| Característica | Qué mide |
+|---|---|
+| `paired` | 1 si el escalón tiene pareja ON/OFF |
+| `log_on_s` | duración del ciclo (log10 de 1 + s) |
+| `log_span_s` | duración de toda la sesión |
+| `log_cycles` | nº de ciclos (termostato, repeticiones) |
+| `duty` | fracción de la sesión encendido |
+| `log_energy_wh` | energía de la sesión |
+
+En ECO se calculan sobre todos los escalones del agregado (como en producción); en TraceBase, sobre la
+traza del aparato; en DOMOBOI, con todas las medidas del dispositivo alrededor del evento etiquetado.
+`train_baseline.py`, `eval_cross_dataset.py` y `check_on_domoboi.py` las usan si todos los CSV las
+traen; con `--no-session` se desactivan para comparar. **Hay que regenerar los CSV** (los antiguos
+siguen funcionando, pero solo con las 15 características de escalón).
 
 ## Uso
 

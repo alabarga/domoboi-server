@@ -19,7 +19,7 @@ from sklearn.metrics import classification_report, confusion_matrix, f1_score
 from sklearn.model_selection import StratifiedGroupKFold
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from features import CLASSES, FEATURE_NAMES  # noqa: E402
+from features import CLASSES, FEATURE_NAMES, select_features  # noqa: E402
 
 
 def balance(df, per_class, seed):
@@ -63,6 +63,8 @@ def main():
                     help="excluye las clases con menos dispositivos distintos: no se pueden validar "
                          "por dispositivo (si solo hay uno, nunca está en el entrenamiento y en la prueba a la vez)")
     ap.add_argument("--delta-only", action="store_true", help="usa solo ΔP (referencia mínima)")
+    ap.add_argument("--no-session", action="store_true",
+                    help="no usa las características de sesión (duración, ciclos, duty, energía); para comparar")
     ap.add_argument("--folds", type=int, default=5)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--save", default=None, help="ruta para guardar el modelo (joblib); si se omite, no se guarda")
@@ -80,7 +82,8 @@ def main():
     print("Eventos usados por clase:\n" + df["cls"].value_counts().to_string())
     print("\nDispositivos por clase:\n" + df.groupby("cls")["device"].nunique().to_string())
 
-    feats = ["log_abs_delta", "sign"] if a.delta_only else FEATURE_NAMES
+    feats = ["log_abs_delta", "sign"] if a.delta_only else select_features(df, not a.no_session)
+    print(f"\nCaracterísticas usadas ({len(feats)}): " + ", ".join(feats))
     X = df[feats].to_numpy()
     y = df["cls"].to_numpy()
     groups = df["device"].to_numpy()

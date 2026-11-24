@@ -34,7 +34,7 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from features import FEATURE_NAMES, event_features  # noqa: E402
+from features import FEATURE_NAMES, SESSION_FEATURE_NAMES, event_features, session_features  # noqa: E402
 from build_tracebase_events import WIN_AFTER, WIN_BEFORE, detect  # noqa: E402
 
 DAY_SECONDS = 86400
@@ -67,6 +67,12 @@ def appliance_class(house, plug, name, entertainment_as_tv):
         return "OVEN"
     if "lamp" in n:
         return "LIGHTS"
+    if "coffee" in n:
+        return "COFFEE_MAKER"
+    if "dishwasher" in n:
+        return "DISHWASHER"
+    if "dryer" in n:
+        return "DRYER"
     if n == "tv":
         return "TV"
     if "entertainment" in n:
@@ -191,6 +197,10 @@ def process_day(task):
     matched, ambiguous = match_events(agg_events, plug_events, tol)
     stats["ambiguous"] = ambiguous
 
+    # Sesiones calculadas sobre TODOS los escalones del agregado (como en producción, donde
+    # el clasificador ve la acometida entera), no solo sobre los que tienen enchufe.
+    sess = dict(zip((e[0] for e in agg_events), session_features(agg_events)))
+
     day0 = datetime.strptime(day, "%Y-%m-%d")
     rows = []
     for t, d, plug, dt, dpl in matched:
@@ -200,7 +210,7 @@ def process_day(task):
             continue
         _tp, _dp, name, cls = plug_events[plug]
         rows.append([cls, name, f"{house}:{plug}:{name}", day,
-                     str(day0 + timedelta(seconds=t)), d] + list(f) + [house, dt, dpl])
+                     str(day0 + timedelta(seconds=t)), d] + list(f) + list(sess[t]) + [house, dt, dpl])
         stats["offsets"].append(dt)
     stats["matched"] = len(rows)
     return rows, stats
@@ -276,7 +286,7 @@ def main():
             if i % 20 == 0 or i == len(tasks):
                 print(f"  {i}/{len(tasks)} días, {len(rows)} eventos etiquetados", flush=True)
 
-    cols = ["cls", "appliance", "device", "file", "t", "delta_p"] + FEATURE_NAMES + ["house", "match_dt", "plug_delta"]
+    cols = ["cls", "appliance", "device", "file", "t", "delta_p"] + FEATURE_NAMES + SESSION_FEATURE_NAMES + ["house", "match_dt", "plug_delta"]
     os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
     out = pd.DataFrame(rows, columns=cols)
     out.to_csv(a.out, index=False)

@@ -26,7 +26,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report, confusion_matrix, f1_score
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from features import CLASSES, FEATURE_NAMES  # noqa: E402
+from features import CLASSES, FEATURE_NAMES, select_features  # noqa: E402
 from train_baseline import balance, make_models  # noqa: E402
 
 
@@ -60,11 +60,13 @@ def run(tr, te, na, nb, a):
     print(summary(tr, te, classes, na, nb))
     print(f"\nAzar (clase al azar) ~ F1 macro {1 / len(classes):.2f}")
 
+    feats = select_features(pd.concat([tr, te]), not a.no_session)
+    print(f"Características usadas ({len(feats)}): " + ", ".join(feats))
     ytr, yte = tr["cls"].to_numpy(), te["cls"].to_numpy()
     results = {}
     for name, model in make_models(a.seed).items():
-        model.fit(tr[FEATURE_NAMES].to_numpy(), ytr)
-        pred = model.predict(te[FEATURE_NAMES].to_numpy())
+        model.fit(tr[feats].to_numpy(), ytr)
+        pred = model.predict(te[feats].to_numpy())
         results[name] = (f1_score(yte, pred, average="macro", labels=classes), pred)
     ref = RandomForestClassifier(n_estimators=300, min_samples_leaf=2, class_weight="balanced_subsample",
                                  n_jobs=-1, random_state=a.seed)
@@ -93,6 +95,7 @@ def main():
     ap.add_argument("--min-events", type=int, default=30, help="eventos mínimos por clase en cada conjunto")
     ap.add_argument("--min-abs-delta", type=float, default=0.0)
     ap.add_argument("--include-other", action="store_true", help="incluye la clase OTHER (poco comparable entre conjuntos)")
+    ap.add_argument("--no-session", action="store_true", help="sin características de sesión (para comparar)")
     ap.add_argument("--seed", type=int, default=0)
     a = ap.parse_args()
 

@@ -8,6 +8,7 @@ app_name = 'nilm'
 urlpatterns = [
     # PWA
     path('sw.js', views.service_worker, name='sw'),
+    path('pwa-ping/', views.pwa_ping, name='pwa_ping'),
     path('offline/', TemplateView.as_view(template_name='nilm/offline.html'), name='offline'),
 
     # Dashboard

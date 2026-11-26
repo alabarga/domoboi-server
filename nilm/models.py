@@ -71,7 +71,9 @@ class UserProfile(models.Model):
     """Model for extending user with location access"""
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     locations = models.ManyToManyField(Location, related_name='assigned_users')
-    
+    # Última visita abriendo la web como app instalada (PWA, display-mode standalone).
+    pwa_last_seen = models.DateTimeField(null=True, blank=True)
+
     def __str__(self):
         return f"Profile for {self.user.username}"
     
@@ -227,6 +229,9 @@ class Event(models.Model):
     device = models.ForeignKey('Device', null=True, blank=True, on_delete=models.SET_NULL, related_name='events')
     confidence = models.FloatField(null=True, blank=True)
     features = models.JSONField(null=True, blank=True)
+    # Push de alertas: usuarios asignados al domicilio / de ellos, suscritos y enviado sin error.
+    push_sent = models.PositiveIntegerField(default=0)
+    push_received = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return f"{self.location.description} - {self.type}: {self.class_name}"
@@ -248,7 +253,7 @@ class Event(models.Model):
 
 class ClassifiedSession(models.Model):
     """
-    Toda sesión ya enviada a FreeJev por detect_events, también las OTHER/NOISE
+    Toda sesión ya enviada a Gemini por detect_events, también las OTHER/NOISE
     que no se guardan como Event: evita volver a pagar por ellas en la
     siguiente ejecución horaria.
     """
@@ -267,7 +272,7 @@ class Appliance(models.Model):
     location = models.ForeignKey(Location, on_delete=models.CASCADE, related_name='appliances')
     type = models.CharField(max_length=20, choices=Event.APPLIANCE_TYPES)
     # Potencia conocida (W). Para LIGHTS activa la regla de luz de detect_events:
-    # los usos de ~power_w (±25 %) se guardan como LIGHTS sin pasar por FreeJev.
+    # los usos de ~power_w (±25 %) se guardan como LIGHTS sin pasar por Gemini.
     power_w = models.PositiveIntegerField(null=True, blank=True)
 
     def __str__(self):
@@ -315,6 +320,7 @@ def notify_alert_subscribers(sender, instance, created, **kwargs):
         return
     import json
     import threading
+    from django.db import transaction
     try:
         from webpush import send_user_notification
     except ImportError:
@@ -338,12 +344,20 @@ def notify_alert_subscribers(sender, instance, created, **kwargs):
     def _send():
         import logging
         log = logging.getLogger(__name__)
+        sent = received = 0
         for profile in profiles:
+            sent += 1
+            if not profile.user.webpush_info.exists():
+                continue  # no subscription: send_user_notification would be a silent no-op
             try:
                 send_user_notification(user=profile.user, payload=payload, ttl=3600)
+                received += 1
                 log.info('Push sent to %s', profile.user.username)
             except Exception as exc:
                 log.warning('Push failed for %s: %s', profile.user.username, exc)
+        # update() skips post_save, so this doesn't re-enter the signal
+        Event.objects.filter(pk=instance.pk).update(push_sent=sent, push_received=received)
 
-    threading.Thread(target=_send, daemon=True).start()
+    # After commit, so the thread sees (and can update) the event row
+    transaction.on_commit(lambda: threading.Thread(target=_send, daemon=True).start())
 

@@ -8,7 +8,7 @@ from django.views.generic.edit import FormView
 from django.urls import reverse_lazy, reverse
 from django.contrib import messages
 from django.http import JsonResponse
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.core.paginator import Paginator
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -23,14 +23,23 @@ class LocationListView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         if self.request.user.is_superuser:
-            return Location.objects.all()
+            qs = Location.objects.all()
         else:
             # Get locations assigned to the user
             try:
-                profile = self.request.user.profile
-                return profile.locations.all()
+                # pk__in subquery: annotating profile.locations directly would reuse the
+                # assigned_users join and only ever count the current user
+                qs = Location.objects.filter(pk__in=self.request.user.profile.locations.values('pk'))
             except UserProfile.DoesNotExist:
                 return Location.objects.none()
+        return qs.annotate(
+            users_count=Count('assigned_users', distinct=True),
+            subscribed_count=Count(
+                'assigned_users',
+                filter=Q(assigned_users__user__webpush_info__isnull=False),
+                distinct=True,
+            ),
+        )
 
 class LocationMapView(LoginRequiredMixin, ListView):
     """View for displaying locations on a map"""
@@ -168,6 +177,14 @@ class LocationAppliancesView(LoginRequiredMixin, View):
         Appliance.objects.bulk_create(
             [Appliance(location=location, type=t) for t in chosen], ignore_conflicts=True)
         return redirect('nilm:location_detail', pk=location.pk)
+
+
+@login_required
+def pwa_ping(request):
+    """Called from base.html when the page runs as an installed PWA."""
+    if request.method == 'POST':
+        UserProfile.objects.filter(user=request.user).update(pwa_last_seen=timezone.now())
+    return JsonResponse({'status': 'ok'})
 
 
 def service_worker(request):

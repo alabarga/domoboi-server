@@ -2,7 +2,7 @@
   "name": "DOMOBOI",
   "short_name": "DOMOBOI",
   "description": "Monitoreo del hogar en tiempo real",
-  "start_url": "/nilm/",
+  "start_url": "/nilm/?source=pwa",
   "scope": "/nilm/",
   "display": "standalone",
   "orientation": "portrait-primary",

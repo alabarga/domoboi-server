@@ -106,6 +106,7 @@ class CommentAdmin(ModelAdmin):
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.admin import GroupAdmin as BaseGroupAdmin
 from django.contrib.auth.models import User, Group
+from django.db.models import Count
 
 from unfold.forms import AdminPasswordChangeForm, UserChangeForm, UserCreationForm
 
@@ -128,6 +129,19 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
     add_form = UserCreationForm
     change_password_form = AdminPasswordChangeForm
     inlines = [UserProfileInline]
+    list_display = ['username', 'email', 'is_staff', 'last_login', 'get_push_subscribed', 'get_pwa_last_seen']
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('profile').annotate(
+            push_subs=Count('webpush_info', distinct=True))
+
+    @admin.display(boolean=True, description='Notificaciones', ordering='push_subs')
+    def get_push_subscribed(self, obj):
+        return obj.push_subs > 0
+
+    @admin.display(description='Última vez como app', ordering='profile__pwa_last_seen')
+    def get_pwa_last_seen(self, obj):
+        return getattr(getattr(obj, 'profile', None), 'pwa_last_seen', None)
 
 
 @admin.register(Group)
@@ -137,7 +151,7 @@ class GroupAdmin(BaseGroupAdmin, ModelAdmin):
 
 # Custom Admin Site with Dashboard Context
 from unfold.sites import UnfoldAdminSite
-from django.db.models import Exists, OuterRef
+from django.db.models import Exists, OuterRef, Sum
 import json
 
 class CustomAdminSite(UnfoldAdminSite):
@@ -189,8 +203,15 @@ class CustomAdminSite(UnfoldAdminSite):
             })
         device_map_json = json.dumps(device_map_data)
 
+        push = Event.objects.aggregate(sent=Sum('push_sent'), received=Sum('push_received'))
+        push_sent = push['sent'] or 0
+        push_received = push['received'] or 0
+
         extra_context = extra_context or {}
         extra_context.update({
+            'subscribed_users': User.objects.filter(webpush_info__isnull=False).distinct().count(),
+            'push_sent': push_sent,
+            'push_received_pct': round(100 * push_received / push_sent) if push_sent else None,
             'assigned_devices': assigned_devices,
             'active_devices_last_hour': active_devices_last_hour,
             'devices_active_7days': devices_active_7days,

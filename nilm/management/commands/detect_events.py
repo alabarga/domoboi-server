@@ -1,11 +1,11 @@
 """
-Detecta y clasifica eventos de las ubicaciones con medidor Tuya y los guarda
-como Event (source=AUTO). Pensado para cron cada hora, tras
+Detecta y clasifica eventos de las ubicaciones con medidor Tuya o DOMOBOI y los
+guarda como Event (source=AUTO). Pensado para cron cada hora, tras
 `tuya_poll --history --since <hoy>` (hace falta la resolución del histórico
 para emparejar ON/OFF).
 
 Uso:
-    python manage.py detect_events                         # última hora(s), todas las Tuya
+    python manage.py detect_events                         # última hora(s), todos los medidores
     python manage.py detect_events --location 13 --dry-run # muestra la petición, no llama ni escribe
     python manage.py detect_events --location 13 --since 2026-11-01 --until 2026-11-02
     python manage.py detect_events --location 13 --since 2026-11-01 --until 2026-11-02 --limit 1
@@ -42,7 +42,17 @@ BACKGROUND_MAX_MIN = 15
 # Dos eventos del mismo tipo separados por menos de esto son un solo uso
 # (p. ej. dos fuegos de la vitro a potencias distintas = dos sesiones).
 MERGE_GAP = timedelta(minutes=15)
-# Por debajo de esta confianza de FreeJev no se guarda el evento (cuenta como OTHER):
+# Una estufa o radiador con termostato tarda hasta ~40 min en volver a encender
+# (domoboi-08: 1,1 kW 8,5 min cada ~45 min): sus ciclos son el mismo uso. Solo
+# para tipos en los que es plausible; dos microondas a 40 min son dos usos.
+MERGE_GAP_BY_TYPE = {'HEATER': timedelta(hours=1)}
+
+
+def merge_gap(event_type):
+    return MERGE_GAP_BY_TYPE.get(event_type, MERGE_GAP)
+
+
+# Por debajo de esta confianza de Gemini no se guarda el evento (cuenta como OTHER):
 # "microondas de 12 min a las 05:00" salía con 0,19–0,27.
 MIN_CONFIDENCE = 0.35
 # Regla manual de luz conocida (--light-w): las luces LED/fluorescentes de una
@@ -107,7 +117,7 @@ MERGED_FIELDS = ['end_time', 'features', 'confidence', 'description', 'class_nam
 
 def merge_events(dev, events):
     """
-    Une los eventos nuevos del mismo tipo separados por < MERGE_GAP, entre sí
+    Une los eventos nuevos del mismo tipo separados por < merge_gap(tipo), entre sí
     o con uno ya guardado (otra ejecución horaria). Devuelve (a_crear, n_unidos).
     """
     out, merged = [], 0
@@ -117,10 +127,10 @@ def merge_events(dev, events):
                                 end_time__gte=ev.end_time).exists():
             continue
         prev = next((e for e in reversed(out)
-                     if e.type == ev.type and ev.start_time - e.end_time <= MERGE_GAP), None)
+                     if e.type == ev.type and ev.start_time - e.end_time <= merge_gap(ev.type)), None)
         if prev is None:
             prev = (Event.objects.filter(source='AUTO', device=dev, type=ev.type, start_time__lt=ev.start_time,
-                                         end_time__gte=ev.start_time - MERGE_GAP)
+                                         end_time__gte=ev.start_time - merge_gap(ev.type))
                     .order_by('-end_time').first())
             if prev is not None:
                 absorb(prev, ev)
@@ -138,7 +148,8 @@ def light_events(dev, watts, since, until, now):
     """Usos de la luz conocida (~watts) cerrados en [since, until), como Event LIGHTS sin guardar."""
     load_to = min(now, until + MARGIN)
     series, _ = det.remove_spikes(det.load_series(dev, since - MARGIN, load_to), LIGHT_MIN_DELTA_W)
-    pairs, _, _ = det.pair_steps(series, LIGHT_MIN_DELTA_W, va=det.load_va(dev, since - MARGIN, load_to))
+    pairs, _, _ = det.pair_steps(series, LIGHT_MIN_DELTA_W, va=det.load_va(dev, since - MARGIN, load_to),
+                                 max_hold_s=det.max_hold_s(dev))
     events = []
     for p in pairs:
         if not (since <= p['start'] < until and p['end'] <= now - SETTLE):
@@ -159,21 +170,21 @@ def light_events(dev, watts, since, until, now):
 
 
 class Command(BaseCommand):
-    help = 'Detecta y clasifica (FreeJev) los usos de electrodomésticos de los medidores Tuya.'
+    help = 'Detecta y clasifica (Gemini) los usos de electrodomésticos de los medidores Tuya y DOMOBOI.'
 
     def add_arguments(self, parser):
         parser.add_argument('--location', type=int, action='append', help='Solo esta ubicación (repetible)')
         parser.add_argument('--since', help='YYYY-MM-DD (por defecto: ahora − 8 h)')
         parser.add_argument('--until', help='YYYY-MM-DD, exclusivo (por defecto: ahora)')
-        parser.add_argument('--dry-run', action='store_true', help='Muestra la petición; no llama a FreeJev ni escribe')
+        parser.add_argument('--dry-run', action='store_true', help='Muestra la petición; no llama a Gemini ni escribe')
         parser.add_argument('--limit', type=int, help='Máximo de sesiones a enviar en total')
         parser.add_argument('--light-w', type=float,
                             help='Luz conocida de --location: guarda W en su Appliance LIGHTS (la ejecución horaria '
                                  'aplicará la regla desde entonces) y recarga el rango: usos de ~W (±25 %%, 2–240 min, '
-                                 'saltos ≥ 20 W) como LIGHTS sin FreeJev')
+                                 'saltos ≥ 20 W) como LIGHTS sin Gemini')
         parser.add_argument('--fix-existing', action='store_true',
                             help='Revisa los eventos AUTO ya guardados (duración implausible, contiguos '
-                                 'del mismo tipo) sin llamar a FreeJev; con --dry-run solo lista')
+                                 'del mismo tipo) sin llamar a Gemini; con --dry-run solo lista')
 
     def handle(self, *args, **o):
         self.verbosity = o['verbosity']
@@ -186,17 +197,16 @@ class Command(BaseCommand):
             return self.fix_existing(accept_from, accept_to, o)
         if o['light_w']:
             return self.add_lights(accept_from, accept_to, now, o)
-        api_key = getattr(settings, 'FREEJEV_API_KEY', '')
-        if not api_key and not settings.GEMINI_API_KEY and not o['dry_run']:
-            raise CommandError('Falta GEMINI_API_KEY o FREEJEV_API_KEY (local_settings.py o .env)')
+        if not settings.GEMINI_API_KEY and not o['dry_run']:
+            raise CommandError('Falta GEMINI_API_KEY (local_settings.py o .env)')
 
-        devices = Device.objects.filter(device_type='TUYA', location__isnull=False).select_related('location')
+        devices = Device.objects.filter(location__isnull=False).select_related('location')
         if o['location']:
             devices = devices.filter(location_id__in=o['location'])
         budget = o['limit']
         total = Counter()
         for dev in devices.order_by('location_id'):
-            stats, budget = self.process(dev, now, accept_from, accept_to, api_key, o, budget)
+            stats, budget = self.process(dev, now, accept_from, accept_to, o, budget)
             total.update(stats)
             self.stdout.write(f"loc {dev.location_id} {dev.device_id}: " +
                               ', '.join(f'{k}={v}' for k, v in sorted(stats.items())))
@@ -204,10 +214,10 @@ class Command(BaseCommand):
                 break
         self.stdout.write(self.style.SUCCESS('TOTAL: ' + ', '.join(f'{k}={v}' for k, v in sorted(total.items()))))
 
-    def process(self, dev, now, accept_from, accept_to, api_key, o, budget):
+    def process(self, dev, now, accept_from, accept_to, o, budget):
         stats = Counter()
         light = dev.location.appliances.filter(type='LIGHTS', power_w__isnull=False).first()
-        if light:  # regla de luz conocida (Appliance.power_w), sin FreeJev
+        if light:  # regla de luz conocida (Appliance.power_w), sin Gemini
             lights = light_events(dev, light.power_w, accept_from, accept_to, now)
             if o['dry_run']:
                 stats['luces'] = len(lights)
@@ -219,7 +229,7 @@ class Command(BaseCommand):
             stats['sin_datos'] = 1
             return stats, budget
         va = det.load_va(dev, accept_from - MARGIN, load_to)
-        pairs, _, _ = det.pair_steps(series, MIN_DELTA_W, va=va)
+        pairs, _, _ = det.pair_steps(series, MIN_DELTA_W, va=va, max_hold_s=det.max_hold_s(dev))
         sessions = [s for s in det.group_cycles(pairs)
                     if accept_from <= s['start'] < accept_to and s['end'] <= now - SETTLE]
         stats['sesiones'] = len(sessions)
@@ -278,11 +288,8 @@ class Command(BaseCommand):
                 self.stdout.write(json.dumps(body, ensure_ascii=False, indent=1))
                 continue
             try:
-                if settings.GEMINI_API_KEY:
-                    resp = cls.call_gemini(body, settings.GEMINI_API_KEY, settings.GEMINI_MODEL)
-                else:
-                    resp = cls.call_freejev(body, api_key, settings.FREEJEV_BASE_URL)
-            except cls.FreeJevError as e:
+                resp = cls.call_gemini(body, settings.GEMINI_API_KEY, settings.GEMINI_MODEL)
+            except cls.ClassifierError as e:
                 self.save(dev, to_create, seen)
                 if e.fatal:
                     raise CommandError(f'{e} (guardados {len(to_create)} eventos antes del error)')
@@ -291,10 +298,6 @@ class Command(BaseCommand):
                 break
             if b == 0 and o['limit']:
                 self.stdout.write('Respuesta: ' + json.dumps(resp, ensure_ascii=False)[:2000])
-            usage = resp.get('usage') or {}
-            for k in ('credits_used', 'creditsUsed', 'credits'):
-                if isinstance(usage.get(k), (int, float)):
-                    stats['creditos'] += usage[k]
             answers = cls.parse_answers(resp, body)
             for (qid, desc, _), (s, _c) in zip(qitems, batch):
                 label, conf = answers.get(qid, (None, None))
@@ -360,7 +363,7 @@ class Command(BaseCommand):
                         ev.delete()
                     continue
             prev = next((e for e in reversed(by_device.setdefault(ev.device_id, []))
-                         if e.type == ev.type and ev.start_time - e.end_time <= MERGE_GAP), None)
+                         if e.type == ev.type and ev.start_time - e.end_time <= merge_gap(ev.type)), None)
             if prev is None:
                 by_device[ev.device_id].append(ev)
                 kept += 1
@@ -382,7 +385,7 @@ class Command(BaseCommand):
         if not o['location']:
             raise CommandError('--light-w requiere --location')
         watts, dry, total = o['light_w'], o['dry_run'], 0
-        devices = Device.objects.filter(device_type='TUYA', location_id__in=o['location']).select_related('location')
+        devices = Device.objects.filter(location_id__in=o['location']).select_related('location')
         for dev in devices:
             events = light_events(dev, watts, since, until, now)
             for ev in events:

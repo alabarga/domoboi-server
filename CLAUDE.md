@@ -49,7 +49,7 @@ This is a single-Django-app project. All domain logic lives in the `nilm/` app; 
 The domain is home electricity monitoring via Non-Intrusive Load Monitoring (NILM):
 
 - **Location** — a monitored home; has `PlainLocationField` (lat/lng).
-- **Device** — sensor hardware at a location; `is_active` checks for measurements in the last 60 minutes.
+- **Device** — sensor hardware at a location; `is_active` checks for measurements in the last 24 hours (`ACTIVITY_WINDOW`).
 - **Person** — resident at a location.
 - **UserProfile** — extends Django `User` with a `ManyToManyField` to `Location` (access control). Auto-created via `post_save` signal on `User`.
 - **Measurement** — raw electrical reading segment from a device; stores a `readings` JSON array. `value` is auto-populated with the mean of `readings` on save.

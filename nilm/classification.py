@@ -1,7 +1,7 @@
 """
-Clasificación de sesiones de uso (nilm.detection.group_cycles) con FreeJev.
+Clasificación de sesiones de uso (nilm.detection.group_cycles) con Gemini.
 
-FreeJev (https://freejev.org/docs) responde preguntas `choice` sobre un
+La Gemini Decisions API responde preguntas `choice` sobre un
 `state` JSON. Por cada sesión se envía un descriptor agregado (nunca
 Measurements sueltas) y una pregunta con los electrodomésticos candidatos:
 los declarados en la ubicación (Appliance) o, si no hay ninguno, todos;
@@ -9,10 +9,8 @@ filtrados por tipo de carga (FP) y por la potencia que el medidor puede ver.
 
 Ver docs/clasificacion_eventos.md.
 """
-import hashlib
 import json
 import time
-import uuid
 
 import requests
 from django.utils import timezone
@@ -63,7 +61,7 @@ DURATIONS = {
     'MICROWAVE': (1, 15), 'IRON': (5, 90), 'TV': (20, None), 'LIGHTS': (5, None),
 }
 
-BATCH_SIZE = 16  # máximo de preguntas por petición en FreeJev
+BATCH_SIZE = 16  # máximo de preguntas por petición
 WEEKDAYS = ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom']
 
 ROUTINE = (
@@ -109,7 +107,7 @@ def candidates(session, declared, meter_max_w):
 
 
 def describe(session, qid):
-    """Descriptor compacto que recibe FreeJev (sin datos personales)."""
+    """Descriptor compacto que recibe Gemini (sin datos personales)."""
     lt = timezone.localtime(session['start'])
     return {
         'id': qid,
@@ -183,37 +181,10 @@ def parse_answers(resp, body):
     return out
 
 
-class FreeJevError(Exception):
+class ClassifierError(Exception):
     def __init__(self, msg, fatal=False):
         super().__init__(msg)
         self.fatal = fatal  # clave inválida o sin saldo: no tiene sentido seguir con otras ubicaciones
-
-
-def call_freejev(body, api_key, base_url, http=requests, max_retries=3):
-    """POST /api/v1/decisions con reintento en 429/503 (Retry-After). Devuelve el JSON."""
-    raw = json.dumps(body, ensure_ascii=False, sort_keys=True)
-    headers = {
-        'Authorization': f'Bearer {api_key}',
-        'Content-Type': 'application/json',
-        # Única por llamada (los reintentos de esta misma llamada la repiten): con
-        # un hash del contenido, relanzar el mismo lote tras un timeout daba 409.
-        'Idempotency-Key': f'{hashlib.sha256(raw.encode()).hexdigest()[:24]}-{uuid.uuid4().hex[:12]}',
-    }
-    for attempt in range(max_retries + 1):
-        try:
-            r = http.post(f'{base_url.rstrip("/")}/api/v1/decisions', data=raw.encode(), headers=headers, timeout=120)
-        except requests.RequestException as e:  # timeout, conexión cortada: como un 503
-            if attempt < max_retries:
-                time.sleep(15 * (attempt + 1))
-                continue
-            raise FreeJevError(f'FreeJev sin respuesta: {e}')
-        if r.status_code in (409, 429, 502, 503, 504) and attempt < max_retries:  # 409: otra llamada en curso
-            time.sleep(min(float(r.headers.get('Retry-After') or 10), 120))
-            continue
-        if r.status_code >= 400:
-            raise FreeJevError(f'FreeJev {r.status_code}: {r.text[:300]}', fatal=r.status_code in (401, 402, 403))
-        return r.json()
-    raise FreeJevError('FreeJev: demasiados reintentos')
 
 
 GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/decisions'
@@ -234,8 +205,8 @@ def _gemini_throttle():
 
 def call_gemini(body, api_key, model, http=requests, max_retries=3):
     """
-    Gemini Decisions API (POST /v1beta/decisions): mismas preguntas `choice` que FreeJev
-    y misma respuesta (answers con choice, probabilities y confidence calibrada).
+    Gemini Decisions API (POST /v1beta/decisions): preguntas `choice`; responde
+    answers con choice, probabilities y confidence calibrada.
     El state va como texto en `input`; las instrucciones lo citan como state.*.
     """
     payload = {'model': model, 'questions': body['questions'],
@@ -248,12 +219,12 @@ def call_gemini(body, api_key, model, http=requests, max_retries=3):
             if attempt < max_retries:
                 time.sleep(15 * (attempt + 1))
                 continue
-            raise FreeJevError(f'Gemini sin respuesta: {e}')
+            raise ClassifierError(f'Gemini sin respuesta: {e}')
         if r.status_code in (429, 500, 502, 503, 504) and attempt < max_retries:
             time.sleep(15 * (attempt + 1))
             continue
         if r.status_code >= 400:
             # 400/404: clave, petición o modelo inválidos; se repetiría en todas las ubicaciones
-            raise FreeJevError(f'Gemini {r.status_code}: {r.text[:300]}', fatal=r.status_code in (400, 401, 403, 404))
+            raise ClassifierError(f'Gemini {r.status_code}: {r.text[:300]}', fatal=r.status_code in (400, 401, 403, 404))
         return r.json()
-    raise FreeJevError('Gemini: demasiados reintentos')
+    raise ClassifierError('Gemini: demasiados reintentos')

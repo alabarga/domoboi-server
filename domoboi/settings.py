@@ -303,10 +303,7 @@ LOCATION_FIELD = {
     'provider.openstreetmap.max_zoom': 18,
 }
 
-# FreeJev (clasificación de eventos, detect_events). local_settings.py lo sobrescribe.
-FREEJEV_API_KEY = os.getenv('FREEJEV_API_KEY', '')
-FREEJEV_BASE_URL = os.getenv('FREEJEV_BASE_URL', 'https://freejev.org')
-# Con GEMINI_API_KEY, detect_events clasifica con Gemini en lugar de FreeJev.
+# Gemini (clasificación de eventos, detect_events). local_settings.py lo sobrescribe.
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
 GEMINI_MODEL = os.getenv('GEMINI_MODEL', 'gemini-decision-1')
 

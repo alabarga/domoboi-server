@@ -1,9 +1,10 @@
 """
-Detección de eventos sobre la serie de potencia de un medidor Tuya.
+Detección de eventos sobre la serie de potencia de un medidor Tuya o DOMOBOI.
 
-El medidor reporta `power_w` solo cuando cambia (~cada 2 min), así que la
+El medidor Tuya reporta `power_w` solo cuando cambia (~cada 2 min), así que la
 serie se trata como escalonada (step-hold): cada muestra vale hasta la
-siguiente. Un "evento" es un tramo continuo por encima de la carga base
+siguiente. El DOMOBOI solo envía los saltos; transition_series() los convierte
+en la misma serie. Un "evento" es un tramo continuo por encima de la carga base
 (always-on), no una Measurement suelta.
 
 Funciones puras sobre listas de (ts, W) para poder probarlas sin BD; solo
@@ -18,8 +19,35 @@ from nilm.models import Measurement
 MAX_HOLD_S = 3600
 
 
+def max_hold_s(device):
+    """Hueco de datos para pair_steps: un DOMOBOI calla mientras nada cambia, el silencio no es hueco."""
+    return None if device.device_type == 'DOMOBOI' else MAX_HOLD_S
+
+
+def transition_series(rows):
+    """
+    [(ts, W)] a partir de los saltos de un DOMOBOI: [(start, end, ΔW, readings)].
+    El edge envía cada salto ≥ 40 W con ~3 s de potencia (readings, W) alrededor.
+    Cada salto da dos muestras: la base previa (nivel − ΔW) en start y el nivel
+    asentado (media de las 10 últimas) en end. Un salto que el edge no envió
+    queda entre el nivel de un salto y la base del siguiente, con la hora de este.
+    """
+    out = []
+    for start, end, delta, readings in rows:
+        if not readings or start is None or end is None:
+            continue
+        tail = readings[-10:]
+        level = sum(tail) / len(tail)
+        out += [(start, level - float(delta)), (end, level)]
+    return out
+
+
 def load_series(device, since, until):
-    """[(ts, W)] de las filas con power_w del dispositivo, ordenadas."""
+    """[(ts, W)] del dispositivo, ordenadas: filas con power_w (Tuya) o saltos (DOMOBOI)."""
+    if device.device_type == 'DOMOBOI':
+        return transition_series(
+            Measurement.objects.filter(device=device, timestamp__gte=since, timestamp__lt=until)
+            .order_by('timestamp').values_list('start_time', 'end_time', 'value', 'readings'))
     rows = (Measurement.objects
             .filter(device=device, timestamp__gte=since, timestamp__lt=until,
                     telemetry__has_key='power_w')
@@ -285,13 +313,14 @@ def _step_pf(series, va, i):
     return None if r is None else round(r, 2)
 
 
-def pair_steps(series, min_delta_w, tol=0.3, max_on_s=4 * 3600, va=None):
+def pair_steps(series, min_delta_w, tol=0.3, max_on_s=4 * 3600, va=None, max_hold_s=MAX_HOLD_S):
     """
     Descompone la serie en usos de un solo aparato: empareja cada salto de
     subida (ON) con el primer salto de bajada (OFF) posterior de magnitud
     parecida (|ΔON − ΔOFF| ≤ tol · máx). Entre varios ON abiertos que encajan
     se elige el más reciente.
-    Un ON sin pareja tras max_on_s se descarta.
+    Un ON sin pareja tras max_on_s se descarta, y uno abierto antes de un hueco
+    de más de max_hold_s también (None: no hay huecos, ver max_hold_s()).
 
     Devuelve (pares, n_on_sin_pareja, n_off_sin_pareja). Cada par:
       start, end, duration_min, delta_w (media de |ON| y |OFF|), on_w, off_w,
@@ -303,7 +332,7 @@ def pair_steps(series, min_delta_w, tol=0.3, max_on_s=4 * 3600, va=None):
     open_on, pairs, lost_on, lost_off = [], [], 0, 0
     for i in range(1, len(series)):
         (t0, p0), (t1, p1) = series[i - 1], series[i]
-        if (t1 - t0).total_seconds() > MAX_HOLD_S:
+        if max_hold_s is not None and (t1 - t0).total_seconds() > max_hold_s:
             lost_on += len(open_on); open_on = []  # hueco: no sabemos qué pasó
             continue
         d = p1 - p0

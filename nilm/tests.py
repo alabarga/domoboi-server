@@ -1,4 +1,4 @@
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 from django.contrib.auth.models import User
 from django.urls import reverse
 from nilm.models import UserProfile, Location
@@ -313,6 +313,27 @@ class PairStepsTests(TestCase):
         self.assertEqual((heater['n_cycles'], heater['span_min'], heater['duty']), (2, 30.0, 0.67))
 
 
+class TransitionSeriesTests(SimpleTestCase):  # sin BD: manage.py test apunta a producción
+    def test_domoboi_steps_recover_missed_off_and_hold_through_silence(self):
+        import datetime as dt
+        from nilm import detection as det
+        t0 = dt.datetime(2026, 11, 26, 18, 0)
+        at = lambda s: t0 + dt.timedelta(seconds=s)
+        # (start, end, ΔW, readings): hervidor +2000 cuyo OFF el edge no envió,
+        # luego estufa +1000 que se apaga 2 h después sin nada en medio.
+        rows = [(at(0), at(3), 2000, [2300.0] * 30),
+                (at(300), at(303), 1000, [1300.0] * 30),
+                (at(7500), at(7503), -1000, [300.0] * 30)]
+        series = det.transition_series(rows)
+        self.assertEqual(series[:3], [(at(0), 300.0), (at(3), 2300.0), (at(300), 300.0)])
+        pairs, _, _ = det.pair_steps(series, 40, max_hold_s=None)
+        self.assertEqual([(p['start'], p['end'], p['delta_w']) for p in pairs],
+                         [(at(3), at(300), 2000),      # OFF perdido, recuperado del nivel
+                          (at(303), at(7503), 1000)])  # 2 h de silencio no cortan la estufa
+        tuya_pairs, _, _ = det.pair_steps(series, 40)  # con el hueco de Tuya la estufa se perdería
+        self.assertEqual(len(tuya_pairs), 1)
+
+
 class ClassificationTests(TestCase):
     def session(self, delta, pf_class='resistivo', approx=False):
         import datetime as dt
@@ -354,7 +375,7 @@ class ClassificationTests(TestCase):
             ({'answer': 'OVEN', 'probabilities': {'OVEN': 0.7, 'COOKTOP': 0.3}}, ('OVEN', 0.7)),
             ({'COOKTOP': 0.8, 'OVEN': 0.2}, ('COOKTOP', 0.8)),
             ('FRIDGE', (None, None)),  # no estaba entre los criterios
-            ({'type': 'choice', 'choice': 'OVEN', 'confidence': 0.42,  # formato real de FreeJev
+            ({'type': 'choice', 'choice': 'OVEN', 'confidence': 0.42,  # formato real de Gemini
               'probabilities': {'OVEN': 0.54, 'OTHER': 0.41, 'NOISE': 0.05}}, ('OVEN', 0.42)),
         ]:
             self.assertEqual(cls.parse_answers({'answers': {'E1': answer}}, body)['E1'], expected)
@@ -379,8 +400,8 @@ class DetectEventsCommandTests(TestCase):
         from django.core.management import call_command
         from django.test import override_settings
         resp = {'answers': {'E1': answer}, 'usage': {}}
-        with override_settings(FREEJEV_API_KEY='test'), \
-                mock.patch('nilm.classification.call_freejev', return_value=resp) as api:
+        with override_settings(GEMINI_API_KEY='test'), \
+                mock.patch('nilm.classification.call_gemini', return_value=resp) as api:
             call_command('detect_events', '--location', str(self.loc.pk),
                          '--since', '2026-10-01', '--until', '2026-10-02', stdout=open('/dev/null', 'w'))
         return api
@@ -453,41 +474,6 @@ class AutoEventCardTests(TestCase):
         self.assertIn('62%', html)
 
 
-class FreeJevRetryTests(TestCase):
-    def test_timeout_is_retried_then_succeeds(self):
-        from unittest import mock
-        import requests
-        from nilm import classification as cls
-        ok = mock.Mock(status_code=200, json=lambda: {'answers': {}})
-        http = mock.Mock(post=mock.Mock(side_effect=[requests.Timeout('slow'), ok]))
-        with mock.patch('nilm.classification.time.sleep'):
-            self.assertEqual(cls.call_freejev({'q': 1}, 'k', 'https://x', http=http), {'answers': {}})
-        self.assertEqual(http.post.call_count, 2)
-
-    def test_auth_error_is_fatal(self):
-        from unittest import mock
-        from nilm import classification as cls
-        http = mock.Mock(post=mock.Mock(return_value=mock.Mock(status_code=402, text='no credits')))
-        with self.assertRaises(cls.FreeJevError) as ctx:
-            cls.call_freejev({'q': 1}, 'k', 'https://x', http=http)
-        self.assertTrue(ctx.exception.fatal)
-
-
-class FreeJevIdempotencyTests(TestCase):
-    def test_key_stable_within_call_unique_across_calls(self):
-        from unittest import mock
-        import requests
-        from nilm import classification as cls
-        ok = mock.Mock(status_code=200, json=lambda: {})
-        http = mock.Mock(post=mock.Mock(side_effect=[requests.Timeout('slow'), ok, ok]))
-        with mock.patch('nilm.classification.time.sleep'):
-            cls.call_freejev({'q': 1}, 'k', 'https://x', http=http)  # timeout + reintento
-            cls.call_freejev({'q': 1}, 'k', 'https://x', http=http)  # mismo lote, otra ejecución
-        keys = [c.kwargs['headers']['Idempotency-Key'] for c in http.post.call_args_list]
-        self.assertEqual(keys[0], keys[1])
-        self.assertNotEqual(keys[1], keys[2])
-
-
 class GeminiTests(TestCase):
     def test_request_shape_answers_parse_and_bad_key_is_fatal(self):
         from unittest import mock
@@ -506,9 +492,19 @@ class GeminiTests(TestCase):
         self.assertTrue(sent['input'].startswith('state = '))
         self.assertEqual(cls.parse_answers(resp, body), {'E1': ('OVEN', 0.8)})
         bad = mock.Mock(status_code=400, text='API key not valid')
-        with self.assertRaises(cls.FreeJevError) as ctx:
+        with self.assertRaises(cls.ClassifierError) as ctx:
             cls.call_gemini(body, 'k', 'm', http=mock.Mock(post=mock.Mock(return_value=bad)))
         self.assertTrue(ctx.exception.fatal)
+
+    def test_timeout_is_retried_then_succeeds(self):
+        from unittest import mock
+        import requests
+        from nilm import classification as cls
+        ok = mock.Mock(status_code=200, json=lambda: {'answers': {}})
+        http = mock.Mock(post=mock.Mock(side_effect=[requests.Timeout('slow'), ok]))
+        with mock.patch('nilm.classification.time.sleep'):
+            self.assertEqual(cls.call_gemini({'state': {}, 'questions': {}}, 'k', 'm', http=http), {'answers': {}})
+        self.assertEqual(http.post.call_count, 2)
 
 
 class MergeEventsTests(TestCase):
@@ -546,6 +542,18 @@ class MergeEventsTests(TestCase):
         self.assertEqual((out, merged), ([], 1))
         stored.refresh_from_db()
         self.assertEqual(stored.end_time, self.at(10, 22))
+
+    def test_heater_thermostat_cycles_merge_across_longer_gap_only_for_heater(self):
+        from nilm.management.commands.detect_events import merge_events
+        # domoboi-08: 1,1 kW 8,5 min cada ~45 min; dos microondas a la misma distancia siguen siendo dos usos
+        new = [self.ev('HEATER', self.at(13, 23), self.at(13, 32)), self.ev('HEATER', self.at(14, 8), self.at(14, 16)),
+               self.ev('MICROWAVE', self.at(20, 0), self.at(20, 5)), self.ev('MICROWAVE', self.at(20, 40), self.at(20, 44))]
+        out, merged = merge_events(self.dev, new)
+        self.assertEqual(merged, 1)
+        self.assertEqual(sorted((e.type, e.start_time, e.end_time) for e in out), [
+            ('HEATER', self.at(13, 23), self.at(14, 16)),
+            ('MICROWAVE', self.at(20, 0), self.at(20, 5)),
+            ('MICROWAVE', self.at(20, 40), self.at(20, 44))])
 
     def test_fix_existing(self):
         from django.core.management import call_command
@@ -615,8 +623,44 @@ class LightRuleTests(TestCase):
         from unittest import mock
         from django.test import override_settings
         Event.objects.all().delete()
-        with override_settings(FREEJEV_API_KEY='test'), \
-                mock.patch('nilm.classification.call_freejev', return_value={'answers': {}}):
+        with override_settings(GEMINI_API_KEY='test'), \
+                mock.patch('nilm.classification.call_gemini', return_value={'answers': {}}):
             call_command('detect_events', '--location', str(loc.pk), '--since', '2026-11-03',
                          '--until', '2026-11-04', stdout=open('/dev/null', 'w'))
         self.assertEqual(list(Event.objects.values_list('type', flat=True)), ['LIGHTS'])
+
+
+class PushStatsTests(TestCase):
+    def test_alert_counts_sent_and_received(self):
+        from unittest import mock
+        from django.utils import timezone
+        from webpush.models import PushInformation, SubscriptionInfo
+        from nilm.models import Event
+
+        loc = Location.objects.create(description='Casa', address='Calle 1')
+        subscribed = User.objects.create_user(username='sub', password='x')
+        unsubscribed = User.objects.create_user(username='nosub', password='x')
+        for u in (subscribed, unsubscribed):
+            u.profile.locations.add(loc)
+        sub = SubscriptionInfo.objects.create(browser='chrome', endpoint='https://push.example/1', auth='a', p256dh='p')
+        PushInformation.objects.create(user=subscribed, subscription=sub)
+
+        class SyncThread:  # run the background sender inline
+            def __init__(self, target, daemon=None):
+                self.target = target
+            def start(self):
+                self.target()
+
+        now = timezone.now()
+        with mock.patch('threading.Thread', SyncThread), \
+             mock.patch('webpush.send_user_notification') as send, \
+             self.captureOnCommitCallbacks(execute=True):
+            event = Event.objects.create(location=loc, start_time=now, end_time=now,
+                                         type='OVEN', class_name='ALERT')
+        event.refresh_from_db()
+        self.assertEqual((event.push_sent, event.push_received), (2, 1))
+        send.assert_called_once()
+
+        self.client.force_login(subscribed)
+        loc_ctx = self.client.get(reverse('nilm:location_list')).context['locations'][0]
+        self.assertEqual((loc_ctx.subscribed_count, loc_ctx.users_count), (1, 2))

@@ -86,8 +86,9 @@ HISTORY_REQUEST_PACING_S = 0.5
 # return nothing and still reported success, losing three days of data that was
 # available the whole time. Any empty window is retried after a pause; if the
 # retry finds data, we were being throttled and the pacing is increased for the
-# rest of the run.
-EMPTY_WINDOW_RETRIES = 2
+# rest of the run. One retry only: on the Trial quota (~26k calls/month) every
+# offline device would otherwise cost three calls per hourly run.
+EMPTY_WINDOW_RETRIES = 1
 EMPTY_WINDOW_BACKOFF_S = 8.0
 THROTTLED_PACING_S = 2.0
 

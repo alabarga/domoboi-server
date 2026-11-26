@@ -24,6 +24,9 @@
             <span class="flex items-center gap-1">
               <i class="ri-shield-line"></i> {{ location.devices.count }} {% trans "dispositivos" %}
             </span>
+            <span class="flex items-center gap-1" title="{% trans 'Usuarios asignados con notificaciones activas' %}">
+              <i class="ri-notification-{% if location.subscribed_count %}fill{% else %}off-line{% endif %}"></i> {{ location.subscribed_count }}/{{ location.users_count }}
+            </span>
           </div>
 
           <!-- CTA -->

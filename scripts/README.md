@@ -32,7 +32,7 @@ git pull
 .venv/bin/python -c "import tuya_energy"      # must not fail; see "Required environment"
 bash scripts/install_tuya_cron.sh             # shows the lines and asks for confirmation
 crontab -l                                    # check
-tail -f logs/tuya_poll.log                    # within ~15 min: "stored X/Y reading(s)"
+tail -f logs/tuya_poll.log                    # after the next :25 run: "stored N" per device
 ```
 
 What it installs (all inside a marked block, so re-running it replaces the
@@ -40,26 +40,26 @@ block instead of duplicating it, and other crontab lines are never touched):
 
 | Schedule | Command | Purpose |
 |---|---|---|
-| `17 3 * * *` | `tuya_poll --history --since <yesterday>` | Real device history, daily; refills any hour the hourly run missed |
-| `*/15 6-21 * * *`, `5 22,23,0-5 * * *` | `tuya_poll --once` | Live reading, keeps `is_active` meaningful in the admin; hourly at night |
-| `25 * * * *` | `tuya_poll --history --since <2 h ago, UTC>` then `detect_events` | Full-resolution history, then appliance-event detection + FreeJev classification into `Event` (`source=AUTO`); log in `logs/detect_events.log` |
+| `25 * * * *` | `tuya_poll --history --since <2 h ago, UTC>` then `detect_events` | Full-resolution history, then appliance-event detection + Gemini classification into `Event` (`source=AUTO`); log in `logs/detect_events.log` |
 | `0 4 * * 0` | `mv logs/tuya_poll.log logs/tuya_poll.log.1` | Weekly log rotation |
 
-The Tuya IoT Core trial allows ~53,900 API calls a month (0.2 USD, refreshed
-monthly; paid editions are annual plans). This schedule uses ~1,400/day; the
-old hourly `--since <yesterday>` re-fetch used several thousand and exhausted it.
+The Tuya IoT Core Trial allows 26,000 API calls a month; once spent, the service
+is suspended until the monthly refresh (error `28841004`). This schedule uses
+~300/day (1 token + ~1 page per device per hour). Earlier schedules did not fit:
+a 15-minute live poll plus a nightly re-fetch used ~1,400/day, and an hourly
+`--since <yesterday>` used several thousand.
 
-Cron uses the **server's** timezone. Check it with `date`: if it prints UTC,
-03:17 is 05:17 in Madrid in summer (04:17 in winter). Either way it runs well
-after midnight, so the previous day is complete; keep it in mind when reading
-the log.
+There is deliberately no live poll (`--once`): event detection ignores its rows,
+and `Device.is_active` uses a 24 h window that the hourly history keeps fresh.
+There is no nightly re-fetch either, so if the server is down for more than 2 h,
+fill the gap by hand with `--since` (re-runs are free, see below).
 
 Options: `--yes` installs without asking, `--remove` deletes the block, and
 `PYTHON=/path/to/python` overrides the interpreter (default `.venv/bin/python`,
 then `venv/bin/python`).
 
-**Run the first backfill by hand** before relying on the cron: the nightly job
-only looks 2 days back, and Tuya keeps about 7 days of history. Start from the
+**Run the first backfill by hand** before relying on the cron: the hourly job
+only looks 2 hours back, and Tuya keeps about 7 days of history. Start from the
 last date that has data:
 
 ```bash
@@ -74,28 +74,22 @@ Manual equivalent of the install script (use this if you prefer to edit the
 crontab by hand):
 
 ```cron
-# Domoboi — pull yesterday's Tuya datapoint history, once a day at 03:17.
-# 48h lookback so a single missed run self-heals; re-ingesting is free because
+# Domoboi — pull the last 2 h of Tuya datapoint history every hour, then detect events.
+# The 1 h overlap lets a single missed run self-heal; re-ingesting is free because
 # of the (device, timestamp) unique constraint.
-17 3 * * * cd /path/to/domoboi_django && /usr/bin/flock -n /tmp/tuya_poll.lock .venv/bin/python manage.py tuya_poll --history --since "$(date -d '2 days ago' +\%F)" >> logs/tuya_poll.log 2>&1
+25 * * * * cd /path/to/domoboi_django && /usr/bin/flock -n /tmp/tuya_poll.lock sh -c '.venv/bin/python manage.py tuya_poll --history --since "$(date -u -d "2 hours ago" +\%FT\%H:\%M)" >> logs/tuya_poll.log 2>&1; .venv/bin/python manage.py detect_events' >> logs/detect_events.log 2>&1
 ```
 
 Note `\%` — cron treats an unescaped `%` as a newline. On a BSD/macOS host use
-`date -v-2d +\%F`.
+`date -u -v-2H +\%FT\%H:\%M`.
 
 Replace `/path/to/domoboi_django` and `.venv` with the real paths. The `cd`
 matters: `settings.py` calls `load_dotenv()`, which searches upward from the
 working directory, and cron inherits none of your shell environment.
 
-Optionally add a live poll so the admin's `is_active` column stays meaningful —
-it uses a 60-minute window, so with daily-only collection every device reads
-inactive:
-
-```cron
-*/15 * * * * cd /path/to/domoboi_django && .venv/bin/python manage.py tuya_poll --once >> logs/tuya_poll.log 2>&1
-```
-
-That costs 1 call per device per run (~1,050/day for 11 devices).
+Don't add a live poll (`--once`) on the Trial: at 1 call per device per run, a
+15-minute poll costs ~1,050/day for 11 devices, more than the whole monthly quota
+allows.
 
 ## Rate limiting — the thing that will bite you
 
@@ -155,11 +149,11 @@ or configure `logrotate` if the host provides it.
 ## Checking it works
 
 ```bash
-tail -f logs/tuya_poll.log            # should show one line per minute
+tail -f logs/tuya_poll.log            # a block of per-device lines every hour at :25
 ```
 
 The authoritative check is the admin: `/admin/nilm/device/` shows `is_active`
-for every Tuya device that reported within the last 60 minutes. Do **not**
+for every Tuya device that reported within the last 24 hours. Do **not**
 judge by the location detail pages — `get_placeholder_events()` fabricates demo
 events when a date has none, so those look populated even when ingestion is
 completely broken.
@@ -184,7 +178,7 @@ If a device returns nothing, check it is actually reporting (`tuya-energy read
 
 ```bash
 manage.py tuya_poll                 # continuous loop (for the systemd unit)
-manage.py tuya_poll --once          # one cycle — what cron runs
+manage.py tuya_poll --once          # one live cycle (not in cron: quota)
 manage.py tuya_poll --dry-run       # fetch and report, write nothing
 manage.py tuya_poll --device <id>   # restrict to one meter
 manage.py sync_tuya_devices --dry-run   # compare cloud meters against the DB

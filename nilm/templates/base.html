@@ -246,6 +246,13 @@
       setTimeout(function() { t.remove(); }, 3000);
     }
 
+    // Record installed-app usage once per app session (feeds UserProfile.pwa_last_seen)
+    var standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+    if (standalone && !sessionStorage.getItem('pwaPing')) {
+      fetch('{% url "nilm:pwa_ping" %}', {method: 'POST', headers: {'X-CSRFToken': getCsrf()}})
+        .then(function (r) { if (r.ok) sessionStorage.setItem('pwaPing', '1'); });
+    }
+
     window.addEventListener('load', function () {
       navigator.serviceWorker.register('/nilm/sw.js', {scope: '/nilm/'})
         .then(function (reg) {
